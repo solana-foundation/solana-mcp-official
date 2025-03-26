@@ -3,7 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCP SSE Setup Guide</title>
+    <title>Solana Developer MCP - AI-Powered Development Tools for Solana Blockchain</title>
+    <meta name="description" content="Set up Solana Developer MCP in your IDE to access real-time documentation, query accounts, analyze transactions, and generate CPI statements. Built for the Solana developer community.">
+    <meta name="keywords" content="Solana, blockchain development, MCP, developer tools, smart contracts, web3, cryptocurrency, DeFi">
+    <meta property="og:title" content="Solana Developer MCP - AI-Powered Development Tools">
+    <meta property="og:description" content="Access Solana blockchain development tools directly in your IDE with real-time documentation and program analysis capabilities.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://solana-mcp-sse.vercel.app/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Solana Developer MCP">
+    <meta name="twitter:description" content="AI-powered development tools for Solana blockchain developers">
+    <link rel="canonical" href="https://solana-mcp-sse.vercel.app/">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <script>
@@ -24,31 +34,31 @@
         <!-- Header -->
         <header class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white relative">
             <div class="absolute right-4 top-4 flex items-center space-x-4">
-                <button id="darkModeToggle" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
-                    <svg id="sunIcon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20">
+                <button id="darkModeToggle" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors" aria-label="Toggle dark mode">
+                    <svg id="sunIcon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                         <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/>
                     </svg>
-                    <svg id="moonIcon" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                    <svg id="moonIcon" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                         <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
                     </svg>
                 </button>
             </div>
             <div class="container mx-auto px-6 py-16">
                 <div class="max-w-4xl mx-auto text-center">
-                    <h1 class="text-4xl md:text-6xl font-bold mb-6">Model Context Protocol SSE</h1>
-                    <p class="text-xl md:text-2xl text-purple-100">Set up MCP with Server-Sent Events in minutes</p>
+                    <h1 class="text-4xl md:text-6xl font-bold mb-6">Solana Developer MCP</h1>
+                    <p class="text-xl md:text-2xl text-purple-100">Set up remote Solana Developer MCP in your IDE in minutes!</p>
                 </div>
             </div>
         </header>
 
         <!-- Main Content -->
-        <main class="container mx-auto px-6 py-12">
+        <main class="container mx-auto px-6 py-6">
             <!-- Solana.com/ai Link -->
-            <div class="text-center mb-12">
+            <div class="text-center mb-8">
                 <a href="https://solana.com/ai" target="_blank" rel="noopener noreferrer" 
                    class="inline-flex items-center px-6 py-3 text-lg font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105">
                     <span>Explore Solana AI</span>
-                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                     </svg>
                 </a>
