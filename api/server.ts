@@ -3,11 +3,9 @@ import {
   McpServer,
   ResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { BN } from "@project-serum/anchor";
 import { QueryParameter, DuneClient } from "@duneanalytics/client-sdk";
-
 import {
   Connection,
   PublicKey,
@@ -18,23 +16,48 @@ import {
   Keypair,
   sendAndConfirmRawTransaction,
 } from "@solana/web3.js";
-import * as fs from "fs";
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
-import { bs58, utf8 } from "@project-serum/anchor/dist/cjs/utils/bytes";
+import { bs58 } from "@project-serum/anchor/dist/cjs/utils/bytes";
 import { BorshAccountsCoder } from "@project-serum/anchor";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import { ServerResponse } from "http";
+import { generateText } from 'ai';
+import { createOpenAI } from "@ai-sdk/openai";
 
 import { createCPI } from "./solanaprogram";
 
+const inkeep = createOpenAI({
+  apiKey: process.env.INKEEP_API_KEY,
+  baseURL: 'https://api.inkeep.com/v1',
+});
+
+
 const handler = initializeMcpApiHandler(
-  (server) => {
+  (server: McpServer) => {
     // Add more tools, resources, and prompts here
     const connection = new Connection(
       clusterApiUrl("mainnet-beta"),
       "confirmed"
     );
+
+    server.tool(
+      'answerQuestion',
+      'Answer a question about Solana from available documentation',
+      { question: z.string() },
+      async ({ question }) => {
+        const { text } = await generateText({
+          model: inkeep('inkeep-context-expert'),
+          messages: [
+            { role: 'user', content: question },
+          ],
+        })
+
+        return {
+          content: [
+            { type: 'text', text: text }
+          ]
+        }
+      }
+    )
 
     // Get Account Info
     server.tool(
@@ -101,9 +124,8 @@ const handler = initializeMcpApiHandler(
             content: [
               {
                 type: "text",
-                text: `${
-                  minBalance / LAMPORTS_PER_SOL
-                } SOL (${minBalance} lamports)`,
+                text: `${minBalance / LAMPORTS_PER_SOL
+                  } SOL (${minBalance} lamports)`,
               },
             ],
           };
@@ -189,7 +211,7 @@ const handler = initializeMcpApiHandler(
           const responseText = priorityFee
             ? JSON.stringify(priorityFee, null, 2)
             : "No priority fee data available" +
-              JSON.stringify(result, null, 2);
+            JSON.stringify(result, null, 2);
 
           return {
             content: [{ type: "text", text: responseText }],
@@ -277,7 +299,7 @@ const handler = initializeMcpApiHandler(
                 content: [{ type: "text", text: JSON.stringify(idl, null, 2) }],
               };
             }
-          } catch (e) {}
+          } catch (e) { }
 
           // Method 2: Manual account fetching
           const [idlAddress] = await PublicKey.findProgramAddress(
