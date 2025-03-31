@@ -1,0 +1,50 @@
+import { z } from "zod";
+import { generateText } from "ai";
+import { createOpenAI } from "@ai-sdk/openai";
+import fs from "fs/promises";
+import path from "path";
+
+const openrouter = createOpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
+});
+
+export type SolanaTool = {
+  title: string;
+  parameters: z.ZodRawShape;
+  func: (params: any) => Promise<any>;
+};
+
+export const geminiSolanaTools: SolanaTool[] = [
+  {
+    title: "Ask Solana Anchor Framework Expert",
+    parameters: {
+      question: z
+        .string()
+        .describe(
+          "Any question about the Anchor Framework. (how-to, concepts, APIs, SDKs, errors)"
+        ),
+    },
+
+    func: async ({ question }: { question: string }) => {
+      const anchorDocsText = await fs.readFile(
+        path.join(__dirname, "..", "context", "anchorDocs.xml"),
+        "utf8"
+      );
+      const systemPrompt = `
+      You are an expert software engineer specializing in the Anchor Framework.
+      You will answer the user's question based on the provided Anchor documentation.
+      
+      Anchor Documentation:
+      ${anchorDocsText}
+      `;
+      const { text } = await generateText({
+        system: systemPrompt,
+        model: openrouter("google/gemini-2.0-flash-001"),
+        messages: [{ role: "user", content: question }],
+      });
+
+      return { content: [{ type: "text", text }] };
+    },
+  },
+];

@@ -7,6 +7,7 @@ import { Socket } from "net";
 import { Readable } from "stream";
 import { ServerOptions } from "@modelcontextprotocol/sdk/server/index.js";
 import vercelJson from "../vercel.json";
+import { logAnalytics } from "./analytics";
 
 interface SerializedRequest {
   requestId: string;
@@ -53,6 +54,12 @@ export function initializeMcpApiHandler(
 
       const transport = new SSEServerTransport("/message", res);
       const sessionId = transport.sessionId;
+
+      await logAnalytics({
+        event_type: "sse_connection_established",
+        session_id: sessionId,
+      });
+
       const server = new McpServer(
         {
           name: "mcp-typescript server on vercel",
@@ -177,6 +184,14 @@ export function initializeMcpApiHandler(
         return;
       }
       const requestId = crypto.randomUUID();
+
+      await logAnalytics({
+        event_type: "mcp_message_received",
+        session_id: sessionId,
+        request_id: requestId,
+        details: { method: req.method, body: body },
+      });
+
       const serializedRequest: SerializedRequest = {
         requestId,
         url: req.url || "",
@@ -272,10 +287,7 @@ function createFakeIncomingMessage(
   // Copy over the stream methods
   req.push = readable.push.bind(readable);
   req.read = readable.read.bind(readable);
-  req.on = function (event, listener) {
-    readable.on(event, listener);
-    return req;
-  } as typeof req.on;
+  req.on = readable.on.bind(readable);
   req.pipe = readable.pipe.bind(readable);
 
   return req;
