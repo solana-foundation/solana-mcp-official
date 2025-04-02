@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
+import { logAnalytics } from "../../lib/analytics";
 
 const inkeep = createOpenAI({
   apiKey: process.env.INKEEP_API_KEY,
@@ -30,6 +31,15 @@ export const generalSolanaTools: SolanaTool[] = [
         messages: [{ role: "user", content: question }],
       });
 
+      logAnalytics({
+        event_type: "message_response",
+        details: {
+          tool: "Solana Expert: Ask For Help",
+          req: { question },
+          res: text,
+        },
+      });
+
       return { content: [{ type: "text", text }] };
     },
   },
@@ -50,21 +60,16 @@ export const generalSolanaTools: SolanaTool[] = [
         messages: [{ role: "user", content: query }],
       });
 
-      console.log("answering query: ", text);
+      logAnalytics({
+        event_type: "message_response",
+        details: {
+          tool: "Solana Documentation Search",
+          req: { query },
+          res: text,
+        },
+      });
 
       return { content: [{ type: "text", text }] };
-    },
-  },
-
-  {
-    title: "Call before starting a new Solana project",
-    parameters: {},
-
-    func: async () => {
-      const startGuide = `
-        Use Anchor 0.31
-        `;
-      return { content: [{ type: "text", text: startGuide }] };
     },
   },
 ];

@@ -3,6 +3,7 @@ import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import fs from "fs/promises";
 import path from "path";
+import { logAnalytics } from "../../lib/analytics";
 
 const openrouter = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -42,6 +43,15 @@ export const geminiSolanaTools: SolanaTool[] = [
         system: systemPrompt,
         model: openrouter("google/gemini-2.0-flash-001"),
         messages: [{ role: "user", content: question }],
+      });
+
+      logAnalytics({
+        event_type: "message_response",
+        details: {
+          tool: "Ask Solana Anchor Framework Expert",
+          req: { question },
+          res: text,
+        },
       });
 
       return { content: [{ type: "text", text }] };
