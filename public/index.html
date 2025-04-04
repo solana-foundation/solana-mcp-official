@@ -1,161 +1,334 @@
 <!DOCTYPE html>
 <html lang="en" class="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solana Developer MCP - AI-Powered Development Tools for Solana Blockchain</title>
-    <meta name="description" content="Set up Solana Developer MCP in your IDE to access real-time documentation, query accounts, analyze transactions, and generate CPI statements. Built for the Solana developer community.">
-    <meta name="keywords" content="Solana, blockchain development, MCP, developer tools, smart contracts, web3, cryptocurrency, DeFi">
-    <meta property="og:title" content="Solana Developer MCP - AI-Powered Development Tools">
-    <meta property="og:description" content="Access Solana blockchain development tools directly in your IDE with real-time documentation and program analysis capabilities.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://mcp.solana.com/">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Solana Developer MCP">
-    <meta name="twitter:description" content="AI-powered development tools for Solana blockchain developers">
-    <link rel="canonical" href="https://mcp.solana.com/">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      Solana Developer MCP - AI-Powered Development Tools for Solana Blockchain
+    </title>
+    <meta
+      name="description"
+      content="Set up Solana Developer MCP in your IDE to access real-time documentation, query accounts, analyze transactions, and generate CPI statements. Built for the Solana developer community."
+    />
+    <meta
+      name="keywords"
+      content="Solana, blockchain development, MCP, developer tools, smart contracts, web3, cryptocurrency, DeFi"
+    />
+    <meta
+      property="og:title"
+      content="Solana Developer MCP - AI-Powered Development Tools"
+    />
+    <meta
+      property="og:description"
+      content="Access Solana blockchain development tools directly in your IDE with real-time documentation and program analysis capabilities."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mcp.solana.com/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Solana Developer MCP" />
+    <meta
+      name="twitter:description"
+      content="AI-powered development tools for Solana blockchain developers"
+    />
+    <link rel="canonical" href="https://mcp.solana.com/" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
-        }
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+            },
+          },
+        },
+      };
     </script>
-</head>
-<body class="bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-200">
+  </head>
+  <body
+    class="bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-200"
+  >
     <div class="min-h-screen">
-        <!-- Header -->
-        <header class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white relative">
-            <div class="absolute right-4 top-4 flex items-center space-x-4">
-                <button id="darkModeToggle" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors" aria-label="Toggle dark mode">
-                    <svg id="sunIcon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                        <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/>
-                    </svg>
-                    <svg id="moonIcon" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="container mx-auto px-6 py-16">
-                <div class="max-w-4xl mx-auto text-center">
-                    <h1 class="text-4xl md:text-6xl font-bold mb-6">Solana Developer MCP</h1>
-                    <p class="text-xl md:text-2xl text-purple-100">Set up remote Solana Developer MCP in your IDE in minutes!</p>
-                </div>
-            </div>
-        </header>
+      <!-- Header -->
+      <header
+        class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white relative"
+      >
+        <div class="absolute right-4 top-4 flex items-center space-x-4">
+          <button
+            id="darkModeToggle"
+            class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+            aria-label="Toggle dark mode"
+          >
+            <svg
+              id="sunIcon"
+              class="w-6 h-6 hidden"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+            >
+              <path
+                d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+              />
+            </svg>
+            <svg
+              id="moonIcon"
+              class="w-6 h-6"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+            >
+              <path
+                d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="container mx-auto px-6 py-16">
+          <div class="max-w-4xl mx-auto text-center">
+            <h1 class="text-4xl md:text-6xl font-bold mb-6">
+              Solana Developer MCP
+            </h1>
+            <p class="text-xl md:text-2xl text-purple-100">
+              Set up remote Solana Developer MCP in your IDE in minutes!
+            </p>
+          </div>
+        </div>
+      </header>
 
-        <!-- Main Content -->
-        <main class="container mx-auto px-6 py-6">
-            <!-- Solana.com/ai Link -->
-            <div class="text-center mb-8">
-                <a href="https://solana.com/ai" target="_blank" rel="noopener noreferrer" 
-                   class="inline-flex items-center px-6 py-3 text-lg font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105">
-                    <span>Explore Solana AI</span>
-                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                    </svg>
-                </a>
-            </div>
+      <!-- Main Content -->
+      <main class="container mx-auto px-6 py-6">
+        <!-- Solana.com/ai Link -->
+        <div class="text-center mb-8">
+          <a
+            href="https://solana.com/ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center px-6 py-3 text-lg font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105"
+          >
+            <span>Explore Solana AI</span>
+            <svg
+              class="w-5 h-5 ml-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
+            </svg>
+          </a>
+        </div>
 
-            <!-- Setup Guide -->
-            <div class="max-w-3xl mx-auto">
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-8">
-                    <h2 class="text-3xl font-bold mb-6 text-gray-800 dark:text-white">Quick Setup Guide</h2>
-                    
-                    <div class="space-y-6">
-                        <div>
-                            <h3 class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200">1. Configure MCP Settings</h3>
-                            <p class="text-gray-600 dark:text-gray-300 mb-4">Add the following configuration to your project's <code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400">.cursor/mcp.json</code> file or add globally by opening the command palette (<code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400">Cmd/Ctrl + Shift + P</code>) and selecting <code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400">&gt; Cursor Settings &gt; MCP &gt; Add new global MCP server</code>:</p>
-                            <pre class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto"><code>{
+        <!-- Setup Guide -->
+        <div class="max-w-3xl mx-auto">
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-8">
+            <h2 class="text-3xl font-bold mb-6 text-gray-800 dark:text-white">
+              Quick Setup Guide
+            </h2>
+
+            <div class="space-y-6">
+              <div>
+                <h3
+                  class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200"
+                >
+                  1. Configure MCP Settings
+                </h3>
+                <p class="text-gray-600 dark:text-gray-300 mb-4">
+                  Add the following configuration to your project's
+                  <code
+                    class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                    >.cursor/mcp.json</code
+                  >
+                  file or add globally by opening the command palette (<code
+                    class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                    >Cmd/Ctrl + Shift + P</code
+                  >) and selecting
+                  <code
+                    class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                    >&gt; Cursor Settings &gt; MCP &gt; Add new global MCP
+                    server</code
+                  >:
+                </p>
+                <pre
+                  class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto"
+                ><code>{
   "mcpServers": {
     "solanaMcp": {
       "url": "https://mcp.solana.com/sse"
     }
   }
 }</code></pre>
-                        </div>
+              </div>
 
-                        <div>
-                            <h3 class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200">2. Verify Connection</h3>
-                            <p class="text-gray-600 dark:text-gray-300">Once configured, your Cursor IDE will automatically connect to the MCP SSE server. You can verify the connection by opening Composer in Agent Mode (<code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400">Cmd + I</code>) and asking it "What is the balance of the Solana system program?". You should see a card like so in the composer sidebar:</p>
-                            <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md flex items-center">
-                                <span class="text-gray-400 dark:text-gray-400">
-                                    > Called MCP tool <code class="font-mono text-gray-400 dark:text-gray-400">getBalance</code> ✓
-                                </span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200">3. Configure User Rules</h3>
-                            <p class="text-gray-600 dark:text-gray-300">Add the following to your Cursor user rules by going to the command palette (<code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400">Cmd/Ctrl + Shift + P</code>) and selecting <code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400">&gt; Cursor Settings > Rules</code>:</p>
-                            <pre class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto mt-4"><code>Always use mcp tools</code></pre>
-                        </div>
-
-                        <div>
-                            <h3 class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200">4. Start Using MCP Features</h3>
-                            <ul class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-2">
-                                <li>Access Solana program information</li>
-                                <li>Query account details</li>
-                                <li>Check program deployments</li>
-                                <li>Generate CPI statements</li>
-                                <li>Analyze transactions</li>
-                            </ul>
-                        </div>
-                    </div>
+              <div>
+                <h3
+                  class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200"
+                >
+                  2. Verify Connection
+                </h3>
+                <p class="text-gray-600 dark:text-gray-300">
+                  Once configured, your Cursor IDE will automatically connect to
+                  the MCP SSE server. You can verify the connection by opening
+                  Composer in Agent Mode (<code
+                    class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                    >Cmd + I</code
+                  >) and asking it "What is the balance of the Solana system
+                  program?". You should see a card like so in the composer
+                  sidebar:
+                </p>
+                <div
+                  class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md flex items-center"
+                >
+                  <span class="text-gray-400 dark:text-gray-400">
+                    &gt; Called MCP tool
+                    <code class="font-mono text-gray-400 dark:text-gray-400"
+                      >getBalance</code
+                    >
+                    ✓
+                  </span>
                 </div>
+              </div>
 
-                <!-- Features Section -->
-                <div class="grid md:grid-cols-2 gap-8 mt-12">
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                        <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-white">🚀 Real-time Updates</h3>
-                        <p class="text-gray-600 dark:text-gray-300">Get up-to-date information about Solana documentation right inside your IDE</p>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                        <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-white">🔒 Secure Integration</h3>
-                        <p class="text-gray-600 dark:text-gray-300">Built with security in mind minimizing sensitive information exposure</p>
-                    </div>
-                </div>
+              <div>
+                <h3
+                  class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200"
+                >
+                  3. Configure User Rules
+                </h3>
+                <p class="text-gray-600 dark:text-gray-300">
+                  Add the following to your Cursor user rules by going to the
+                  command palette (<code
+                    class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                    >Cmd/Ctrl + Shift + P</code
+                  >) and selecting
+                  <code
+                    class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                    >&gt; Cursor Settings &gt; Rules</code
+                  >:
+                </p>
+                <br/>
+           
+
+                    <pre
+                      class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto"
+                    ><code>&lt;MCP_USE_GUIDELINE&gt;
+  &lt;INSTRUCTION&gt;
+    If you are working on a Solana-related project. Make frequent use of the following MCP tools to accomplish your goals.
+  &lt;/INSTRUCTION&gt;
+  &lt;TOOLS&gt;
+    The following Solana tools are at your disposal:
+    - "Solana Expert: Ask For Help": Use this tool to ask detailed questions about Solana (how-to, concepts, APIs, SDKs, errors). Provide as much context as possible when using it.
+    - "Solana Documentation Search": Use this tool to search the Solana documentation corpus for relevant information based on a query.
+    - "Ask Solana Anchor Framework Expert": Use this tool for any questions specific to the Anchor Framework, including its APIs, SDKs, and error handling.
+  &lt;/TOOLS&gt;
+&lt;/MCP_USE_GUIDELINE&gt;</code></pre>
+<br/>
+
+
+              <div>
+                <h3
+                  class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200"
+                >
+                  4. Start Using MCP Features
+                </h3>
+                <ul
+                  class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-2"
+                >
+                  <li>Access Solana program information</li>
+                  <li>Query account details</li>
+                  <li>Check program deployments</li>
+                  <li>Generate CPI statements</li>
+                  <li>Analyze transactions</li>
+                </ul>
+                <br/>
+
+                <h3
+                  class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200"
+                >
+                  Example Queries:
+                </h3>
+              <ul
+              class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-2"
+            >                  <li>“How are CPI events implemented in Anchor 0.31?”</li>
+                  <li>“Build an AMM that supports token-2022 and older tokens.”</li>
+                  <li>"How can I implement a staking mechanism with time-locked rewards?"
+                  </li>
+                  <li>"What are the best practices for handling decimal values in Solana programs?"</li>
+              </ul>
+              </div>
             </div>
-        </main>
+          </div>
 
-        <!-- Footer -->
-        <footer class="bg-gray-900 text-gray-400 mt-16">
-            <div class="container mx-auto px-6 py-8">
-                <div class="text-center">
-                    <p>Built with ❤️ for the Solana community</p>
-                </div>
+          <!-- Features Section -->
+          <div class="grid md:grid-cols-2 gap-8 mt-12">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+              <h3
+                class="text-xl font-semibold mb-2 text-gray-800 dark:text-white"
+              >
+                🚀 Real-time Updates
+              </h3>
+              <p class="text-gray-600 dark:text-gray-300">
+                Get up-to-date information about Solana documentation right
+                inside your IDE
+              </p>
             </div>
-        </footer>
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+              <h3
+                class="text-xl font-semibold mb-2 text-gray-800 dark:text-white"
+              >
+                🔒 Secure Integration
+              </h3>
+              <p class="text-gray-600 dark:text-gray-300">
+                Built with security in mind, minimizing sensitive information
+                exposure
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer class="bg-gray-900 text-gray-400 mt-16">
+        <div class="container mx-auto px-6 py-8">
+          <div class="text-center">
+            <p>Built with ❤️ for the Solana community</p>
+          </div>
+        </div>
+      </footer>
     </div>
 
     <script>
-        // Dark mode toggle functionality
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        const sunIcon = document.getElementById('sunIcon');
-        const moonIcon = document.getElementById('moonIcon');
-        const html = document.documentElement;
+      // Dark mode toggle functionality
+      const darkModeToggle = document.getElementById("darkModeToggle");
+      const sunIcon = document.getElementById("sunIcon");
+      const moonIcon = document.getElementById("moonIcon");
+      const html = document.documentElement;
 
-        // Check for saved dark mode preference
-        if (localStorage.getItem('darkMode') === 'true' || 
-            (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            html.classList.add('dark');
-            sunIcon.classList.remove('hidden');
-            moonIcon.classList.add('hidden');
-        }
+      // Check for saved dark mode preference
+      if (
+        localStorage.getItem("darkMode") === "true" ||
+        (!localStorage.getItem("darkMode") &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches)
+      ) {
+        html.classList.add("dark");
+        sunIcon.classList.remove("hidden");
+        moonIcon.classList.add("hidden");
+      }
 
-        darkModeToggle.addEventListener('click', () => {
-            html.classList.toggle('dark');
-            sunIcon.classList.toggle('hidden');
-            moonIcon.classList.toggle('hidden');
-            localStorage.setItem('darkMode', html.classList.contains('dark'));
-        });
+      darkModeToggle.addEventListener("click", () => {
+        html.classList.toggle("dark");
+        sunIcon.classList.toggle("hidden");
+        moonIcon.classList.toggle("hidden");
+        localStorage.setItem("darkMode", html.classList.contains("dark"));
+      });
     </script>
-</body>
+  </body>
 </html>
