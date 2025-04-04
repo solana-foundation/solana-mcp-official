@@ -223,7 +223,7 @@ export function initializeMcpApiHandler(
         await redis.unsubscribe(`responses:${sessionId}:${requestId}`);
         res.statusCode = 408;
         res.end("Request timed out");
-      }, 10 * 1000);
+      }, (maxDuration - 5) * 1000);
 
       res.on("close", async () => {
         clearTimeout(timeout);
