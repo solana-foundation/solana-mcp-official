@@ -7,6 +7,7 @@ import { Socket } from "net";
 import { Readable } from "stream";
 import { ServerOptions } from "@modelcontextprotocol/sdk/server/index.js";
 import vercelJson from "../vercel.json";
+import { logAnalytics } from "./analytics";
 
 interface SerializedRequest {
   requestId: string;
@@ -53,6 +54,7 @@ export function initializeMcpApiHandler(
 
       const transport = new SSEServerTransport("/message", res);
       const sessionId = transport.sessionId;
+
       const server = new McpServer(
         {
           name: "mcp-typescript server on vercel",
@@ -96,6 +98,7 @@ export function initializeMcpApiHandler(
           body: request.body,
         });
         const syntheticRes = new ServerResponse(req);
+
         let status = 100;
         let body = "";
         syntheticRes.writeHead = (statusCode: number) => {
@@ -177,6 +180,14 @@ export function initializeMcpApiHandler(
         return;
       }
       const requestId = crypto.randomUUID();
+
+      logAnalytics({
+        event_type: "message_received",
+        session_id: sessionId,
+        request_id: requestId,
+        details: { method: req.method, body: body },
+      });
+
       const serializedRequest: SerializedRequest = {
         requestId,
         url: req.url || "",
@@ -194,6 +205,7 @@ export function initializeMcpApiHandler(
             status: number;
             body: string;
           };
+
           res.statusCode = response.status;
           res.end(response.body);
         }
@@ -211,7 +223,7 @@ export function initializeMcpApiHandler(
         await redis.unsubscribe(`responses:${sessionId}:${requestId}`);
         res.statusCode = 408;
         res.end("Request timed out");
-      }, 10 * 1000);
+      }, (maxDuration - 5) * 1000);
 
       res.on("close", async () => {
         clearTimeout(timeout);
@@ -247,7 +259,7 @@ function createFakeIncomingMessage(
 
   // Create a readable stream that will be used as the base for IncomingMessage
   const readable = new Readable();
-  readable._read = (): void => { }; // Required implementation
+  readable._read = (): void => {}; // Required implementation
 
   // Add the body content if provided
   if (body) {
