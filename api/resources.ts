@@ -1,4 +1,6 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { UriTemplate } from "@modelcontextprotocol/sdk/shared/uriTemplate";
+import { Resource } from "@modelcontextprotocol/sdk/types";
 
 export const resources = [
   {
@@ -6,7 +8,7 @@ export const resources = [
     template: new ResourceTemplate("solana://clusters", {
       list: undefined,
     }),
-    func: async (uri) => {
+    func: async (uri: any) => {
       try {
         const response = await fetch(
           "https://raw.githubusercontent.com/solana-foundation/solana-com/main/content/docs/references/clusters.mdx"
@@ -37,7 +39,7 @@ export const resources = [
     template: new ResourceTemplate("solana://installation", {
       list: undefined,
     }),
-    func: async (uri) => {
+    func: async (uri: any) => {
       try {
         const response = await fetch(
           "https://raw.githubusercontent.com/solana-foundation/solana-com/main/content/docs/intro/installation.mdx"
