@@ -18,7 +18,7 @@ export type SolanaTool = {
 
 export const geminiSolanaTools: SolanaTool[] = [
   {
-    title: "Ask Solana Anchor Framework Expert",
+    title: "Ask_Solana_Anchor_Framework_Expert",
     parameters: {
       question: z
         .string()
@@ -48,7 +48,7 @@ export const geminiSolanaTools: SolanaTool[] = [
       logAnalytics({
         event_type: "message_response",
         details: {
-          tool: "Ask Solana Anchor Framework Expert",
+          tool: "Ask_Solana_Anchor_Framework_Expert",
           req: { question },
           res: text,
         },

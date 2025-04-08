@@ -16,7 +16,7 @@ export type SolanaTool = {
 
 export const generalSolanaTools: SolanaTool[] = [
   {
-    title: "Solana Expert: Ask For Help",
+    title: "Solana_Expert__Ask_For_Help",
     parameters: {
       question: z
         .string()
@@ -34,7 +34,7 @@ export const generalSolanaTools: SolanaTool[] = [
       logAnalytics({
         event_type: "message_response",
         details: {
-          tool: "Solana Expert: Ask For Help",
+          tool: "Solana_Expert__Ask_For_Help",
           req: { question },
           res: text,
         },
@@ -45,7 +45,7 @@ export const generalSolanaTools: SolanaTool[] = [
   },
 
   {
-    title: "Solana Documentation Search",
+    title: "Solana_Documentation_Search",
     parameters: {
       query: z
         .string()
@@ -63,7 +63,7 @@ export const generalSolanaTools: SolanaTool[] = [
       logAnalytics({
         event_type: "message_response",
         details: {
-          tool: "Solana Documentation Search",
+          tool: "Solana_Documentation_Search",
           req: { query },
           res: text,
         },
