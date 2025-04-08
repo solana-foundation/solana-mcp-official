@@ -5,6 +5,7 @@ import { generalSolanaTools, SolanaTool } from "./tools/general_solana_tools";
 import { geminiSolanaTools } from "./tools/gemini_solana_tools";
 import { resources } from "./resources";
 import { z } from "zod";
+import { solanaEcosystemTools } from "./tools/ecosystem_solana_tools";
 
 const handler = initializeMcpApiHandler(
   (server: McpServer) => {
@@ -13,6 +14,10 @@ const handler = initializeMcpApiHandler(
     });
 
     geminiSolanaTools.forEach((tool: SolanaTool) => {
+      server.tool(tool.title, tool.parameters, tool.func);
+    });
+
+    solanaEcosystemTools.forEach((tool: SolanaTool) => {
       server.tool(tool.title, tool.parameters, tool.func);
     });
 
