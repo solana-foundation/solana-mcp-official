@@ -47,10 +47,30 @@ export function initializeMcpApiHandler(
     req: IncomingMessage,
     res: ServerResponse
   ) {
+    // Set CORS headers
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type,Authorization,Accept,x-requested-with"
+    );
+
+    if (req.method === "OPTIONS") {
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
+
     await redisPromise;
     const url = new URL(req.url || "", "https://example.com");
+
     if (url.pathname === "/sse") {
       console.log("Got new SSE connection");
+
+      // SSE headers
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Connection", "keep-alive");
 
       const transport = new SSEServerTransport("/message", res);
       const sessionId = transport.sessionId;
@@ -196,6 +216,12 @@ export function initializeMcpApiHandler(
         headers: req.headers,
       };
 
+      let timeout = setTimeout(async () => {
+        await redis.unsubscribe(`responses:${sessionId}:${requestId}`);
+        res.statusCode = 408;
+        res.end("Request timed out");
+      }, (maxDuration - 5) * 1000);
+
       // Handles responses from the /sse endpoint.
       await redis.subscribe(
         `responses:${sessionId}:${requestId}`,
@@ -205,6 +231,8 @@ export function initializeMcpApiHandler(
             status: number;
             body: string;
           };
+
+          console.log("Received response", response);
 
           res.statusCode = response.status;
           res.end(response.body);
@@ -218,12 +246,6 @@ export function initializeMcpApiHandler(
         JSON.stringify(serializedRequest)
       );
       console.log(`Published requests:${sessionId}`, serializedRequest);
-
-      let timeout = setTimeout(async () => {
-        await redis.unsubscribe(`responses:${sessionId}:${requestId}`);
-        res.statusCode = 408;
-        res.end("Request timed out");
-      }, (maxDuration - 5) * 1000);
 
       res.on("close", async () => {
         clearTimeout(timeout);
@@ -259,7 +281,7 @@ function createFakeIncomingMessage(
 
   // Create a readable stream that will be used as the base for IncomingMessage
   const readable = new Readable();
-  readable._read = (): void => { }; // Required implementation
+  readable._read = (): void => {}; // Required implementation
 
   // Add the body content if provided
   if (body) {
@@ -284,7 +306,6 @@ function createFakeIncomingMessage(
   // Copy over the stream methods
   req.push = readable.push.bind(readable);
   req.read = readable.read.bind(readable);
-  // @ts-ignore
   req.on = readable.on.bind(readable);
   req.pipe = readable.pipe.bind(readable);
 

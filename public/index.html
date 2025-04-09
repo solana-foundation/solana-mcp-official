@@ -52,6 +52,22 @@
         },
       };
     </script>
+    <style>
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      .tab {
+        cursor: pointer;
+        padding: 8px 16px;
+        border-radius: 8px 8px 0 0;
+      }
+      .tab.active {
+        background-color: #1f2937;
+      }
+    </style>
   </head>
   <body
     class="bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-200"
@@ -146,31 +162,60 @@
                   1. Configure MCP Settings
                 </h3>
                 <p class="text-gray-600 dark:text-gray-300 mb-4">
-                  Add the following configuration to your project's
-                  <code
-                    class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                    >.cursor/mcp.json</code
-                  >
-                  file or add globally by opening the command palette (<code
-                    class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                    >Cmd/Ctrl + Shift + P</code
-                  >) and selecting
-                  <code
-                    class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                    >&gt; Cursor Settings &gt; MCP &gt; Add new global MCP
-                    server</code
-                  >:
+                  Add the following configuration to your project based on your IDE:
                 </p>
-                <pre
-                  class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto"
-                ><code>{
+                
+                <!-- Tabs -->
+                <div class="mb-2 flex">
+                  <div id="cursorTab" class="tab active text-purple-400 mr-2">Cursor</div>
+                  <div id="windsurfTab" class="tab text-purple-400">Windsurf</div>
+                </div>
+                
+                <!-- Tab Contents -->
+                <div id="cursorContent" class="tab-content active">
+                  <p class="text-gray-600 dark:text-gray-300 mb-4">
+                    Add to your project's
+                    <code
+                      class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                      >.cursor/mcp.json</code
+                    >
+                    file or add globally by opening the command palette (<code
+                      class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                      >Cmd/Ctrl + Shift + P</code
+                    >) and selecting
+                    <code
+                      class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                      >&gt; Cursor Settings &gt; MCP &gt; Add new global MCP
+                      server</code
+                    >:
+                  </p>
+                  <pre
+                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto"
+                  ><code>{
   "mcpServers": {
     "solanaMcp": {
       "url": "https://mcp.solana.com/sse"
     }
   }
 }</code>
-</pre>
+                  </pre>
+                </div>
+                
+                <div id="windsurfContent" class="tab-content">
+                  <p class="text-gray-600 dark:text-gray-300 mb-4">
+                    For Windsurf, use the following configuration (note the <code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400">serverUrl</code> instead of <code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400">url</code>):
+                  </p>
+                  <pre
+                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto"
+                  ><code>{
+  "mcpServers": {
+    "solanaMcp": {
+      "serverUrl": "https://mcp.solana.com/sse"
+    }
+  }
+}</code>
+                  </pre>
+                </div>
               </div>
 
               <div>
@@ -180,7 +225,7 @@
                   2. Verify Connection
                 </h3>
                 <p class="text-gray-600 dark:text-gray-300">
-                  Once configured, your Cursor IDE will automatically connect to
+                  Once configured, your IDE will automatically connect to
                   the MCP SSE server. You can verify the connection by opening
                   Composer in Agent Mode (<code
                     class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
@@ -209,7 +254,7 @@
                   3. Configure User Rules
                 </h3>
                 <p class="text-gray-600 dark:text-gray-300">
-                  Add the following to your Cursor user rules by going to the
+                  Add the following to your user rules by going to the
                   command palette (<code
                     class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
                     >Cmd/Ctrl + Shift + P</code
@@ -259,8 +304,8 @@
                 </h3>
               <ul
               class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-2"
-            >                  <li>“How are CPI events implemented in Anchor 0.31?”</li>
-                  <li>“Build an AMM that supports token-2022 and older tokens.”</li>
+            >                  <li>"How are CPI events implemented in Anchor 0.31?"</li>
+                  <li>"Build an AMM that supports token-2022 and older tokens."</li>
                   <li>"How can I implement a staking mechanism with time-locked rewards?"
                   </li>
                   <li>"What are the best practices for handling decimal values in Solana programs?"</li>
@@ -330,6 +375,26 @@
         sunIcon.classList.toggle("hidden");
         moonIcon.classList.toggle("hidden");
         localStorage.setItem("darkMode", html.classList.contains("dark"));
+      });
+      
+      // Tab functionality
+      const cursorTab = document.getElementById("cursorTab");
+      const windsurfTab = document.getElementById("windsurfTab");
+      const cursorContent = document.getElementById("cursorContent");
+      const windsurfContent = document.getElementById("windsurfContent");
+      
+      cursorTab.addEventListener("click", () => {
+        cursorTab.classList.add("active");
+        windsurfTab.classList.remove("active");
+        cursorContent.classList.add("active");
+        windsurfContent.classList.remove("active");
+      });
+      
+      windsurfTab.addEventListener("click", () => {
+        windsurfTab.classList.add("active");
+        cursorTab.classList.remove("active");
+        windsurfContent.classList.add("active");
+        cursorContent.classList.remove("active");
       });
     </script>
   </body>
