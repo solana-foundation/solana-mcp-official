@@ -24,6 +24,7 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://mcp.solana.com/" />
+    <meta property="og:image" content="https://mcp.solana.com/favicon.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Solana Developer MCP" />
     <meta
@@ -63,10 +64,25 @@
         cursor: pointer;
         padding: 8px 16px;
         border-radius: 8px 8px 0 0;
+        transition: all 0.2s ease;
       }
       .tab.active {
-        background-color: #1f2937;
+        /* background-color: #1f2937; */
+        background-color: #7c3aed;
+        color: white;
       }
+      .tab:not(.active) {
+        background-color: #f3f4f6;
+        color: #6b7280;
+      }
+      .dark .tab:not(.active) {
+        background-color: #374151;
+        color: #9ca3af;
+      }
+  </style>
+  <!-- ... (previous body content until tabs section) ... -->
+  
+  <!-- Tabs -->
     </style>
   </head>
   <body
@@ -161,15 +177,16 @@
                 >
                   1. Configure MCP Settings
                 </h3>
-                <p class="text-gray-600 dark:text-gray-300 mb-4">
-                  Add the following configuration to your project based on your IDE:
-                </p>
-                
+                  <p class="text-gray-600 dark:text-gray-300 mb-4">
+                    Add the following configuration to your project based on your IDE:
+                  </p>
+
                 <!-- Tabs -->
-                <div class="mb-2 flex">
-                  <div id="cursorTab" class="tab active text-purple-400 mr-2">Cursor</div>
-                  <div id="windsurfTab" class="tab text-purple-400">Windsurf</div>
+                <div class="mb-2 flex border-b border-gray-600 mb-4">
+                    <button id="cursorTab" class="tab active text-purple-400 mr-0 border-1 border-purple-600">Cursor</button>
+                    <button id="windsurfTab" class="tab text-purple-400 border-1 border-purple-600">Windsurf</button>
                 </div>
+                
                 
                 <!-- Tab Contents -->
                 <div id="cursorContent" class="tab-content active">
@@ -197,10 +214,8 @@
       "url": "https://mcp.solana.com/sse"
     }
   }
-}</code>
-                  </pre>
+}</code></pre>
                 </div>
-                
                 <div id="windsurfContent" class="tab-content">
                   <p class="text-gray-600 dark:text-gray-300 mb-4">
                     For Windsurf, use the following configuration (note the <code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400">serverUrl</code> instead of <code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400">url</code>):
@@ -213,8 +228,7 @@
       "serverUrl": "https://mcp.solana.com/sse"
     }
   }
-}</code>
-                  </pre>
+}</code></pre>
                 </div>
               </div>
 
@@ -224,14 +238,13 @@
                 >
                   2. Verify Connection
                 </h3>
-                <p class="text-gray-600 dark:text-gray-300">
+                <p class="text-gray-600 dark:text-gray-300 mb-4">
                   Once configured, your IDE will automatically connect to
                   the MCP SSE server. You can verify the connection by opening
                   Composer in Agent Mode (<code
                     class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
                     >Cmd + I</code
-                  >) and asking it "What is the balance of the Solana system
-                  program?". You should see a card like so in the composer
+                  >) and asking it "How do I implement CPIs in solana smart contracts with pinocchio?". You should see a card like so in the composer
                   sidebar:
                 </p>
                 <div
@@ -240,7 +253,7 @@
                   <span class="text-gray-400 dark:text-gray-400">
                     &gt; Called MCP tool
                     <code class="font-mono text-gray-400 dark:text-gray-400"
-                      >getBalance</code
+                      >Solana_Expert__Ask_For_Help</code
                     >
                     ✓
                   </span>
@@ -261,7 +274,7 @@
                   >) and selecting
                   <code
                     class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                    >&gt; Cursor Settings &gt; Rules</code
+                    >&gt; Settings &gt; Rules</code
                   >:
                 </p>
                 <br/>
@@ -281,8 +294,6 @@
   &lt;/TOOLS&gt;
 &lt;/MCP_USE_GUIDELINE&gt;</code></pre>
 <br/>
-
-
               <div>
                 <h3
                   class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200"
@@ -304,7 +315,8 @@
                 </h3>
               <ul
               class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-2"
-            >                  <li>"How are CPI events implemented in Anchor 0.31?"</li>
+            >                  
+                  <li>"How are CPI events implemented in Anchor 0.31?"</li>
                   <li>"Build an AMM that supports token-2022 and older tokens."</li>
                   <li>"How can I implement a staking mechanism with time-locked rewards?"
                   </li>
@@ -341,15 +353,6 @@
             </div>
           </div>
       </main>
-
-      <!-- Footer -->
-      <!-- <footer class="bg-gray-900 text-gray-400 mt-16">
-        <div class="container mx-auto px-6 py-8">
-          <div class="text-center">
-            <p>Built with ❤️ for the Solana community</p>
-          </div>
-        </div>
-      </footer> -->
     </div>
 
     <script>
@@ -384,17 +387,35 @@
       const windsurfContent = document.getElementById("windsurfContent");
       
       cursorTab.addEventListener("click", () => {
-        cursorTab.classList.add("active");
-        windsurfTab.classList.remove("active");
-        cursorContent.classList.add("active");
-        windsurfContent.classList.remove("active");
+        if (!cursorTab.className.includes("active")) {
+          cursorTab.classList.add("active");
+        }
+        if (windsurfTab.className.includes("active")) {
+          windsurfTab.classList.remove("active");
+        }
+
+        if (!cursorContent.className.includes("active")) {
+          cursorContent.classList.add("active");
+        }
+        if (windsurfContent.className.includes("active")) {
+          windsurfContent.classList.remove("active");
+        }
       });
       
       windsurfTab.addEventListener("click", () => {
-        windsurfTab.classList.add("active");
-        cursorTab.classList.remove("active");
-        windsurfContent.classList.add("active");
-        cursorContent.classList.remove("active");
+        if (!windsurfTab.className.includes("active")) {
+          windsurfTab.classList.add("active");
+        }
+        if (cursorTab.className.includes("active")) {
+          cursorTab.classList.remove("active");
+        }
+
+        if (!windsurfContent.className.includes("active")) {
+          windsurfContent.classList.add("active");
+        }
+        if (cursorContent.className.includes("active")) {
+          cursorContent.classList.remove("active");
+        }
       });
     </script>
   </body>
