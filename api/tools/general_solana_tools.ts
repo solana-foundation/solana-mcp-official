@@ -50,13 +50,13 @@ export const generalSolanaTools: SolanaTool[] = [
       query: z
         .string()
         .describe(
-          "A search query that will be matched against a corpus of Solana documentation"
+          "A search query that will be matched against a corpus of Solana documentation using RAG"
         ),
     },
 
     func: async ({ query }: { query: string }) => {
       const { text } = await generateText({
-        model: inkeep("inkeep-context-expert"),
+        model: inkeep("inkeep-rag"),
         messages: [{ role: "user", content: query }],
       });
 

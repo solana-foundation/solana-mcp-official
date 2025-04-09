@@ -21,7 +21,9 @@ export const solanaEcosystemTools: SolanaTool[] = [
       query: z.string().describe(`
 Search documentation for the following Solana projects:
     - Raydium, Jupiter, Meteora, Orca, Lifinity, GooseFX, FluxBeam, Phoenix, Drift, HXRO, FlashTrade, Zeta, MarginFi, Solend, Kamino, Marinade, BlazeStake, Jito, Helius, QuickNode, ChainStack, Sanctum, GeckoTerminal, CoinGecko, PumpPortal, DexScreener, BirdEye, Dune, MagicEden, Trojan, Phantom, Squads, SolFlare, SolScan, ZKCompression, BonkBot
-Specify which project's documentation you want to search and what you want to search for. Example: "Raydium: How to create a CLLM?"`),
+Specify which project's documentation you want to search and what you want to search for. Your search query will be matched against a corpus of Solana ecosystem documentation using RAG, so format it appropriately.
+
+Example: "Raydium: How to create a CLLM?"`),
     },
 
     func: async ({ query }: { query: string }) => {
