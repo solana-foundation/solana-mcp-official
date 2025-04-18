@@ -21,13 +21,13 @@ export const generalSolanaTools: SolanaTool[] = [
       question: z
         .string()
         .describe(
-          "A Solana related question. (how-to, concepts, APIs, SDKs, errors)\n Provide as much context about the problem as needed, to make the expert understand the problem."
+          "A Solana related question. (how-to, concepts, APIs, SDKs, errors)\n Provide as much context about the problem as needed, to make the expert understand the problem. The expert will do a similarity search based on your question and provide you the results."
         ),
     },
 
     func: async ({ question }: { question: string }) => {
       const { text } = await generateText({
-        model: inkeep("inkeep-context-expert"),
+        model: inkeep("inkeep-rag"),
         messages: [{ role: "user", content: question }],
       });
 
