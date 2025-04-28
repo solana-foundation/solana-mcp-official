@@ -21,7 +21,7 @@ export const generalSolanaTools: SolanaTool[] = [
       question: z
         .string()
         .describe(
-          "A Solana related question. (how-to, concepts, APIs, SDKs, errors)\n Provide as much context about the problem as needed, to make the expert understand the problem. The expert will do a similarity search based on your question and provide you the results."
+          "A Solana developmentrelated question. (how-to, concepts, APIs, SDKs, errors)\n Provide as much context about the problem as needed, to make the expert understand the problem."
         ),
     },
 
@@ -50,7 +50,7 @@ export const generalSolanaTools: SolanaTool[] = [
       query: z
         .string()
         .describe(
-          "A search query that will be matched against a corpus of Solana documentation using RAG"
+          "Search general Solana developer documentation. This tool should be used for any solana related question. This is the default Solana development MCP tool"
         ),
     },
 

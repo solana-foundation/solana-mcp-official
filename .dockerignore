@@ -1,0 +1,16 @@
+# Dependency directories
+node_modules
+.pnpm
+
+# Build output
+dist
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / IDE files
+.DS_Store
+.idea
+.vscode

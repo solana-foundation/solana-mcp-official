@@ -1,62 +1,89 @@
-import { initializeMcpApiHandler } from "../lib/mcp-api-handler";
+import dotenv from "dotenv";
+dotenv.config();
+import express, { Request, Response } from "express";
+import { v4 as uuidv4 } from "uuid";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { generalSolanaTools, SolanaTool } from "./tools/general_solana_tools";
 import { geminiSolanaTools } from "./tools/gemini_solana_tools";
-import { resources } from "./resources";
-import { z } from "zod";
 import { solanaEcosystemTools } from "./tools/ecosystem_solana_tools";
+import { logAnalytics } from "../lib/analytics";
+const PORT = process.env.PORT || 3001;
+const app = express();
+app.use(express.json());
 
-const handler = initializeMcpApiHandler(
-  (server: McpServer) => {
-    generalSolanaTools.forEach((tool: SolanaTool) => {
-      server.tool(tool.title, tool.parameters, tool.func);
-    });
+const server = new McpServer({
+  name: "solana-mcp-server",
+  version: "1.0.0",
+});
 
-    geminiSolanaTools.forEach((tool: SolanaTool) => {
-      server.tool(tool.title, tool.parameters, tool.func);
-    });
+generalSolanaTools.forEach((tool: SolanaTool) => {
+  server.tool(tool.title, tool.parameters, tool.func);
+});
+geminiSolanaTools.forEach((tool: SolanaTool) => {
+  server.tool(tool.title, tool.parameters, tool.func);
+});
+solanaEcosystemTools.forEach((tool: SolanaTool) => {
+  server.tool(tool.title, tool.parameters, tool.func);
+});
 
-    solanaEcosystemTools.forEach((tool: SolanaTool) => {
-      server.tool(tool.title, tool.parameters, tool.func);
-    });
+const transports: Record<string, SSEServerTransport> = {};
 
-    resources.forEach((resource) => {
-      server.resource(resource.name, resource.template, resource.func);
-    });
+app.get("/sse", async (req: Request, res: Response) => {
+  try {
+    const transport = new SSEServerTransport("/messages", res);
+    const sessionId = transport.sessionId;
+    transports[sessionId] = transport;
 
-    server.prompt(
-      "<IMPORTANT> Call when starting any Solana related project </IMPORTANT>",
-      { code: z.string() },
-      ({ code }) => ({
-        messages: [
-          {
-            role: "user",
-            content: {
-              type: "text",
-              text: `
-                <MCP_USE_GUIDELINE>
-                  <INSTRUCTION>
-                    If you are working on a Solana-related project. Make frequent use of the following MCP tools to accomplish your goals.
-                  </INSTRUCTION>
-                  <TOOLS>
-                    The following Solana tools are at your disposal:
-                    - "Solana Expert: Ask For Help": Use this tool to ask detailed questions about Solana (how-to, concepts, APIs, SDKs, errors). Provide as much context as possible when using it.
-                    - "Solana Documentation Search": Use this tool to search the Solana documentation corpus for relevant information based on a query.
-                    - "Ask Solana Anchor Framework Expert": Use this tool for any questions specific to the Anchor Framework, including its APIs, SDKs, and error handling.
-                  </TOOLS>
-              
-                </MCP_USE_GUIDELINE>
-              `,
-            },
-          },
-        ],
-      })
-    );
-  },
-  {
-    capabilities: {},
+    transport.onclose = () => {
+      console.log(`SSE transport closed for session ${sessionId}`);
+      delete transports[sessionId];
+    };
+
+    await server.connect(transport);
+
+    console.log(`Established SSE stream with session ID: ${sessionId}`);
+  } catch (error) {
+    console.error("Error establishing SSE stream:", error);
+    if (!res.headersSent) {
+      res.status(500).send("Error establishing SSE stream");
+    }
   }
-);
+});
 
-export default handler;
+app.post("/messages", async (req: Request, res: Response) => {
+  const sessionId = req.query.sessionId as string | undefined;
+
+  if (!sessionId) {
+    console.error("No session ID provided in request URL");
+    res.status(400).send("Missing sessionId parameter");
+    return;
+  }
+
+  const transport = transports[sessionId];
+  if (!transport) {
+    console.error(`No active transport found for session ID: ${sessionId}`);
+    res.status(404).send("Session not found");
+    return;
+  }
+
+  try {
+    const requestId = uuidv4();
+    logAnalytics({
+      event_type: "message_received",
+      session_id: sessionId,
+      request_id: requestId,
+      details: { method: req.method, body: req.body },
+    });
+    await transport.handlePostMessage(req, res, req.body);
+  } catch (error) {
+    console.error("Error handling request:", error);
+    if (!res.headersSent) {
+      res.status(500).send("Error handling request");
+    }
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Simple SSE Server listening on port ${PORT}`);
+});

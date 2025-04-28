@@ -23,7 +23,7 @@ export const geminiSolanaTools: SolanaTool[] = [
       question: z
         .string()
         .describe(
-          "Any question about the Anchor Framework. (how-to, concepts, APIs, SDKs, errors)"
+          "Search Anchor Framework documentation. Any question about the Anchor Framework. (how-to, concepts, APIs, SDKs, errors)"
         ),
     },
 
