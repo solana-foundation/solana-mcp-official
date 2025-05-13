@@ -1,6 +1,4 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { UriTemplate } from "@modelcontextprotocol/sdk/shared/uriTemplate";
-import { Resource } from "@modelcontextprotocol/sdk/types";
 
 export const resources = [
   {
