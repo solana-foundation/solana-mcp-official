@@ -57,6 +57,9 @@ function handler(req: Request) {
     },
     {
       capabilities: {},
+    },
+    {
+      maxDuration: 800,
     }
   )(req);
 }
