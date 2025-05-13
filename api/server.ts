@@ -59,6 +59,7 @@ function handler(req: Request) {
       capabilities: {},
     },
     {
+      basePath: "",
       maxDuration: 800,
     }
   )(req);
