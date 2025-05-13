@@ -61,7 +61,7 @@ function handler(req: Request) {
     {
       basePath: "",
       redisUrl: process.env.REDIS_URL,
-      maxDuration: 800,
+      maxDuration: 60,
     }
   )(req);
 }
