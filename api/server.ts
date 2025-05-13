@@ -6,16 +6,8 @@ import { generalSolanaTools, SolanaTool } from "../lib/tools/general_solana_tool
 import { geminiSolanaTools } from "../lib/tools/gemini_solana_tools";
 import { resources } from "../lib/resources";
 import { solanaEcosystemTools } from "../lib/tools/ecosystem_solana_tools";
-import { logAnalytics } from "../lib/analytics";
 
 function handler(req: Request) {
-  logAnalytics({
-    event_type: "message_received",
-    session_id: "",
-    request_id: "",
-    details: { method: req.method, body: req.body },
-  });
-
   return createMcpHandler(
     (server: McpServer) => {
       generalSolanaTools.forEach((tool: SolanaTool) => {
