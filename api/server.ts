@@ -20,6 +20,7 @@ function handler(req: Request) {
             description: tool.description ?? "",
             inputSchema: tool.parameters,
             outputSchema: tool.outputSchema,
+            annotations: {},
           }, tool.func);
         } else {
           server.tool(tool.title, tool.description ?? "", tool.parameters, tool.func);

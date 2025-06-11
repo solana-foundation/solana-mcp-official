@@ -74,6 +74,14 @@ export const generalSolanaTools: SolanaTool[] = [
     parameters: {
       query: z.string().describe(`A search query that will be matched against a corpus of Solana documentation using RAG`),
     },
+    outputSchema: {
+      results: z.array(z.object({
+        id: z.string(),
+        title: z.string(),
+        text: z.string(),
+        url: z.string().nullable(),
+      })),
+    },
 
     func: async ({ query }: { query: string }) => {
       const { text } = await generateText({
@@ -91,7 +99,7 @@ export const generalSolanaTools: SolanaTool[] = [
       });
       const resources = JSON.parse(text).content as InkeepResource[];
       const mapped = resources.flatMap(mapInkeepToOpenAI);
-      return { content: mapped };
+      return { results: mapped };
     },
   }
 ];
