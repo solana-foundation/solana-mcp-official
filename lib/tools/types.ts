@@ -6,7 +6,7 @@ export type SolanaTool = {
     title: string;
     description?: string;
     parameters: z.ZodRawShape;
-    annotations?: ToolAnnotations;
+    outputSchema?: z.ZodRawShape;
     func: (params: any) => Promise<any>;
 };
 

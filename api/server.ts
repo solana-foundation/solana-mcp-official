@@ -15,8 +15,12 @@ function handler(req: Request) {
   return createMcpHandler(
     (server: McpServer) => {
       generalSolanaTools.forEach((tool: SolanaTool) => {
-        if (tool.annotations) {
-          server.tool(tool.title, tool.description ?? "", tool.parameters, tool.annotations, tool.func);
+        if (tool.outputSchema) {
+          server.registerTool(tool.title, {
+            description: tool.description ?? "",
+            inputSchema: tool.parameters,
+            outputSchema: tool.outputSchema,
+          }, tool.func);
         } else {
           server.tool(tool.title, tool.description ?? "", tool.parameters, tool.func);
         }
