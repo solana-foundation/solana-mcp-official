@@ -2,7 +2,7 @@
 
 ## Usage
 
-Update `api/server.ts` with your tools, prompts, and resources following the [MCP TypeScript SDK documentation](https://github.com/modelcontextprotocol/typescript-sdk/tree/main?tab=readme-ov-file#server).
+In one window, run `pnpm vercel dev`. And in another run `npx -y @modelcontextprotocol/inspector npx mcp-remote http://localhost:3000/mcp` to play around with the server locally. URL is usually `http://127.0.0.1:6274`.
 
 ## Notes for running on Vercel
 
@@ -10,11 +10,3 @@ Update `api/server.ts` with your tools, prompts, and resources following the [MC
 - Make sure you have [Fluid compute](https://vercel.com/docs/functions/fluid-compute) enabled for efficient execution
 - After enabling Fluid compute, open `vercel.json` and adjust max duration to 800 if you using a Vercel Pro or Enterprise account
 - [Deploy the MCP template](https://vercel.com/templates/other/model-context-protocol-mcp-with-vercel-functions)
-
-## Sample Client
-
-`script/test-client.mjs` contains a sample client to try invocations.
-
-```sh
-node scripts/test-client.mjs https://mcp-on-vercel.vercel.app
-```
