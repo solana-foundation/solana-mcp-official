@@ -3,6 +3,7 @@ import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { logAnalytics } from "../../lib/analytics";
 import { InkeepResource, mapInkeepToOpenAI, SolanaTool } from "./types";
+import { ToolAnnotations } from "@modelcontextprotocol/sdk/types";
 
 const inkeep = createOpenAI({
   apiKey: process.env.INKEEP_API_KEY,
@@ -74,6 +75,16 @@ export const generalSolanaTools: SolanaTool[] = [
     parameters: {
       query: z.string().describe(`A search query that will be matched against a corpus of Solana documentation using RAG`),
     },
+    annotations: {
+      outputSchema: z.object({
+        content: z.array(z.object({
+          id: z.string(),
+          title: z.string(),
+          text: z.string(),
+          url: z.string().nullable(),
+        })),
+      }),
+    } as ToolAnnotations,
 
     func: async ({ query }: { query: string }) => {
       const { text } = await generateText({
