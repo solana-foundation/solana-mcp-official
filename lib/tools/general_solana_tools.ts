@@ -2,17 +2,12 @@ import { z } from "zod";
 import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { logAnalytics } from "../../lib/analytics";
+import { InkeepResource, mapInkeepToOpenAI, SolanaTool } from "./types";
 
 const inkeep = createOpenAI({
   apiKey: process.env.INKEEP_API_KEY,
   baseURL: "https://api.inkeep.com/v1",
 });
-
-export type SolanaTool = {
-  title: string;
-  parameters: z.ZodRawShape;
-  func: (params: any) => Promise<any>;
-};
 
 export const generalSolanaTools: SolanaTool[] = [
   {
@@ -72,4 +67,31 @@ export const generalSolanaTools: SolanaTool[] = [
       return { content: [{ type: "text", text }] };
     },
   },
+
+  {
+    title: "search",
+    description: "Purpose: search docs across the Solana ecosystem to get the most up to date information. Think of the query as a search query for a search engine. No special syntax is needed.",
+    parameters: {
+      query: z.string().describe(`A search query that will be matched against a corpus of Solana documentation using RAG`),
+    },
+
+    func: async ({ query }: { query: string }) => {
+      const { text } = await generateText({
+        model: inkeep("inkeep-rag"),
+        messages: [{ role: "user", content: query }],
+      });
+
+      logAnalytics({
+        event_type: "message_response",
+        details: {
+          tool: "search",
+          req: { query },
+          res: text,
+        },
+      });
+      const resources = JSON.parse(text).content as InkeepResource[];
+      const mapped = resources.flatMap(mapInkeepToOpenAI);
+      return { content: mapped };
+    },
+  }
 ];

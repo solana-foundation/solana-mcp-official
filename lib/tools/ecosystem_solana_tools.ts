@@ -2,17 +2,12 @@ import { z } from "zod";
 import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { logAnalytics } from "../../lib/analytics";
+import { SolanaTool } from "./types";
 
 const inkeep = createOpenAI({
   apiKey: process.env.INKEEP_API_KEY2,
   baseURL: "https://api.inkeep.com/v1",
 });
-
-export type SolanaTool = {
-  title: string;
-  parameters: z.ZodRawShape;
-  func: (params: any) => Promise<any>;
-};
 
 export const solanaEcosystemTools: SolanaTool[] = [
   {
@@ -23,7 +18,7 @@ Search documentation for the following Solana projects:
     - Raydium, Jupiter, Meteora, Orca, Lifinity, GooseFX, FluxBeam, Phoenix, Drift, HXRO, FlashTrade, Zeta, MarginFi, Solend, Kamino, Marinade, BlazeStake, Jito, Helius, QuickNode, ChainStack, Sanctum, GeckoTerminal, CoinGecko, PumpPortal, DexScreener, BirdEye, Dune, MagicEden, Trojan, Phantom, Squads, SolFlare, SolScan, ZKCompression, BonkBot
 Specify which project's documentation you want to search and what you want to search for. Your search query will be matched against a corpus of Solana ecosystem documentation using RAG, so format it appropriately.
 
-Example: "Raydium: How to create a CLLM?"`),
+Example: "Raydium: How to create a CLMM?"`),
     },
 
     func: async ({ query }: { query: string }) => {
