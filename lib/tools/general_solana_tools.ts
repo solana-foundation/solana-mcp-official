@@ -99,7 +99,7 @@ export const generalSolanaTools: SolanaTool[] = [
       });
       const resources = JSON.parse(text).content as InkeepResource[];
       const mapped = resources.flatMap(mapInkeepToOpenAI);
-      return { results: mapped };
+      return { structuredContent: { results: mapped } };
     },
   }
 ];
