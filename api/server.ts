@@ -1,25 +1,29 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMcpHandler } from "@vercel/mcp-adapter";
 import { z } from "zod";
+import * as dotenv from 'dotenv';
 
-import { generalSolanaTools, SolanaTool } from "../lib/tools/general_solana_tools";
+import { generalSolanaTools, } from "../lib/tools/general_solana_tools";
 import { geminiSolanaTools } from "../lib/tools/gemini_solana_tools";
 import { resources } from "../lib/resources";
 import { solanaEcosystemTools } from "../lib/tools/ecosystem_solana_tools";
+import { SolanaTool } from "../lib/tools/types";
+
+dotenv.config();
 
 function handler(req: Request) {
   return createMcpHandler(
     (server: McpServer) => {
       generalSolanaTools.forEach((tool: SolanaTool) => {
-        server.tool(tool.title, tool.parameters, tool.func);
+        server.tool(tool.title, tool.description ?? "", tool.parameters, tool.func);
       });
 
       geminiSolanaTools.forEach((tool: SolanaTool) => {
-        server.tool(tool.title, tool.parameters, tool.func);
+        server.tool(tool.title, tool.description ?? "", tool.parameters, tool.func);
       });
 
       solanaEcosystemTools.forEach((tool: SolanaTool) => {
-        server.tool(tool.title, tool.parameters, tool.func);
+        server.tool(tool.title, tool.description ?? "", tool.parameters, tool.func);
       });
 
       resources.forEach((resource) => {

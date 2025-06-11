@@ -4,17 +4,12 @@ import { createOpenAI } from "@ai-sdk/openai";
 import fs from "fs/promises";
 import path from "path";
 import { logAnalytics } from "../../lib/analytics";
+import { SolanaTool } from "./types";
 
 const openrouter = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: "https://openrouter.ai/api/v1",
 });
-
-export type SolanaTool = {
-  title: string;
-  parameters: z.ZodRawShape;
-  func: (params: any) => Promise<any>;
-};
 
 export const geminiSolanaTools: SolanaTool[] = [
   {
