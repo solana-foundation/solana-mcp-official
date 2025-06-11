@@ -1,11 +1,12 @@
-import { hash } from "node:crypto";
 import { z } from "zod";
 import { sha256 } from '@noble/hashes/sha2.js';
+import { ToolAnnotations } from "@modelcontextprotocol/sdk/types";
 
 export type SolanaTool = {
     title: string;
     description?: string;
     parameters: z.ZodRawShape;
+    annotations?: ToolAnnotations;
     func: (params: any) => Promise<any>;
 };
 
