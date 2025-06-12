@@ -79,7 +79,7 @@ export const generalSolanaTools: SolanaTool[] = [
         id: z.string(),
         title: z.string(),
         text: z.string(),
-        url: z.string().nullable(),
+        url: z.string().nullable().optional(),
       })),
     },
 
