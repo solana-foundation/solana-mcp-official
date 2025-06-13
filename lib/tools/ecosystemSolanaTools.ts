@@ -1,13 +1,9 @@
 import { z } from "zod";
 import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import { logAnalytics } from "../../lib/analytics";
+import { logAnalytics } from "../analytics";
 import { SolanaTool } from "./types";
-
-const inkeep = createOpenAI({
-  apiKey: process.env.INKEEP_API_KEY2,
-  baseURL: "https://api.inkeep.com/v1",
-});
+import { inkeep } from "..";
 
 export const solanaEcosystemTools: SolanaTool[] = [
   {

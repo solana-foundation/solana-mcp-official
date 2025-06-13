@@ -1,15 +1,10 @@
 import { z } from "zod";
 import { generateText } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
 import fs from "fs/promises";
 import path from "path";
-import { logAnalytics } from "../../lib/analytics";
+import { logAnalytics } from "../analytics";
 import { SolanaTool } from "./types";
-
-const openrouter = createOpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: "https://openrouter.ai/api/v1",
-});
+import { openrouter } from "..";
 
 export const geminiSolanaTools: SolanaTool[] = [
   {
