@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
     createServer,
@@ -52,9 +53,17 @@ describe("e2e", () => {
 
         const search = tools.find((tool) => tool.name === "search");
         expect(search).toBeDefined();
+        expect(search?.outputSchema).toBeDefined();
+        expect(search?.outputSchema?.properties?.results).toBeDefined();
 
         const fetch = tools.find((tool) => tool.name === "fetch");
         expect(fetch).toBeDefined();
+        expect(fetch?.outputSchema).toBeDefined();
+        expect(fetch?.outputSchema?.properties?.id).toBeDefined();
+        expect(fetch?.outputSchema?.properties?.title).toBeDefined();
+        expect(fetch?.outputSchema?.properties?.text).toBeDefined();
+        expect(fetch?.outputSchema?.properties?.url).toBeDefined();
+        expect(fetch?.outputSchema?.properties?.metadata).toBeDefined();
     });
 
     it("Search should return results as structured content", async () => {
