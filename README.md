@@ -1,6 +1,12 @@
-# Run an MCP Server on Vercel
+# Official Solana MCP Server
 
-## Usage
+Try it out at https://mcp.solana.com !
+
+This is the official Solana Developer MCP. It's purpose is to serve up to date documentation across the ecosystem to vibe coders & AI agents.
+
+This repo contains both the landing page for mcp.solana.com & the MCP server implementation for mcp.solana.com/mcp and mcp.solana.com/sse (thanks to Vercel's `@vercel/mcp-adapter` it's just one server for both endpoints).
+
+## Development
 
 In one window, run `pnpm vercel dev`. And in another run `npx -y @modelcontextprotocol/inspector npx mcp-remote http://localhost:3000/mcp` to play around with the server locally. URL is usually `http://127.0.0.1:6274`.
 
