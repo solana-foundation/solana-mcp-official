@@ -187,37 +187,66 @@
 
             <div class="space-y-6">
               <div>
-                <h3
-                  class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200"
-                >
-                  1. Configure MCP Settings
-                </h3>
                   <p class="text-gray-600 dark:text-gray-300 mb-4">
                     Add the following configuration to your project based on your IDE:
                   </p>
 
                 <!-- Tabs -->
                 <div class="mb-2 flex border-b border-gray-600 mb-4">
-                    <button id="cursorTab" class="tab active text-purple-400 mr-0 border-1 border-purple-600">Cursor</button>
+                    <button id="claudeTab" class="tab active text-purple-400 mr-0 border-1 border-purple-600">Claude Code</button>
+                    <button id="cursorTab" class="tab text-purple-400 border-1 border-purple-600">Cursor</button>
                     <button id="windsurfTab" class="tab text-purple-400 border-1 border-purple-600">Windsurf</button>
                 </div>
                 
                 
                 <!-- Tab Contents -->
-                <div id="cursorContent" class="tab-content active">
-                  <p class="text-gray-600 dark:text-gray-300 mb-4">
-                    Add globally by opening the command palette (<code
-                      class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                      >Cmd/Ctrl + Shift + P</code
-                    >) and selecting
-                    <code
-                      class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                      >&gt; Cursor Settings &gt; MCP &gt; Add new global MCP
-                      server</code
-                    >:
-                  </p>
+                <div id="claudeContent" class="tab-content active">
+                  <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
+                      Run the following command in your terminal
+                    </h4>
                   <pre
-                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto"
+                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto mb-6"
+                  ><code>claude mcp add --transport http http-server https://mcp.solana.com/mcp</code></pre>
+                  </div>
+                  
+                  <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">2</span>
+                      Verify the connection
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                      Ask a question and you should see output like:
+                    </p>
+                  <div
+                    class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md mb-6"
+                  >
+                    <span class="text-gray-600 dark:text-gray-300">
+                      http-server - Ask_Solana_Anchor_Framework_Expert (MCP)(question: "How are events implemented in Anchor framework version 0.31? What's the syntax for defining and emitting events?")<br>
+                    </span>
+                  </div>
+                  </div>
+                </div>
+                <div id="cursorContent" class="tab-content">
+                  <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
+                      Configure MCP Settings
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                      Add globally by opening the command palette (<code
+                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                        >Cmd/Ctrl + Shift + P</code
+                      >) and selecting
+                      <code
+                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                        >&gt; Cursor Settings &gt; MCP &gt; Add new global MCP
+                        server</code
+                      >:
+                    </p>
+                  <pre
+                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto mb-6"
                   ><code>{
   "mcpServers": {
     "solanaMcp": {
@@ -226,74 +255,50 @@
     }
   }
 }</code></pre>
-                </div>
-                <div id="windsurfContent" class="tab-content">
-                  <p class="text-gray-600 dark:text-gray-300 mb-4">
-                    For Windsurf, use the following configuration:
-                  </p>
-                  <pre
-                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto"
-                  ><code>{
-  "mcpServers": {
-    "solanaMcp": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://mcp.solana.com/mcp"]
-    }
-  }
-}</code></pre>
-                </div>
-              </div>
-
-              <div>
-                <h3
-                  class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200"
-                >
-                  2. Verify Connection
-                </h3>
-                <p class="text-gray-600 dark:text-gray-300 mb-4">
-                  Once configured, your IDE will automatically connect to
-                  the MCP server. You can verify the connection by a chat in Agent Mode (<code
-                    class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                    >Cmd + I</code
-                  >) and asking it "Make me an anchor escrow program". You should see a card like so in the composer
-                  sidebar:
-                </p>
-                <div
-                  class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md flex items-center"
-                >
-                  <span class="text-gray-400 dark:text-gray-400">
-                    &gt; Called MCP tool
-                    <code class="font-mono text-gray-400 dark:text-gray-400"
-                      >Ask_Solana_Anchor_Framework_Expert</code
+                  </div>
+                  
+                  <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">2</span>
+                      Verify the connection
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                      Open Agent Mode (<code
+                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                        >Cmd + I</code
+                      >) and ask "Make me an anchor escrow program". You should see a card in the composer sidebar:
+                    </p>
+                    <div
+                      class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md mb-6"
                     >
-                    ✓
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <h3
-                  class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200"
-                >
-                  3. (Optional) Configure User Rules
-                </h3>
-                <p class="text-gray-600 dark:text-gray-300">
-                  Add the following to your user rules by going to the
-                  command palette (<code
-                    class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                    >Cmd/Ctrl + Shift + P</code
-                  >) and selecting
-                  <code
-                    class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                    >&gt; Settings &gt; Rules</code
-                  >:
-                </p>
-                <br/>
-           
-
-                    <pre
-                      class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto"
-                    ><code>&lt;MCP_USE_GUIDELINE&gt;
+                      <span class="text-gray-400 dark:text-gray-400">
+                        &gt; Called MCP tool
+                        <code class="font-mono text-gray-400 dark:text-gray-400"
+                          >Ask_Solana_Anchor_Framework_Expert</code
+                        >
+                        ✓
+                      </span>
+                    </div>
+                  
+                  <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">3</span>
+                      Configure User Rules <span class="text-sm font-normal text-gray-500 ml-2">(Optional)</span>
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                      Add the following to your user rules by going to the
+                      command palette (<code
+                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                        >Cmd/Ctrl + Shift + P</code
+                      >) and selecting
+                      <code
+                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                        >&gt; Settings &gt; Rules</code
+                      >:
+                    </p>
+                  <pre
+                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto"
+                  ><code>&lt;MCP_USE_GUIDELINE&gt;
   &lt;INSTRUCTION&gt;
     If you are working on a Solana-related project. Make frequent use of the following MCP tools to accomplish your goals.
   &lt;/INSTRUCTION&gt;
@@ -304,21 +309,57 @@
     - "Ask Solana Anchor Framework Expert": Use this tool for any questions specific to the Anchor Framework, including its APIs, SDKs, and error handling.
   &lt;/TOOLS&gt;
 &lt;/MCP_USE_GUIDELINE&gt;</code></pre>
-<br/>
+                    </div>
+                  </div>
+                </div>
+                <div id="windsurfContent" class="tab-content">
+                  <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
+                      Configure MCP Settings
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                      Add the following configuration:
+                    </p>
+                  <pre
+                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto mb-6"
+                  ><code>{
+  "mcpServers": {
+    "solanaMcp": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://mcp.solana.com/mcp"]
+    }
+  }
+}</code></pre>
+                  </div>
+                  
+                  <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">2</span>
+                      Verify the connection
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                      Open Agent Mode (<code
+                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                        >Cmd + I</code
+                      >) and ask "Make me an anchor escrow program". You should see a card in the composer sidebar:
+                    </p>
+                    <div
+                      class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md"
+                    >
+                    <span class="text-gray-400 dark:text-gray-400">
+                      &gt; Called MCP tool
+                      <code class="font-mono text-gray-400 dark:text-gray-400"
+                        >Ask_Solana_Anchor_Framework_Expert</code
+                      >
+                      ✓
+                    </span>
+                    </div>
+                </div>
+                </div>
+              </div>
+
               <div>
-                <h3
-                  class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200"
-                >
-                  4. Start Using MCP Features
-                </h3>
-                <ul
-                  class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-2"
-                >
-                  <li>Lookup Solana concepts, APIs, SDKs, errors, etc.</li>
-                  <li>Query Anchor framework documentation</li>
-                  <li>Ask for help with Solana development</li>
-                </ul>
-                <br/>
                 <h3
                   class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200"
                 >
@@ -393,8 +434,10 @@
       // Tab functionality
       const cursorTab = document.getElementById("cursorTab");
       const windsurfTab = document.getElementById("windsurfTab");
+      const claudeTab = document.getElementById("claudeTab");
       const cursorContent = document.getElementById("cursorContent");
       const windsurfContent = document.getElementById("windsurfContent");
+      const claudeContent = document.getElementById("claudeContent");
       
       cursorTab.addEventListener("click", () => {
         if (!cursorTab.className.includes("active")) {
@@ -403,12 +446,18 @@
         if (windsurfTab.className.includes("active")) {
           windsurfTab.classList.remove("active");
         }
+        if (claudeTab.className.includes("active")) {
+          claudeTab.classList.remove("active");
+        }
 
         if (!cursorContent.className.includes("active")) {
           cursorContent.classList.add("active");
         }
         if (windsurfContent.className.includes("active")) {
           windsurfContent.classList.remove("active");
+        }
+        if (claudeContent.className.includes("active")) {
+          claudeContent.classList.remove("active");
         }
       });
       
@@ -419,12 +468,40 @@
         if (cursorTab.className.includes("active")) {
           cursorTab.classList.remove("active");
         }
+        if (claudeTab.className.includes("active")) {
+          claudeTab.classList.remove("active");
+        }
 
         if (!windsurfContent.className.includes("active")) {
           windsurfContent.classList.add("active");
         }
         if (cursorContent.className.includes("active")) {
           cursorContent.classList.remove("active");
+        }
+        if (claudeContent.className.includes("active")) {
+          claudeContent.classList.remove("active");
+        }
+      });
+      
+      claudeTab.addEventListener("click", () => {
+        if (!claudeTab.className.includes("active")) {
+          claudeTab.classList.add("active");
+        }
+        if (cursorTab.className.includes("active")) {
+          cursorTab.classList.remove("active");
+        }
+        if (windsurfTab.className.includes("active")) {
+          windsurfTab.classList.remove("active");
+        }
+
+        if (!claudeContent.className.includes("active")) {
+          claudeContent.classList.add("active");
+        }
+        if (cursorContent.className.includes("active")) {
+          cursorContent.classList.remove("active");
+        }
+        if (windsurfContent.className.includes("active")) {
+          windsurfContent.classList.remove("active");
         }
       });
     </script>
