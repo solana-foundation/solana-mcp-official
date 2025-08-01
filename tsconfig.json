@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "module": "commonjs",
+    "module": "Node16",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
     "rootDir": ".",
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "resolveJsonModule": true
   },
   "include": ["**/*.ts"],

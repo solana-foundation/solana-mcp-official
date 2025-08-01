@@ -26,7 +26,7 @@ export const generalSolanaTools: SolanaTool[] = [
         event_type: "message_response",
         details: {
           tool: "Solana_Expert__Ask_For_Help",
-          req: { question },
+          req: question,
           res: text,
         },
       });
@@ -56,7 +56,7 @@ export const generalSolanaTools: SolanaTool[] = [
         event_type: "message_response",
         details: {
           tool: "Solana_Documentation_Search",
-          req: { query },
+          req: query,
           res: text,
         },
       });

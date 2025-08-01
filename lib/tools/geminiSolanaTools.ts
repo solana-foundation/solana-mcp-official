@@ -40,7 +40,7 @@ export const geminiSolanaTools: SolanaTool[] = [
         event_type: "message_response",
         details: {
           tool: "Ask_Solana_Anchor_Framework_Expert",
-          req: { question },
+          req: question,
           res: text,
         },
       });
