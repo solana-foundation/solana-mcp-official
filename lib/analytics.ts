@@ -139,7 +139,6 @@ export async function logAnalytics(event: AnalyticsEvent) {
           }
         ],
       });
-      console.log("Logged conversation to Inkeep Analytics");
 
     }
   } catch (err) {
@@ -182,7 +181,7 @@ async function logToInkeepAnalytics({
       console.log('Starting Promise.race...');
       const startTime = Date.now();
 
-      const inkeepPromise = inkeepAnalytics.conversations.log(
+      const inkeepPromise = await inkeepAnalytics.conversations.log(
         {
           apiIntegrationKey,
         },
@@ -206,12 +205,6 @@ async function logToInkeepAnalytics({
       console.error('Promise.race error:', raceError);
       throw raceError;
     }
-    // .then(() => {
-    //   console.log('Logged conversation to Inkeep Analytics');
-    // }).catch((err) => {
-    //   console.error('Error logging conversation', err);
-    // });
-    // console.log("Logging...");
   } catch (err) {
     console.error('Error logging conversation', err);
   }
