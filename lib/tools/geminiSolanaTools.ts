@@ -9,6 +9,7 @@ import { openrouter } from "..";
 export const geminiSolanaTools: SolanaTool[] = [
   {
     title: "Ask_Solana_Anchor_Framework_Expert",
+    description: "Ask questions about developing on Solana with the Anchor Framework.",
     parameters: {
       question: z
         .string()

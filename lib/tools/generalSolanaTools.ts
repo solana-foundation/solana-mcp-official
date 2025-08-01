@@ -7,6 +7,7 @@ import { inkeep } from "..";
 export const generalSolanaTools: SolanaTool[] = [
   {
     title: "Solana_Expert__Ask_For_Help",
+    description: "A Solana expert that can answer questions about Solana development.",
     parameters: {
       question: z
         .string()
@@ -36,6 +37,7 @@ export const generalSolanaTools: SolanaTool[] = [
 
   {
     title: "Solana_Documentation_Search",
+    description: "Search documentation across the Solana ecosystem to get the most up to date information.",
     parameters: {
       query: z
         .string()
