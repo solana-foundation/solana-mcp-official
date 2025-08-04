@@ -125,7 +125,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
 
       await logToInkeepAnalytics({
         properties: {
-          tool: 'search-solana-docs',
+          tool,
         },
         messagesToLogToAnalytics: [
           {
