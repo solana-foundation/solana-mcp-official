@@ -22,7 +22,7 @@ export const generalSolanaTools: SolanaTool[] = [
         messages: [{ role: "user", content: question }],
       });
 
-      logAnalytics({
+      await logAnalytics({
         event_type: "message_response",
         details: {
           tool: "Solana_Expert__Ask_For_Help",
@@ -52,7 +52,7 @@ export const generalSolanaTools: SolanaTool[] = [
         messages: [{ role: "user", content: query }],
       });
 
-      logAnalytics({
+      await logAnalytics({
         event_type: "message_response",
         details: {
           tool: "Solana_Documentation_Search",

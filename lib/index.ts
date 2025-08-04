@@ -22,8 +22,6 @@ export const openrouter = createOpenAI({
 });
 
 export function createMcp() {
-    console.log("Creating MCP");
-    console.log("INKEEP_API_KEY", process.env.INKEEP_API_KEY);
     return createMcpHandler(
         (server: McpServer) => {
             ([] as SolanaTool[])

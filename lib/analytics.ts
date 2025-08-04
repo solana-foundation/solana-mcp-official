@@ -37,7 +37,6 @@ export type AnalyticsEvent =
   };
 
 export async function logAnalytics(event: AnalyticsEvent) {
-  console.log("Logging analytics", event);
   try {
     if (event.event_type === "message_received") {
       const { body } = event.details;
@@ -124,7 +123,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
         .map((x: any) => `- [${x['title'] || x['url']}](${x['url']})`)
         .join("\n") || '';
 
-      logToInkeepAnalytics({
+      await logToInkeepAnalytics({
         properties: {
           tool: 'search-solana-docs',
         },
@@ -155,57 +154,25 @@ async function logToInkeepAnalytics({
   properties?: { [k: string]: any } | null | undefined;
   userProperties?: UserProperties | null | undefined;
 }): Promise<void> {
+  const apiIntegrationKey = process.env.INKEEP_API_KEY;
+
+  const inkeepAnalytics = new InkeepAnalytics({ apiIntegrationKey });
+
+  const logConversationPayload: CreateOpenAIConversation = {
+    type: 'openai',
+    messages: messagesToLogToAnalytics,
+    userProperties,
+    properties,
+  };
+
   try {
-    const apiIntegrationKey = process.env.INKEEP_API_KEY;
-
-    const inkeepAnalytics = new InkeepAnalytics({ apiIntegrationKey });
-
-    const logConversationPayload: CreateOpenAIConversation = {
-      type: 'openai',
-      messages: messagesToLogToAnalytics,
-      userProperties,
-      properties,
-    };
-
-    console.log("Logging to Inkeep Analytics", logConversationPayload);
-
-    // Add timeout to detect hanging promises
-    // Use AbortController to abort the inkeepAnalytics promise after 3s
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log("Timed out after 3s, aborting Inkeep Analytics request");
-      abortController.abort();
-    }, 3000);
-
-    try {
-      console.log('Starting Promise.race...');
-      const startTime = Date.now();
-
-      const inkeepPromise = await inkeepAnalytics.conversations.log(
-        {
-          apiIntegrationKey,
-        },
-        logConversationPayload,
-        { signal: abortController.signal }
-      ).then(() => {
-        clearTimeout(timeoutId);
-        const elapsed = Date.now() - startTime;
-        console.log(`Successfully logged to Inkeep Analytics (took ${elapsed}ms)`);
-        return 'success';
-      }).catch((err) => {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-          console.error('Inkeep Analytics request was aborted due to timeout');
-        } else {
-          console.error('Inkeep Analytics error:', err);
-        }
-        throw err;
-      });
-    } catch (raceError) {
-      console.error('Promise.race error:', raceError);
-      throw raceError;
-    }
-  } catch (err) {
-    console.error('Error logging conversation', err);
+    await inkeepAnalytics.conversations.log(
+      {
+        apiIntegrationKey,
+      },
+      logConversationPayload,
+    )
+  } catch (raceError) {
+    console.error('Error logging conversation', raceError);
   }
 }
