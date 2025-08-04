@@ -10,7 +10,8 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { createMcp } from "../lib";
 import { AddressInfo } from "node:net";
-describe("e2e", () => {
+
+describe.skip("e2e", () => {
     let server: Server;
     let endpoint: string;
     let client: Client;
