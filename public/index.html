@@ -196,6 +196,7 @@
                     <button id="claudeTab" class="tab active text-purple-400 mr-0 border-1 border-purple-600">Claude Code</button>
                     <button id="cursorTab" class="tab text-purple-400 border-1 border-purple-600">Cursor</button>
                     <button id="windsurfTab" class="tab text-purple-400 border-1 border-purple-600">Windsurf</button>
+                    <button id="vsCodeTab" class="tab text-purple-400 border-1 border-purple-600">VS Code</button>
                 </div>
                 
                 
@@ -357,6 +358,77 @@
                     </div>
                 </div>
                 </div>
+
+                <div id="vsCodeContent" class="tab-content">
+                  <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
+                      Configure MCP Settings
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                      Add globally by opening the command palette (<code
+                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                        >Cmd/Ctrl + Shift + P</code
+                      >) and selecting
+                      <code
+                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                        >&gt; MCP: Open User Configuration</code
+                      >:
+                    </p>
+                    <pre
+                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto mb-6"
+                  ><code>{
+  "servers": {
+    "solanaMcp": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://mcp.solana.com/mcp"]
+    }
+  }
+}</code></pre>          
+                  <p class="text-gray-600 dark:text-gray-300 mb-4">Note: you have to <a class="underline text-purple-600 dark:text-purple-400" href="https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_enable-mcp-support-in-vs-code" target="_blank" referrerpolicy="strict-origin-when-cross-origin">enable MCP support in VS Code</a></p>
+                  <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">2</span>
+                      Start Solana MCP Server
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                      Start the Solana mcp server in the extensions tab (<code
+                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                        >Cmd/Ctrl + Shift + X</code
+                      >), under the 'MCP SERVERS - INSTALLED' tab  and selecting
+                      <code
+                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                        >&gt; solanaMcp &gt; Start Server</code
+                      >
+                    </p>
+                    <div
+                      class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md mb-6"
+                    >
+                      <span class="text-gray-400 dark:text-gray-400">
+                        &gt; Starting server solanaMcp
+                      </span>
+                    </div>
+                  </div>
+                  <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">3</span>
+                      Verify the connection
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                      Open GitHub Copilot (<code
+                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
+                        >Cmd/Ctrl + Alt + I</code
+                      >), set 'agent' mode and ask "What are the best practices for handling decimal values in Solana programs?". You should see a card in the sidebar:
+                    </p>
+                    <div
+                      class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md mb-6"
+                    >
+                      <span class="text-gray-400 dark:text-gray-400">
+                        &gt; Ran Solana_Documentation_Search - solanaMcp (MCP Server)
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -435,9 +507,11 @@
       const cursorTab = document.getElementById("cursorTab");
       const windsurfTab = document.getElementById("windsurfTab");
       const claudeTab = document.getElementById("claudeTab");
+      const vsCodeTab = document.getElementById("vsCodeTab");
       const cursorContent = document.getElementById("cursorContent");
       const windsurfContent = document.getElementById("windsurfContent");
       const claudeContent = document.getElementById("claudeContent");
+      const vsCodeContent = document.getElementById("vsCodeContent");
       
       cursorTab.addEventListener("click", () => {
         if (!cursorTab.className.includes("active")) {
@@ -449,7 +523,9 @@
         if (claudeTab.className.includes("active")) {
           claudeTab.classList.remove("active");
         }
-
+        if (vsCodeTab.className.includes("active")) {
+          vsCodeTab.classList.remove("active");
+        }
         if (!cursorContent.className.includes("active")) {
           cursorContent.classList.add("active");
         }
@@ -458,6 +534,9 @@
         }
         if (claudeContent.className.includes("active")) {
           claudeContent.classList.remove("active");
+        }
+        if (vsCodeContent.className.includes("active")) {
+          vsCodeContent.classList.remove("active");
         }
       });
       
@@ -471,7 +550,9 @@
         if (claudeTab.className.includes("active")) {
           claudeTab.classList.remove("active");
         }
-
+        if (vsCodeTab.className.includes("active")) {
+          vsCodeTab.classList.remove("active");
+        }
         if (!windsurfContent.className.includes("active")) {
           windsurfContent.classList.add("active");
         }
@@ -480,6 +561,9 @@
         }
         if (claudeContent.className.includes("active")) {
           claudeContent.classList.remove("active");
+        }
+        if (vsCodeContent.className.includes("active")) {
+          vsCodeContent.classList.remove("active");
         }
       });
       
@@ -493,9 +577,41 @@
         if (windsurfTab.className.includes("active")) {
           windsurfTab.classList.remove("active");
         }
-
+        if (vsCodeTab.className.includes("active")) {
+          vsCodeTab.classList.remove("active");
+        }
         if (!claudeContent.className.includes("active")) {
           claudeContent.classList.add("active");
+        }
+        if (cursorContent.className.includes("active")) {
+          cursorContent.classList.remove("active");
+        }
+        if (windsurfContent.className.includes("active")) {
+          windsurfContent.classList.remove("active");
+        }
+        if (vsCodeContent.className.includes("active")) {
+          vsCodeContent.classList.remove("active");
+        }
+      });
+
+      vsCodeTab.addEventListener("click", () => {
+        if (!vsCodeTab.className.includes("active")) {
+          vsCodeTab.classList.add("active");
+        }
+        if (claudeTab.className.includes("active")) {
+          claudeTab.classList.remove("active");
+        }
+        if (cursorTab.className.includes("active")) {
+          cursorTab.classList.remove("active");
+        }
+        if (windsurfTab.className.includes("active")) {
+          windsurfTab.classList.remove("active");
+        }
+        if (!vsCodeContent.className.includes("active")) {
+          vsCodeContent.classList.add("active");
+        }
+        if (claudeContent.className.includes("active")) {
+          claudeContent.classList.remove("active");
         }
         if (cursorContent.className.includes("active")) {
           cursorContent.classList.remove("active");
