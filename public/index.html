@@ -196,6 +196,7 @@
                     <button id="claudeTab" class="tab active text-purple-400 mr-0 border-1 border-purple-600">Claude Code</button>
                     <button id="cursorTab" class="tab text-purple-400 border-1 border-purple-600">Cursor</button>
                     <button id="windsurfTab" class="tab text-purple-400 border-1 border-purple-600">Windsurf</button>
+                    <button id="opencodeTab" class="tab text-purple-400 border-1 border-purple-600">OpenCode</button>
                 </div>
                 
                 
@@ -357,6 +358,45 @@
                     </div>
                 </div>
                 </div>
+                <div id="opencodeContent" class="tab-content">
+                  <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
+                      Configure MCP Settings
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                      Add the following configuration:
+                    </p>
+                  <pre
+                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto mb-6"
+                  ><code>{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "Solana": {
+      "type": "local",
+      "enabled": true,
+      "command": ["npx", "-y", "mcp-remote", "https://mcp.solana.com/mcp"]
+    }
+  }
+}</code></pre>
+                  </div>
+                  <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">2</span>
+                      Verify the connection
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                      Ask a question and you should see output like:
+                    </p>
+                    <div
+                      class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md"
+                    >
+                      <span class="text-gray-600 dark:text-gray-300">
+                        ⚙ Solana_Ask_Solana_Anchor_Framework_Expert [question=How are events implemented in Anchor framework version 0.31? What's the syntax for defining and emitting events?]<br />
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -435,9 +475,11 @@
       const cursorTab = document.getElementById("cursorTab");
       const windsurfTab = document.getElementById("windsurfTab");
       const claudeTab = document.getElementById("claudeTab");
+      const opencodeTab = document.getElementById("opencodeTab");
       const cursorContent = document.getElementById("cursorContent");
       const windsurfContent = document.getElementById("windsurfContent");
       const claudeContent = document.getElementById("claudeContent");
+      const opencodeContent = document.getElementById("opencodeContent");
       
       cursorTab.addEventListener("click", () => {
         if (!cursorTab.className.includes("active")) {
@@ -449,6 +491,9 @@
         if (claudeTab.className.includes("active")) {
           claudeTab.classList.remove("active");
         }
+        if (opencodeTab.className.includes("active")) {
+          opencodeTab.classList.remove("active");
+        }
 
         if (!cursorContent.className.includes("active")) {
           cursorContent.classList.add("active");
@@ -458,6 +503,9 @@
         }
         if (claudeContent.className.includes("active")) {
           claudeContent.classList.remove("active");
+        }
+        if (opencodeContent.className.includes("active")) {
+          opencodeContent.classList.remove("active");
         }
       });
       
@@ -471,6 +519,9 @@
         if (claudeTab.className.includes("active")) {
           claudeTab.classList.remove("active");
         }
+        if (opencodeTab.className.includes("active")) {
+          opencodeTab.classList.remove("active");
+        }
 
         if (!windsurfContent.className.includes("active")) {
           windsurfContent.classList.add("active");
@@ -480,6 +531,9 @@
         }
         if (claudeContent.className.includes("active")) {
           claudeContent.classList.remove("active");
+        }
+        if (opencodeContent.className.includes("active")) {
+          opencodeContent.classList.remove("active");
         }
       });
       
@@ -493,6 +547,9 @@
         if (windsurfTab.className.includes("active")) {
           windsurfTab.classList.remove("active");
         }
+        if (opencodeTab.className.includes("active")) {
+          opencodeTab.classList.remove("active");
+        }
 
         if (!claudeContent.className.includes("active")) {
           claudeContent.classList.add("active");
@@ -502,6 +559,37 @@
         }
         if (windsurfContent.className.includes("active")) {
           windsurfContent.classList.remove("active");
+        }
+        if (opencodeContent.className.includes("active")) {
+          opencodeContent.classList.remove("active");
+        }
+      });
+
+      opencodeTab.addEventListener("click", () => {
+        if (!opencodeTab.className.includes("active")) {
+          opencodeTab.classList.add("active");
+        }
+        if (cursorTab.className.includes("active")) {
+          cursorTab.classList.remove("active");
+        }
+        if (windsurfTab.className.includes("active")) {
+          windsurfTab.classList.remove("active");
+        }
+        if (claudeTab.className.includes("active")) {
+          claudeTab.classList.remove("active");
+        }
+
+        if (!opencodeContent.className.includes("active")) {
+          opencodeContent.classList.add("active");
+        }
+        if (cursorContent.className.includes("active")) {
+          cursorContent.classList.remove("active");
+        }
+        if (windsurfContent.className.includes("active")) {
+          windsurfContent.classList.remove("active");
+        }
+        if (claudeContent.className.includes("active")) {
+          claudeContent.classList.remove("active");
         }
       });
     </script>
