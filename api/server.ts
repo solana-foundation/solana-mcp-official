@@ -1,11 +1,11 @@
 import * as dotenv from 'dotenv';
 
-import { createMcp } from "../lib";
+import { createMcp } from '../lib';
 
 dotenv.config();
 
 function handler(req: Request) {
-  return createMcp()(req);
+    return createMcp()(req);
 }
 
 export { handler as GET };
