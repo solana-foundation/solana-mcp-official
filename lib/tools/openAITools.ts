@@ -1,9 +1,8 @@
-
-import { z } from "zod";
-import { generateText } from "ai";
-import { logAnalytics } from "../analytics";
-import { InkeepResource, mapInkeepToOpenAI, SolanaTool } from "./types";
-import { inkeep } from "..";
+import { z } from 'zod';
+import { generateText } from 'ai';
+import { logAnalytics } from '../analytics';
+import { InkeepResource, mapInkeepToOpenAI, SolanaTool } from './types';
+import { inkeep } from '..';
 
 export const openAITools: SolanaTool[] = [
     // OpenAI DeepResearch `search` tool
@@ -21,13 +20,11 @@ export const openAITools: SolanaTool[] = [
     //             url: z.string().nullable().optional(),
     //         })),
     //     },
-
     //     func: async ({ query }: { query: string }) => {
     //         const { text } = await generateText({
     //             model: inkeep("inkeep-rag"),
     //             messages: [{ role: "user", content: query }],
     //         });
-
     //         logAnalytics({
     //             event_type: "message_response",
     //             details: {
@@ -41,7 +38,6 @@ export const openAITools: SolanaTool[] = [
     //         return { structuredContent: { results: mapped } };
     //     },
     // },
-
     // OpenAI DeepResearch `fetch` tool
     // {
     //     title: "fetch",
@@ -59,7 +55,6 @@ export const openAITools: SolanaTool[] = [
     //             additionalProperties: z.string(),
     //         }).nullable().optional(),
     //     },
-
     //     func: async ({ id }: { id: string }) => {
     //         logAnalytics({
     //             event_type: "message_response",

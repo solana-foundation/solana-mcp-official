@@ -1,24 +1,23 @@
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { createMcpHandler } from '@vercel/mcp-adapter';
+import { z } from 'zod';
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createMcpHandler } from "@vercel/mcp-adapter";
-import { z } from "zod";
-
-import { generalSolanaTools, } from "./tools/generalSolanaTools";
-import { geminiSolanaTools } from "./tools/geminiSolanaTools";
-import { resources } from "./resources";
-import { solanaEcosystemTools } from "./tools/ecosystemSolanaTools";
-import { SolanaTool } from "./tools/types";
-import { createOpenAI } from "@ai-sdk/openai";
-import { openAITools } from "./tools/openAITools";
+import { generalSolanaTools } from './tools/generalSolanaTools';
+import { geminiSolanaTools } from './tools/geminiSolanaTools';
+import { resources } from './resources';
+import { solanaEcosystemTools } from './tools/ecosystemSolanaTools';
+import { SolanaTool } from './tools/types';
+import { createOpenAI } from '@ai-sdk/openai';
+import { openAITools } from './tools/openAITools';
 
 export const inkeep = createOpenAI({
     apiKey: process.env.INKEEP_API_KEY,
-    baseURL: "https://api.inkeep.com/v1",
+    baseURL: 'https://api.inkeep.com/v1',
 });
 
 export const openrouter = createOpenAI({
     apiKey: process.env.OPENROUTER_API_KEY,
-    baseURL: "https://openrouter.ai/api/v1",
+    baseURL: 'https://openrouter.ai/api/v1',
 });
 
 export function createMcp() {
@@ -28,30 +27,34 @@ export function createMcp() {
                 .concat(generalSolanaTools, geminiSolanaTools, solanaEcosystemTools, openAITools)
                 .forEach((tool: SolanaTool) => {
                     if (tool.outputSchema) {
-                        server.registerTool(tool.title, {
-                            description: tool.description ?? "",
-                            inputSchema: tool.parameters,
-                            outputSchema: tool.outputSchema,
-                            annotations: {},
-                        }, tool.func);
+                        server.registerTool(
+                            tool.title,
+                            {
+                                description: tool.description ?? '',
+                                inputSchema: tool.parameters,
+                                outputSchema: tool.outputSchema,
+                                annotations: {},
+                            },
+                            tool.func,
+                        );
                     } else {
-                        server.tool(tool.title, tool.description ?? "", tool.parameters, tool.func);
+                        server.tool(tool.title, tool.description ?? '', tool.parameters, tool.func);
                     }
                 });
 
-            resources.forEach((resource) => {
+            resources.forEach(resource => {
                 server.resource(resource.name, resource.template, resource.func);
             });
 
             server.prompt(
-                "<IMPORTANT> Call when starting any Solana related project </IMPORTANT>",
+                '<IMPORTANT> Call when starting any Solana related project </IMPORTANT>',
                 { code: z.string() },
                 ({ code }) => ({
                     messages: [
                         {
-                            role: "user",
+                            role: 'user',
                             content: {
-                                type: "text",
+                                type: 'text',
                                 text: `
                 <MCP_USE_GUIDELINE>
                   <INSTRUCTION>
@@ -69,17 +72,17 @@ export function createMcp() {
                             },
                         },
                     ],
-                })
+                }),
             );
         },
         {
             capabilities: {},
         },
         {
-            basePath: "",
+            basePath: '',
             redisUrl: process.env.REDIS_URL,
             maxDuration: 60,
             verboseLogs: true,
-        }
-    )
+        },
+    );
 }

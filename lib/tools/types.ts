@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 import { sha256 } from '@noble/hashes/sha2.js';
 
 export type SolanaTool = {
