@@ -1,5 +1,4 @@
 .vercel
 node_modules/
 .env
-pnpm-lock.yaml
 dist/
