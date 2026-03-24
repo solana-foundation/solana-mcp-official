@@ -1,0 +1,10 @@
+.corepack/
+.docs/
+.pnpm-store/
+.vercel/
+coverage/
+dist/
+node_modules/
+pnpm-lock.yaml
+.env
+public/
