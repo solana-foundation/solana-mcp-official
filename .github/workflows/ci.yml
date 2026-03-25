@@ -13,13 +13,13 @@ jobs:
   format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         with:
           version: 10.30.0
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: 24.x
           cache: pnpm
@@ -35,13 +35,13 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         with:
           version: 10.30.0
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: 24.x
           cache: pnpm
@@ -54,13 +54,13 @@ jobs:
   # security-audit:
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v6
+  #     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
   #       with:
   #         fetch-depth: 0
-  #     - uses: pnpm/action-setup@v5
+  #     - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
   #       with:
   #         version: 10.30.0
-  #     - uses: actions/setup-node@v6
+  #     - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
   #       with:
   #         node-version: 24.x
   #         cache: pnpm
@@ -72,13 +72,13 @@ jobs:
   typecheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         with:
           version: 10.30.0
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: 24.x
           cache: pnpm
@@ -91,13 +91,13 @@ jobs:
   # test:
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v6
+  #     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
   #       with:
   #         fetch-depth: 0
-  #     - uses: pnpm/action-setup@v5
+  #     - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
   #       with:
   #         version: 10.30.0
-  #     - uses: actions/setup-node@v6
+  #     - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
   #       with:
   #         node-version: 24.x
   #         cache: pnpm
@@ -114,23 +114,23 @@ jobs:
   #     checks: write
   #     pull-requests: read
   #   steps:
-  #     - uses: actions/checkout@v6
+  #     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
   #       with:
   #         fetch-depth: 0
-  #     - uses: pnpm/action-setup@v5
+  #     - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
   #       with:
   #         version: 10.30.0
-  #     - uses: actions/setup-node@v6
+  #     - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
   #       with:
   #         node-version: 24.x
   #         cache: pnpm
   #     - name: Install dependencies
   #       run: pnpm install --frozen-lockfile
   #     - name: Run coverage
-  #       run: pnpm coverage
+  #       run: pnpm test:coverage
   #     - name: Annotate uncovered lines in PR
   #       if: github.event_name == 'pull_request'
-  #       uses: ggilder/codecoverage@v1
+  #       uses: ggilder/codecoverage@9f2933bb9cc49ffb598575216e12c102b0716219 # v1
   #       with:
   #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   #         COVERAGE_FILE_PATH: coverage/lcov.info
