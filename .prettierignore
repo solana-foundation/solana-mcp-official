@@ -8,3 +8,5 @@ node_modules/
 pnpm-lock.yaml
 .env
 public/
+*.yaml
+*.yml
