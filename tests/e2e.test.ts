@@ -22,19 +22,10 @@ describe.skip('e2e', () => {
         endpoint = `http://localhost:${port}`;
         console.log('endpoint', endpoint);
         const transport = new StreamableHTTPClientTransport(new URL(`${endpoint}/mcp`));
-        client = new Client(
-            {
-                name: 'example-client',
-                version: '1.0.0',
-            },
-            {
-                capabilities: {
-                    prompts: {},
-                    resources: {},
-                    tools: {},
-                },
-            },
-        );
+        client = new Client({
+            name: 'example-client',
+            version: '1.0.0',
+        });
         await client.connect(transport);
     });
 
