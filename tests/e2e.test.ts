@@ -5,8 +5,23 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { createMcp } from "../lib";
 import { AddressInfo } from "node:net";
 
+const hasRequiredEnv = !!(
+  process.env.SUPABASE_URL &&
+  process.env.SUPABASE_SERVICE_ROLE_KEY &&
+  process.env.INKEEP_API_KEY &&
+  process.env.REDIS_URL
+);
+
+const describeE2e = hasRequiredEnv ? describe : describe.skip;
+
+if (!hasRequiredEnv) {
+  console.warn(
+    "[e2e] Skipping E2E tests — missing required env vars (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, INKEEP_API_KEY, REDIS_URL)",
+  );
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-describe.skip("e2e", () => {
+describeE2e("e2e", () => {
   let server: Server;
   let endpoint: string;
   let client: Client;

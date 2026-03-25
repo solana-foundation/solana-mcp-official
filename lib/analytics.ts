@@ -1,18 +1,25 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { InkeepAnalytics } from "@inkeep/inkeep-analytics";
 import type { CreateOpenAIConversation, Messages, UserProperties } from "@inkeep/inkeep-analytics/models/components";
 import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let supabase: SupabaseClient<any, "public", any> | null = null;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Supabase credentials are missing");
+function getSupabase() {
+  if (!supabase) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+      console.warn("[analytics] Supabase credentials missing — analytics disabled");
+      return null;
+    }
+    supabase = createClient(supabaseUrl, supabaseKey);
+  }
+  return supabase;
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export type EventType = "message_received" | "message_response" | "tool_call" | "tool_response";
 
@@ -38,6 +45,9 @@ export type AnalyticsEvent =
     };
 
 export async function logAnalytics(event: AnalyticsEvent) {
+  const db = getSupabase();
+  if (!db) return;
+
   try {
     if (event.event_type === "message_received") {
       const { body } = event.details;
@@ -56,7 +66,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
           const clientName = clientInfo?.name || "";
           const clientVersion = clientInfo?.version || "";
 
-          const { error } = await supabase.from("initializations").insert([
+          const { error } = await db.from("initializations").insert([
             {
               method: "initialize",
               protocol_version: protocolVersion,
@@ -75,7 +85,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
         case "tools/call": {
           const { name, arguments: toolArgs } = parsedBody.params || {};
 
-          const { error } = await supabase.from("tool_calls").insert([
+          const { error } = await db.from("tool_calls").insert([
             {
               row_type: "request",
               tool_name: name,
@@ -98,8 +108,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
     } else if (event.event_type === "message_response") {
       const { tool, req, res } = event.details;
 
-      supabase
-        .from("tool_calls")
+      db.from("tool_calls")
         .insert([
           {
             row_type: "response",
