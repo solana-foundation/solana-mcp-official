@@ -7,7 +7,7 @@ export default defineConfig({
       include: ["lib/**/*.ts", "api/**/*.ts"],
       exclude: ["lib/context/**"],
       reporter: ["text", "html", "json-summary"],
-      reportsDirectory: "./coverage"
-    }
-  }
+      reportsDirectory: "./coverage",
+    },
+  },
 });

@@ -13,8 +13,8 @@ export default tseslint.config(
       ".vercel/**",
       "dist/**",
       "coverage/**",
-      "node_modules/**"
-    ]
+      "node_modules/**",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -25,7 +25,7 @@ export default tseslint.config(
     rules: {
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "@typescript-eslint/no-explicit-any": "warn",
-      "no-console": ["warn", { allow: ["error", "warn", "log"] }]
-    }
-  }
+      "no-console": ["warn", { allow: ["error", "warn", "log"] }],
+    },
+  },
 );
