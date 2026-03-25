@@ -21,6 +21,7 @@ export type AnalyticsEvent =
           event_type: Exclude<EventType, 'message_response'>;
           session_id?: string;
           request_id?: string;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           details?: any;
           timestamp?: string;
       }
@@ -40,10 +41,11 @@ export async function logAnalytics(event: AnalyticsEvent) {
     try {
         if (event.event_type === 'message_received') {
             const { body } = event.details;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let parsedBody: any;
             try {
                 parsedBody = JSON.parse(body);
-            } catch (err) {
+            } catch {
                 console.error('[logAnalytics] Could not parse JSON body:', body);
                 return;
             }
@@ -54,7 +56,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
                     const clientName = clientInfo?.name || '';
                     const clientVersion = clientInfo?.version || '';
 
-                    const { data, error } = await supabase.from('initializations').insert([
+                    const { error } = await supabase.from('initializations').insert([
                         {
                             method: 'initialize',
                             protocol_version: protocolVersion,
@@ -73,7 +75,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
                 case 'tools/call': {
                     const { name, arguments: toolArgs } = parsedBody.params || {};
 
-                    const { data, error } = await supabase.from('tool_calls').insert([
+                    const { error } = await supabase.from('tool_calls').insert([
                         {
                             row_type: 'request',
                             tool_name: name,
@@ -118,8 +120,8 @@ export async function logAnalytics(event: AnalyticsEvent) {
             // Formatting of log data from https://github.com/inkeep/mcp-for-vercel/blob/main/app/%5Btransport%5D/route.ts#L98
             const links =
                 parsedRes['content']
-                    .filter((x: any) => x['url'])
-                    .map((x: any) => `- [${x['title'] || x['url']}](${x['url']})`)
+                    .filter((x: Record<string, unknown>) => x['url'])
+                    .map((x: Record<string, unknown>) => `- [${x['title'] || x['url']}](${x['url']})`)
                     .join('\n') || '';
 
             await logToInkeepAnalytics({
@@ -149,6 +151,7 @@ async function logToInkeepAnalytics({
     userProperties,
 }: {
     messagesToLogToAnalytics: Messages[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     properties?: { [k: string]: any } | null | undefined;
     userProperties?: UserProperties | null | undefined;
 }): Promise<void> {

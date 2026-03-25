@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createServer, IncomingMessage, ServerResponse, type Server } from 'node:http';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -6,6 +5,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { createMcp } from '../lib';
 import { AddressInfo } from 'node:net';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 describe.skip('e2e', () => {
     let server: Server;
     let endpoint: string;
