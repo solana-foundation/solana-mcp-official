@@ -10,7 +10,6 @@ updates:
       include: 'scope'
     labels:
       - 'dependencies'
-      - 'npm'
     groups:
       npm-minor-patch:
         applies-to: 'version-updates'
@@ -27,7 +26,6 @@ updates:
     open-pull-requests-limit: 3
     labels:
       - 'dependencies'
-      - 'github-actions'
     groups:
       gha-minor-patch:
         applies-to: 'version-updates'
