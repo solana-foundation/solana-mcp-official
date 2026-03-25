@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "dev": "vercel dev",
-        "test": "vitest",
+        "test": "vitest run",
         "test:coverage": "vitest run --coverage",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
