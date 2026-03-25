@@ -1,15 +1,15 @@
-import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export const resources = [
     {
-        name: 'solanaDocsClusters',
-        template: new ResourceTemplate('solana://clusters', {
+        name: "solanaDocsClusters",
+        template: new ResourceTemplate("solana://clusters", {
             list: undefined,
         }),
         func: async (uri: URL) => {
             try {
                 const response = await fetch(
-                    'https://raw.githubusercontent.com/solana-foundation/solana-com/main/content/docs/references/clusters.mdx',
+                    "https://raw.githubusercontent.com/solana-foundation/solana-com/main/content/docs/references/clusters.mdx",
                 );
                 const fileContent = await response.text();
                 return {
@@ -33,14 +33,14 @@ export const resources = [
         },
     },
     {
-        name: 'solanaDocsInstallation',
-        template: new ResourceTemplate('solana://installation', {
+        name: "solanaDocsInstallation",
+        template: new ResourceTemplate("solana://installation", {
             list: undefined,
         }),
         func: async (uri: URL) => {
             try {
                 const response = await fetch(
-                    'https://raw.githubusercontent.com/solana-foundation/solana-com/main/content/docs/intro/installation.mdx',
+                    "https://raw.githubusercontent.com/solana-foundation/solana-com/main/content/docs/intro/installation.mdx",
                 );
                 const fileContent = await response.text();
                 return {

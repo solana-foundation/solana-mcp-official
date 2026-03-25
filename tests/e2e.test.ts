@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createServer, IncomingMessage, ServerResponse, type Server } from 'node:http';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { createMcp } from '../lib';
-import { AddressInfo } from 'node:net';
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { createServer, IncomingMessage, ServerResponse, type Server } from "node:http";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { createMcp } from "../lib";
+import { AddressInfo } from "node:net";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-describe.skip('e2e', () => {
+describe.skip("e2e", () => {
     let server: Server;
     let endpoint: string;
     let client: Client;
@@ -20,11 +20,11 @@ describe.skip('e2e', () => {
         });
         const port = (server.address() as AddressInfo | null)?.port;
         endpoint = `http://localhost:${port}`;
-        console.log('endpoint', endpoint);
+        console.log("endpoint", endpoint);
         const transport = new StreamableHTTPClientTransport(new URL(`${endpoint}/mcp`));
         client = new Client({
-            name: 'example-client',
-            version: '1.0.0',
+            name: "example-client",
+            version: "1.0.0",
         });
         await client.connect(transport);
     });
@@ -33,15 +33,15 @@ describe.skip('e2e', () => {
         server.close();
     });
 
-    it('tools should include search and fetch', async () => {
+    it("tools should include search and fetch", async () => {
         const { tools } = await client.listTools();
 
-        const search = tools.find(tool => tool.name === 'search');
+        const search = tools.find(tool => tool.name === "search");
         expect(search).toBeDefined();
         expect(search?.outputSchema).toBeDefined();
         expect(search?.outputSchema?.properties?.results).toBeDefined();
 
-        const fetch = tools.find(tool => tool.name === 'fetch');
+        const fetch = tools.find(tool => tool.name === "fetch");
         expect(fetch).toBeDefined();
         expect(fetch?.outputSchema).toBeDefined();
         expect(fetch?.outputSchema?.properties?.id).toBeDefined();
@@ -51,12 +51,12 @@ describe.skip('e2e', () => {
         expect(fetch?.outputSchema?.properties?.metadata).toBeDefined();
     });
 
-    it('Search should return results as structured content', async () => {
+    it("Search should return results as structured content", async () => {
         const result = await client.callTool(
             {
-                name: 'search',
+                name: "search",
                 arguments: {
-                    query: 'How do I derive a token pda in rust?',
+                    query: "How do I derive a token pda in rust?",
                 },
             },
             undefined,
@@ -67,12 +67,12 @@ describe.skip('e2e', () => {
         expect((result.structuredContent as any).results.length).toBeGreaterThan(0);
     });
 
-    it('Fetch should return results as structured content', async () => {
+    it("Fetch should return results as structured content", async () => {
         const result = await client.callTool(
             {
-                name: 'fetch',
+                name: "fetch",
                 arguments: {
-                    id: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+                    id: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
                 },
             },
             undefined,
@@ -92,21 +92,21 @@ function nodeToWebHandler(
     handler: (req: Request) => Promise<Response>,
 ): (req: IncomingMessage, res: ServerResponse) => void {
     return async (req, res) => {
-        const method = (req.method || 'GET').toUpperCase();
+        const method = (req.method || "GET").toUpperCase();
         const requestBody =
-            method === 'GET' || method === 'HEAD'
+            method === "GET" || method === "HEAD"
                 ? undefined
                 : await new Promise<ArrayBuffer>((resolve, reject) => {
                       const chunks: Buffer[] = [];
-                      req.on('data', chunk => {
+                      req.on("data", chunk => {
                           chunks.push(chunk);
                       });
-                      req.on('end', () => {
+                      req.on("end", () => {
                           const buf = Buffer.concat(chunks);
                           resolve(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
                       });
-                      req.on('error', () => {
-                          reject(new Error('Failed to read request body'));
+                      req.on("error", () => {
+                          reject(new Error("Failed to read request body"));
                       });
                   });
 
@@ -124,7 +124,7 @@ function nodeToWebHandler(
             }
         }
 
-        const reqUrl = new URL(req.url || '/', 'http://localhost');
+        const reqUrl = new URL(req.url || "/", "http://localhost");
         const webReq = new Request(reqUrl, {
             method: req.method,
             headers: requestHeaders,
