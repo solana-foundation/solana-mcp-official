@@ -12,12 +12,12 @@ import { openAITools } from "./tools/openAITools";
 
 export const inkeep = createOpenAI({
   apiKey: process.env.INKEEP_API_KEY,
-  baseURL: "https://api.inkeep.com/v1"
+  baseURL: "https://api.inkeep.com/v1",
 });
 
 export const openrouter = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: "https://openrouter.ai/api/v1"
+  baseURL: "https://openrouter.ai/api/v1",
 });
 
 export function createMcp() {
@@ -33,9 +33,9 @@ export function createMcp() {
                 description: tool.description ?? "",
                 inputSchema: tool.parameters,
                 outputSchema: tool.outputSchema,
-                annotations: {}
+                annotations: {},
               },
-              tool.func
+              tool.func,
             );
           } else {
             server.tool(tool.title, tool.description ?? "", tool.parameters, tool.func);
@@ -68,21 +68,21 @@ export function createMcp() {
                   </TOOLS>
               
                 </MCP_USE_GUIDELINE>
-              `
-              }
-            }
-          ]
-        })
+              `,
+              },
+            },
+          ],
+        }),
       );
     },
     {
-      capabilities: {}
+      capabilities: {},
     },
     {
       basePath: "",
       redisUrl: process.env.REDIS_URL,
       maxDuration: 60,
-      verboseLogs: true
-    }
+      verboseLogs: true,
+    },
   );
 }

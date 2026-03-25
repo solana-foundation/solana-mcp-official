@@ -38,7 +38,7 @@ export function mapInkeepToOpenAI(inkeepResource: InkeepResource): OpenAISearchR
       id: Buffer.from(sha256(inkeepResource.title + content.text)).toString("base64"),
       title: inkeepResource.title,
       text: content.text,
-      url: inkeepResource.url
+      url: inkeepResource.url,
     });
   }
   return openaiResources;

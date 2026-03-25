@@ -64,8 +64,8 @@ export async function logAnalytics(event: AnalyticsEvent) {
               client_name: clientName,
               client_version: clientVersion,
               raw_body: parsedBody,
-              timestamp: new Date().toISOString()
-            }
+              timestamp: new Date().toISOString(),
+            },
           ]);
 
           if (error) console.error("[logAnalytics] Error inserting initialize:", error);
@@ -83,8 +83,8 @@ export async function logAnalytics(event: AnalyticsEvent) {
               session_id: event.session_id,
               arguments: toolArgs,
               raw_body: parsedBody,
-              timestamp: new Date().toISOString()
-            }
+              timestamp: new Date().toISOString(),
+            },
           ]);
 
           if (error) console.error("[logAnalytics] Error inserting tool_call:", error);
@@ -107,8 +107,8 @@ export async function logAnalytics(event: AnalyticsEvent) {
             arguments: req,
             response_text: res,
             raw_body: event.details,
-            timestamp: new Date().toISOString()
-          }
+            timestamp: new Date().toISOString(),
+          },
         ])
         .then(({ error }) => {
           if (error) {
@@ -126,18 +126,18 @@ export async function logAnalytics(event: AnalyticsEvent) {
 
       await logToInkeepAnalytics({
         properties: {
-          tool
+          tool,
         },
         messagesToLogToAnalytics: [
           {
             role: "user",
-            content: req
+            content: req,
           },
           {
             role: "assistant",
-            content: links
-          }
-        ]
+            content: links,
+          },
+        ],
       });
     }
   } catch (err) {
@@ -148,7 +148,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
 async function logToInkeepAnalytics({
   messagesToLogToAnalytics,
   properties,
-  userProperties
+  userProperties,
 }: {
   messagesToLogToAnalytics: Messages[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -163,15 +163,15 @@ async function logToInkeepAnalytics({
     type: "openai",
     messages: messagesToLogToAnalytics,
     userProperties,
-    properties
+    properties,
   };
 
   try {
     await inkeepAnalytics.conversations.log(
       {
-        apiIntegrationKey
+        apiIntegrationKey,
       },
-      logConversationPayload
+      logConversationPayload,
     );
   } catch (raceError) {
     console.error("Error logging conversation", raceError);

@@ -24,7 +24,7 @@ describe.skip("e2e", () => {
     const transport = new StreamableHTTPClientTransport(new URL(`${endpoint}/mcp`));
     client = new Client({
       name: "example-client",
-      version: "1.0.0"
+      version: "1.0.0",
     });
     await client.connect(transport);
   });
@@ -56,11 +56,11 @@ describe.skip("e2e", () => {
       {
         name: "search",
         arguments: {
-          query: "How do I derive a token pda in rust?"
-        }
+          query: "How do I derive a token pda in rust?",
+        },
       },
       undefined,
-      {}
+      {},
     );
     expect(result.structuredContent).toBeDefined();
     expect((result.structuredContent as any).results).toBeInstanceOf(Array);
@@ -72,11 +72,11 @@ describe.skip("e2e", () => {
       {
         name: "fetch",
         arguments: {
-          id: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
+          id: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        },
       },
       undefined,
-      {}
+      {},
     );
 
     expect(result.structuredContent).toBeDefined();
@@ -89,7 +89,7 @@ describe.skip("e2e", () => {
 });
 
 function nodeToWebHandler(
-  handler: (req: Request) => Promise<Response>
+  handler: (req: Request) => Promise<Response>,
 ): (req: IncomingMessage, res: ServerResponse) => void {
   return async (req, res) => {
     const method = (req.method || "GET").toUpperCase();
@@ -128,7 +128,7 @@ function nodeToWebHandler(
     const webReq = new Request(reqUrl, {
       method: req.method,
       headers: requestHeaders,
-      body: requestBody
+      body: requestBody,
     });
 
     const webResp = await handler(webReq);

@@ -11,7 +11,7 @@ export const geminiSolanaTools: SolanaTool[] = [
     title: "Ask_Solana_Anchor_Framework_Expert",
     description: "Ask questions about developing on Solana with the Anchor Framework.",
     parameters: {
-      question: z.string().describe("Any question about the Anchor Framework. (how-to, concepts, APIs, SDKs, errors)")
+      question: z.string().describe("Any question about the Anchor Framework. (how-to, concepts, APIs, SDKs, errors)"),
     },
 
     func: async ({ question }: { question: string }) => {
@@ -26,7 +26,7 @@ export const geminiSolanaTools: SolanaTool[] = [
       const { text } = await generateText({
         system: systemPrompt,
         model: openrouter("google/gemini-2.0-flash-001"),
-        messages: [{ role: "user", content: question }]
+        messages: [{ role: "user", content: question }],
       });
 
       await logAnalytics({
@@ -34,11 +34,11 @@ export const geminiSolanaTools: SolanaTool[] = [
         details: {
           tool: "Ask_Solana_Anchor_Framework_Expert",
           req: question,
-          res: text
-        }
+          res: text,
+        },
       });
 
       return { content: [{ type: "text", text }] };
-    }
-  }
+    },
+  },
 ];
