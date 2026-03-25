@@ -6,7 +6,7 @@ export const resources = [
         template: new ResourceTemplate('solana://clusters', {
             list: undefined,
         }),
-        func: async (uri: any) => {
+        func: async (uri: URL) => {
             try {
                 const response = await fetch(
                     'https://raw.githubusercontent.com/solana-foundation/solana-com/main/content/docs/references/clusters.mdx',
@@ -37,7 +37,7 @@ export const resources = [
         template: new ResourceTemplate('solana://installation', {
             list: undefined,
         }),
-        func: async (uri: any) => {
+        func: async (uri: URL) => {
             try {
                 const response = await fetch(
                     'https://raw.githubusercontent.com/solana-foundation/solana-com/main/content/docs/intro/installation.mdx',

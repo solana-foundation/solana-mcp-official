@@ -49,7 +49,7 @@ export function createMcp() {
             server.prompt(
                 '<IMPORTANT> Call when starting any Solana related project </IMPORTANT>',
                 { code: z.string() },
-                ({ code }) => ({
+                _args => ({
                     messages: [
                         {
                             role: 'user',
