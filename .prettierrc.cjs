@@ -4,5 +4,5 @@ module.exports = {
   ...solanaConfig,
   singleQuote: false,
   tabWidth: 2,
-  trailingComma: "none"
+  trailingComma: "all",
 };
