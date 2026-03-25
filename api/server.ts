@@ -1,6 +1,6 @@
-import * as dotenv from 'dotenv';
+import * as dotenv from "dotenv";
 
-import { createMcp } from '../lib';
+import { createMcp } from "../lib";
 
 dotenv.config();
 

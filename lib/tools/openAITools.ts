@@ -1,4 +1,4 @@
-import { SolanaTool } from './types';
+import { SolanaTool } from "./types";
 
 export const openAITools: SolanaTool[] = [
     // OpenAI DeepResearch `search` tool

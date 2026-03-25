@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { sha256 } from '@noble/hashes/sha2.js';
+import { z } from "zod";
+import { sha256 } from "@noble/hashes/sha2.js";
 
 export type SolanaTool = {
     title: string;
@@ -35,7 +35,7 @@ export function mapInkeepToOpenAI(inkeepResource: InkeepResource): OpenAISearchR
     const openaiResources: OpenAISearchResource[] = [];
     for (const content of inkeepResource.source.content) {
         openaiResources.push({
-            id: Buffer.from(sha256(inkeepResource.title + content.text)).toString('base64'),
+            id: Buffer.from(sha256(inkeepResource.title + content.text)).toString("base64"),
             title: inkeepResource.title,
             text: content.text,
             url: inkeepResource.url,
