@@ -11,18 +11,11 @@ export const geminiSolanaTools: SolanaTool[] = [
     title: "Ask_Solana_Anchor_Framework_Expert",
     description: "Ask questions about developing on Solana with the Anchor Framework.",
     parameters: {
-      question: z
-        .string()
-        .describe(
-          "Any question about the Anchor Framework. (how-to, concepts, APIs, SDKs, errors)"
-        ),
+      question: z.string().describe("Any question about the Anchor Framework. (how-to, concepts, APIs, SDKs, errors)"),
     },
 
     func: async ({ question }: { question: string }) => {
-      const anchorDocsText = await fs.readFile(
-        path.join(__dirname, "..", "context", "anchorDocs.xml"),
-        "utf8"
-      );
+      const anchorDocsText = await fs.readFile(path.join(__dirname, "..", "context", "anchorDocs.xml"), "utf8");
       const systemPrompt = `
       You are an expert software engineer specializing in the Anchor Framework.
       You will answer the user's question based on the provided Anchor documentation.

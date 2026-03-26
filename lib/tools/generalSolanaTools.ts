@@ -12,7 +12,7 @@ export const generalSolanaTools: SolanaTool[] = [
       question: z
         .string()
         .describe(
-          "A Solana related question. (how-to, concepts, APIs, SDKs, errors)\n Provide as much context about the problem as needed, to make the expert understand the problem. The expert will do a similarity search based on your question and provide you the results."
+          "A Solana related question. (how-to, concepts, APIs, SDKs, errors)\n Provide as much context about the problem as needed, to make the expert understand the problem. The expert will do a similarity search based on your question and provide you the results.",
         ),
     },
 
@@ -41,9 +41,7 @@ export const generalSolanaTools: SolanaTool[] = [
     parameters: {
       query: z
         .string()
-        .describe(
-          "A search query that will be matched against a corpus of Solana documentation using RAG"
-        ),
+        .describe("A search query that will be matched against a corpus of Solana documentation using RAG"),
     },
 
     func: async ({ query }: { query: string }) => {
@@ -63,5 +61,5 @@ export const generalSolanaTools: SolanaTool[] = [
 
       return { content: [{ type: "text", text }] };
     },
-  }
+  },
 ];
