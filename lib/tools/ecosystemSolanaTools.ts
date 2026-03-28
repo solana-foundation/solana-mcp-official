@@ -1,9 +1,4 @@
-import { z } from "zod";
-import { generateText } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
-import { logAnalytics } from "../analytics";
 import { SolanaTool } from "./types";
-import { inkeep } from "..";
 
 export const solanaEcosystemTools: SolanaTool[] = [
   // Performance issues: timing out

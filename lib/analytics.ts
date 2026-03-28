@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { InkeepAnalytics } from '@inkeep/inkeep-analytics';
-import type { CreateOpenAIConversation, Messages, UserProperties } from '@inkeep/inkeep-analytics/models/components';
+import { logInkeepToolResponse } from "./services/inkeep/analytics.js";
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -116,28 +115,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
         }
       });
 
-      const parsedRes = JSON.parse(res);
-      // Formatting of log data from https://github.com/inkeep/mcp-for-vercel/blob/main/app/%5Btransport%5D/route.ts#L98 
-      const links = parsedRes['content']
-        .filter((x: any) => x['url'])
-        .map((x: any) => `- [${x['title'] || x['url']}](${x['url']})`)
-        .join("\n") || '';
-
-      await logToInkeepAnalytics({
-        properties: {
-          tool,
-        },
-        messagesToLogToAnalytics: [
-          {
-            role: "user",
-            content: req,
-          },
-          {
-            role: "assistant",
-            content: links,
-          }
-        ],
-      });
+      await logInkeepToolResponse({ tool, req, res });
 
     }
   } catch (err) {
@@ -145,34 +123,3 @@ export async function logAnalytics(event: AnalyticsEvent) {
   }
 }
 
-async function logToInkeepAnalytics({
-  messagesToLogToAnalytics,
-  properties,
-  userProperties,
-}: {
-  messagesToLogToAnalytics: Messages[];
-  properties?: { [k: string]: any } | null | undefined;
-  userProperties?: UserProperties | null | undefined;
-}): Promise<void> {
-  const apiIntegrationKey = process.env.INKEEP_API_KEY;
-
-  const inkeepAnalytics = new InkeepAnalytics({ apiIntegrationKey });
-
-  const logConversationPayload: CreateOpenAIConversation = {
-    type: 'openai',
-    messages: messagesToLogToAnalytics,
-    userProperties,
-    properties,
-  };
-
-  try {
-    await inkeepAnalytics.conversations.log(
-      {
-        apiIntegrationKey,
-      },
-      logConversationPayload,
-    )
-  } catch (raceError) {
-    console.error('Error logging conversation', raceError);
-  }
-}

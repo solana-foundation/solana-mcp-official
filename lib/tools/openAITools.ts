@@ -1,9 +1,5 @@
 
-import { z } from "zod";
-import { generateText } from "ai";
-import { logAnalytics } from "../analytics";
-import { InkeepResource, mapInkeepToOpenAI, SolanaTool } from "./types";
-import { inkeep } from "..";
+import { SolanaTool } from "./types";
 
 export const openAITools: SolanaTool[] = [
     // OpenAI DeepResearch `search` tool
