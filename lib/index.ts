@@ -2,18 +2,14 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMcpHandler } from "@vercel/mcp-adapter";
 import { z } from "zod";
 
-import { generalSolanaTools } from "./tools/generalSolanaTools";
 import { geminiSolanaTools } from "./tools/geminiSolanaTools";
 import { resources } from "./resources";
 import { solanaEcosystemTools } from "./tools/ecosystemSolanaTools";
 import { SolanaTool } from "./tools/types";
 import { createOpenAI } from "@ai-sdk/openai";
 import { openAITools } from "./tools/openAITools";
-
-export const inkeep = createOpenAI({
-  apiKey: process.env.INKEEP_API_KEY,
-  baseURL: "https://api.inkeep.com/v1",
-});
+import { createSolanaTools } from "./tools/generalSolanaTools";
+import { inkeepRagModel } from "./services/inkeep";
 
 export const openrouter = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -24,7 +20,7 @@ export function createMcp() {
   return createMcpHandler(
     (server: McpServer) => {
       ([] as SolanaTool[])
-        .concat(generalSolanaTools, geminiSolanaTools, solanaEcosystemTools, openAITools)
+        .concat(createSolanaTools(inkeepRagModel), geminiSolanaTools, solanaEcosystemTools, openAITools)
         .forEach((tool: SolanaTool) => {
           if (tool.outputSchema) {
             server.registerTool(
