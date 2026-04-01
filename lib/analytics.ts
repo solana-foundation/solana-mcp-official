@@ -1,83 +1,91 @@
-import { createClient } from "@supabase/supabase-js";
-import { InkeepAnalytics } from '@inkeep/inkeep-analytics';
-import type { CreateOpenAIConversation, Messages, UserProperties } from '@inkeep/inkeep-analytics/models/components';
-import * as dotenv from 'dotenv';
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { InkeepAnalytics } from "@inkeep/inkeep-analytics";
+import type { CreateOpenAIConversation, Messages, UserProperties } from "@inkeep/inkeep-analytics/models/components";
+import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let supabase: SupabaseClient<any, "public", any> | null = null;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Supabase credentials are missing");
+function getSupabase() {
+  if (!supabase) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+      console.warn("[analytics] Supabase credentials missing — analytics disabled");
+      return null;
+    }
+    supabase = createClient(supabaseUrl, supabaseKey);
+  }
+  return supabase;
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-export type EventType = 'message_received' | 'message_response' | 'tool_call' | 'tool_response';
+export type EventType = "message_received" | "message_response" | "tool_call" | "tool_response";
 
 export type AnalyticsEvent =
   | {
-    event_type: Exclude<EventType, 'message_response'>;
-    session_id?: string;
-    request_id?: string;
-    details?: any;
-    timestamp?: string;
-  }
+      event_type: Exclude<EventType, "message_response">;
+      session_id?: string;
+      request_id?: string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      details?: any;
+      timestamp?: string;
+    }
   | {
-    event_type: 'message_response';
-    session_id?: string;
-    request_id?: string;
-    details: {
-      tool: string;
-      req: string;
-      res: string;
+      event_type: "message_response";
+      session_id?: string;
+      request_id?: string;
+      details: {
+        tool: string;
+        req: string;
+        res: string;
+      };
+      timestamp?: string;
     };
-    timestamp?: string;
-  };
 
 export async function logAnalytics(event: AnalyticsEvent) {
+  const db = getSupabase();
+  if (!db) return;
+
   try {
     if (event.event_type === "message_received") {
       const { body } = event.details;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let parsedBody: any;
       try {
         parsedBody = JSON.parse(body);
-      } catch (err) {
+      } catch {
         console.error("[logAnalytics] Could not parse JSON body:", body);
         return;
       }
 
       switch (parsedBody.method) {
         case "initialize": {
-          const { protocolVersion, capabilities, clientInfo } =
-            parsedBody.params || {};
+          const { protocolVersion, capabilities, clientInfo } = parsedBody.params || {};
           const clientName = clientInfo?.name || "";
           const clientVersion = clientInfo?.version || "";
 
-          const { data, error } = await supabase
-            .from("initializations")
-            .insert([
-              {
-                method: "initialize",
-                protocol_version: protocolVersion,
-                capabilities,
-                client_name: clientName,
-                client_version: clientVersion,
-                raw_body: parsedBody,
-                timestamp: new Date().toISOString(),
-              },
-            ]);
+          const { error } = await db.from("initializations").insert([
+            {
+              method: "initialize",
+              protocol_version: protocolVersion,
+              capabilities,
+              client_name: clientName,
+              client_version: clientVersion,
+              raw_body: parsedBody,
+              timestamp: new Date().toISOString(),
+            },
+          ]);
 
-          if (error)
-            console.error("[logAnalytics] Error inserting initialize:", error);
+          if (error) console.error("[logAnalytics] Error inserting initialize:", error);
           break;
         }
 
         case "tools/call": {
           const { name, arguments: toolArgs } = parsedBody.params || {};
 
-          const { data, error } = await supabase.from("tool_calls").insert([
+          const { error } = await db.from("tool_calls").insert([
             {
               row_type: "request",
               tool_name: name,
@@ -89,39 +97,61 @@ export async function logAnalytics(event: AnalyticsEvent) {
             },
           ]);
 
-          if (error)
-            console.error("[logAnalytics] Error inserting tool_call:", error);
+          if (error) console.error("[logAnalytics] Error inserting tool_call:", error);
           break;
         }
 
         default: {
-          console.log("[logAnalytics] Skipping method:", parsedBody.method);
+          console.warn("[logAnalytics] Skipping method:", parsedBody.method);
         }
       }
     } else if (event.event_type === "message_response") {
       const { tool, req, res } = event.details;
 
-      supabase.from("tool_calls").insert([
-        {
-          row_type: "response",
-          tool_name: tool,
-          arguments: req,
-          response_text: res,
-          raw_body: event.details,
-          timestamp: new Date().toISOString(),
-        },
-      ]).then(({ error }) => {
-        if (error) {
-          console.error("[logAnalytics] Error inserting tool response:", error);
-        }
-      });
+      db.from("tool_calls")
+        .insert([
+          {
+            row_type: "response",
+            tool_name: tool,
+            arguments: req,
+            response_text: res,
+            raw_body: event.details,
+            timestamp: new Date().toISOString(),
+          },
+        ])
+        .then(
+          ({ error }) => {
+            if (error) {
+              console.error("[logAnalytics] Error inserting tool response:", error);
+            }
+          },
+          err => {
+            console.error("[logAnalytics] Network error inserting tool response:", err);
+          },
+        );
 
-      const parsedRes = JSON.parse(res);
-      // Formatting of log data from https://github.com/inkeep/mcp-for-vercel/blob/main/app/%5Btransport%5D/route.ts#L98 
-      const links = parsedRes['content']
-        .filter((x: any) => x['url'])
-        .map((x: any) => `- [${x['title'] || x['url']}](${x['url']})`)
-        .join("\n") || '';
+      const parsedRes = JSON.parse(res) as {
+        content?: Array<Record<string, unknown>>;
+      };
+      // Formatting of log data from https://github.com/inkeep/mcp-for-vercel/blob/main/app/%5Btransport%5D/route.ts#L98
+      const links =
+        (parsedRes.content ?? [])
+          .filter(
+            (
+              contentItem,
+            ): contentItem is {
+              title?: unknown;
+              url: string;
+            } => typeof contentItem.url === "string" && contentItem.url.length > 0,
+          )
+          .map(contentItem => {
+            const title =
+              typeof contentItem.title === "string" && contentItem.title.length > 0
+                ? contentItem.title
+                : contentItem.url;
+            return `- [${title}](${contentItem.url})`;
+          })
+          .join("\n") || "";
 
       await logToInkeepAnalytics({
         properties: {
@@ -135,10 +165,9 @@ export async function logAnalytics(event: AnalyticsEvent) {
           {
             role: "assistant",
             content: links,
-          }
+          },
         ],
       });
-
     }
   } catch (err) {
     console.error("[logAnalytics] Unexpected error:", err);
@@ -151,6 +180,7 @@ async function logToInkeepAnalytics({
   userProperties,
 }: {
   messagesToLogToAnalytics: Messages[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   properties?: { [k: string]: any } | null | undefined;
   userProperties?: UserProperties | null | undefined;
 }): Promise<void> {
@@ -159,7 +189,7 @@ async function logToInkeepAnalytics({
   const inkeepAnalytics = new InkeepAnalytics({ apiIntegrationKey });
 
   const logConversationPayload: CreateOpenAIConversation = {
-    type: 'openai',
+    type: "openai",
     messages: messagesToLogToAnalytics,
     userProperties,
     properties,
@@ -171,8 +201,8 @@ async function logToInkeepAnalytics({
         apiIntegrationKey,
       },
       logConversationPayload,
-    )
+    );
   } catch (raceError) {
-    console.error('Error logging conversation', raceError);
+    console.error("Error logging conversation", raceError);
   }
 }
