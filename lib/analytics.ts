@@ -5,6 +5,9 @@ import { logInkeepToolResponse } from "./services/inkeep/analytics";
 dotenv.config();
 
 const sql = process.env.POSTGRES_URL ? neon(process.env.POSTGRES_URL) : null;
+if (!sql) {
+  console.warn("[analytics] POSTGRES_URL not set — analytics disabled");
+}
 
 export type EventType = "message_received" | "message_response" | "tool_call" | "tool_response";
 
@@ -30,10 +33,7 @@ export type AnalyticsEvent =
     };
 
 export async function logAnalytics(event: AnalyticsEvent) {
-  if (!sql) {
-    console.warn("[logAnalytics] POSTGRES_URL not set, skipping analytics");
-    return;
-  }
+  if (!sql) return;
 
   try {
     if (event.event_type === "message_received") {
@@ -98,7 +98,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
         VALUES (
           'response',
           ${tool},
-          ${req},
+          ${JSON.stringify(req)}::jsonb,
           ${res},
           ${JSON.stringify(event.details)}::jsonb,
           ${new Date().toISOString()}
