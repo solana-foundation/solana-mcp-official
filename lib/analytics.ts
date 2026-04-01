@@ -1,24 +1,10 @@
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { neon } from "@neondatabase/serverless";
 import * as dotenv from "dotenv";
 import { logInkeepToolResponse } from "./services/inkeep/analytics";
 
 dotenv.config();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let supabase: SupabaseClient<any, "public", any> | null = null;
-
-function getSupabase() {
-  if (!supabase) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !supabaseKey) {
-      console.warn("[analytics] Supabase credentials missing — analytics disabled");
-      return null;
-    }
-    supabase = createClient(supabaseUrl, supabaseKey);
-  }
-  return supabase;
-}
+const sql = process.env.POSTGRES_URL ? neon(process.env.POSTGRES_URL) : null;
 
 export type EventType = "message_received" | "message_response" | "tool_call" | "tool_response";
 
@@ -44,8 +30,10 @@ export type AnalyticsEvent =
     };
 
 export async function logAnalytics(event: AnalyticsEvent) {
-  const db = getSupabase();
-  if (!db) return;
+  if (!sql) {
+    console.warn("[logAnalytics] POSTGRES_URL not set, skipping analytics");
+    return;
+  }
 
   try {
     if (event.event_type === "message_received") {
@@ -65,38 +53,36 @@ export async function logAnalytics(event: AnalyticsEvent) {
           const clientName = clientInfo?.name || "";
           const clientVersion = clientInfo?.version || "";
 
-          const { error } = await db.from("initializations").insert([
-            {
-              method: "initialize",
-              protocol_version: protocolVersion,
-              capabilities,
-              client_name: clientName,
-              client_version: clientVersion,
-              raw_body: parsedBody,
-              timestamp: new Date().toISOString(),
-            },
-          ]);
-
-          if (error) console.error("[logAnalytics] Error inserting initialize:", error);
+          await sql`
+            INSERT INTO initializations (method, protocol_version, capabilities, client_name, client_version, raw_body, timestamp)
+            VALUES (
+              'initialize',
+              ${protocolVersion},
+              ${JSON.stringify(capabilities ?? null)}::jsonb,
+              ${clientName},
+              ${clientVersion},
+              ${JSON.stringify(parsedBody)}::jsonb,
+              ${new Date().toISOString()}
+            )
+          `;
           break;
         }
 
         case "tools/call": {
           const { name, arguments: toolArgs } = parsedBody.params || {};
 
-          const { error } = await db.from("tool_calls").insert([
-            {
-              row_type: "request",
-              tool_name: name,
-              request_id: event.request_id,
-              session_id: event.session_id,
-              arguments: toolArgs,
-              raw_body: parsedBody,
-              timestamp: new Date().toISOString(),
-            },
-          ]);
-
-          if (error) console.error("[logAnalytics] Error inserting tool_call:", error);
+          await sql`
+            INSERT INTO tool_calls (row_type, tool_name, request_id, session_id, arguments, raw_body, timestamp)
+            VALUES (
+              'request',
+              ${name},
+              ${event.request_id ?? null},
+              ${event.session_id ?? null},
+              ${JSON.stringify(toolArgs ?? null)}::jsonb,
+              ${JSON.stringify(parsedBody)}::jsonb,
+              ${new Date().toISOString()}
+            )
+          `;
           break;
         }
 
@@ -107,27 +93,19 @@ export async function logAnalytics(event: AnalyticsEvent) {
     } else if (event.event_type === "message_response") {
       const { tool, req, res } = event.details;
 
-      db.from("tool_calls")
-        .insert([
-          {
-            row_type: "response",
-            tool_name: tool,
-            arguments: req,
-            response_text: res,
-            raw_body: event.details,
-            timestamp: new Date().toISOString(),
-          },
-        ])
-        .then(
-          ({ error }) => {
-            if (error) {
-              console.error("[logAnalytics] Error inserting tool response:", error);
-            }
-          },
-          err => {
-            console.error("[logAnalytics] Network error inserting tool response:", err);
-          },
-        );
+      sql`
+        INSERT INTO tool_calls (row_type, tool_name, arguments, response_text, raw_body, timestamp)
+        VALUES (
+          'response',
+          ${tool},
+          ${req},
+          ${res},
+          ${JSON.stringify(event.details)}::jsonb,
+          ${new Date().toISOString()}
+        )
+      `.then(() => {}).catch((err: unknown) => {
+        console.error("[logAnalytics] Error inserting tool response:", err);
+      });
 
       await logInkeepToolResponse({ tool, req, res });
     }
