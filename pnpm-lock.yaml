@@ -30,8 +30,8 @@ importers:
         specifier: ^2.49.4
         version: 2.101.1(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       '@vercel/mcp-adapter':
-        specifier: ^0.10.0
-        version: 0.10.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))
+        specifier: ^1.0.0
+        version: 1.0.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))
       ai:
         specifier: ^4.2.6
         version: 4.3.19(react@19.2.4)(zod@3.25.76)
@@ -884,8 +884,8 @@ packages:
   '@vercel/hydrogen@1.2.2':
     resolution: {integrity: sha512-PRA3r1/ZRcklGgs/hczprQZ27jX9Avyq/iEbtmzAFNbFovkTlkE0Wy93pVKJfJ4ISCBzBgUSMktX9+6wgjs32A==}
 
-  '@vercel/mcp-adapter@0.10.0':
-    resolution: {integrity: sha512-4H1L84oyV35/PdPJ/JDYw45GnEcm6a1Gg4zT6viIEsGYEMwObTL8yKnRxtW9Hca1x4SM8Xh1/WYGP8hTjp5kIA==}
+  '@vercel/mcp-adapter@1.0.0':
+    resolution: {integrity: sha512-o/QA4LhYCJvuL7/i8CfKPpOm29u25/L4m1LWH44EQZ8cfYJlc4B7Bu+YzDHl23m8A3hDxCJQmlgZEGmsPAQ0vQ==}
     hasBin: true
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.12.0
@@ -2023,6 +2023,16 @@ packages:
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
+
+  mcp-handler@1.1.0:
+    resolution: {integrity: sha512-MVCES7g18gcoZy+R/3v5nadkUMzMAWdos8jRl6DyljOKvd2/ZKDmwlCjL6zp4vo+7FeCXOYL1uWinHWlkKAAUg==}
+    hasBin: true
+    peerDependencies:
+      '@modelcontextprotocol/sdk': 1.26.0
+      next: '>=13.0.0'
+    peerDependenciesMeta:
+      next:
+        optional: true
 
   media-typer@0.3.0:
     resolution: {integrity: sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==}
@@ -3679,12 +3689,10 @@ snapshots:
       '@vercel/static-config': 3.1.1
       ts-morph: 12.0.0
 
-  '@vercel/mcp-adapter@0.10.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))':
+  '@vercel/mcp-adapter@1.0.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))':
     dependencies:
       '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
-      chalk: 5.6.2
-      commander: 11.1.0
-      redis: 4.7.1
+      mcp-handler: 1.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))
 
   '@vercel/next@4.9.0(rollup@4.60.0)':
     dependencies:
@@ -4897,6 +4905,13 @@ snapshots:
   make-error@1.3.6: {}
 
   math-intrinsics@1.1.0: {}
+
+  mcp-handler@1.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)):
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
+      chalk: 5.6.2
+      commander: 11.1.0
+      redis: 4.7.1
 
   media-typer@0.3.0: {}
 
