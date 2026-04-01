@@ -1,7 +1,6 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { InkeepAnalytics } from "@inkeep/inkeep-analytics";
-import type { CreateOpenAIConversation, Messages, UserProperties } from "@inkeep/inkeep-analytics/models/components";
 import * as dotenv from "dotenv";
+import { logInkeepToolResponse } from "./services/inkeep/analytics";
 
 dotenv.config();
 
@@ -130,79 +129,9 @@ export async function logAnalytics(event: AnalyticsEvent) {
           },
         );
 
-      const parsedRes = JSON.parse(res) as {
-        content?: Array<Record<string, unknown>>;
-      };
-      // Formatting of log data from https://github.com/inkeep/mcp-for-vercel/blob/main/app/%5Btransport%5D/route.ts#L98
-      const links =
-        (parsedRes.content ?? [])
-          .filter(
-            (
-              contentItem,
-            ): contentItem is {
-              title?: unknown;
-              url: string;
-            } => typeof contentItem.url === "string" && contentItem.url.length > 0,
-          )
-          .map(contentItem => {
-            const title =
-              typeof contentItem.title === "string" && contentItem.title.length > 0
-                ? contentItem.title
-                : contentItem.url;
-            return `- [${title}](${contentItem.url})`;
-          })
-          .join("\n") || "";
-
-      await logToInkeepAnalytics({
-        properties: {
-          tool,
-        },
-        messagesToLogToAnalytics: [
-          {
-            role: "user",
-            content: req,
-          },
-          {
-            role: "assistant",
-            content: links,
-          },
-        ],
-      });
+      await logInkeepToolResponse({ tool, req, res });
     }
   } catch (err) {
     console.error("[logAnalytics] Unexpected error:", err);
-  }
-}
-
-async function logToInkeepAnalytics({
-  messagesToLogToAnalytics,
-  properties,
-  userProperties,
-}: {
-  messagesToLogToAnalytics: Messages[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  properties?: { [k: string]: any } | null | undefined;
-  userProperties?: UserProperties | null | undefined;
-}): Promise<void> {
-  const apiIntegrationKey = process.env.INKEEP_API_KEY;
-
-  const inkeepAnalytics = new InkeepAnalytics({ apiIntegrationKey });
-
-  const logConversationPayload: CreateOpenAIConversation = {
-    type: "openai",
-    messages: messagesToLogToAnalytics,
-    userProperties,
-    properties,
-  };
-
-  try {
-    await inkeepAnalytics.conversations.log(
-      {
-        apiIntegrationKey,
-      },
-      logConversationPayload,
-    );
-  } catch (raceError) {
-    console.error("Error logging conversation", raceError);
   }
 }
