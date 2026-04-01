@@ -3,7 +3,7 @@ import { z } from "zod";
 import { resources } from "../lib/resources";
 import { solanaEcosystemTools } from "../lib/tools/ecosystemSolanaTools";
 import { geminiSolanaTools } from "../lib/tools/geminiSolanaTools";
-import { generalSolanaTools } from "../lib/tools/generalSolanaTools";
+import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
 import { openAITools } from "../lib/tools/openAITools";
 import type { SolanaTool } from "../lib/tools/types";
 
@@ -34,8 +34,26 @@ type PromptResult = {
   }>;
 };
 
+function resolveGeneralSolanaTools(): SolanaTool[] {
+  const moduleExports = generalSolanaToolsModule as Record<string, unknown>;
+
+  if (Array.isArray(moduleExports.generalSolanaTools)) {
+    return moduleExports.generalSolanaTools as SolanaTool[];
+  }
+
+  const createSolanaTools = moduleExports.createSolanaTools;
+  if (typeof createSolanaTools === "function") {
+    const createdTools = (createSolanaTools as (model: unknown | null) => unknown)(null);
+    if (Array.isArray(createdTools)) {
+      return createdTools as SolanaTool[];
+    }
+  }
+
+  return [];
+}
+
 const allTools: SolanaTool[] = ([] as SolanaTool[]).concat(
-  generalSolanaTools,
+  resolveGeneralSolanaTools(),
   geminiSolanaTools,
   solanaEcosystemTools,
   openAITools,

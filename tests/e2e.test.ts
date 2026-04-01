@@ -5,7 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { createMcp } from "../lib";
 import { AddressInfo } from "node:net";
 import type { SolanaTool } from "../lib/tools/types";
-import { generalSolanaTools } from "../lib/tools/generalSolanaTools";
+import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
 import { geminiSolanaTools } from "../lib/tools/geminiSolanaTools";
 import { solanaEcosystemTools } from "../lib/tools/ecosystemSolanaTools";
 import { openAITools } from "../lib/tools/openAITools";
@@ -17,8 +17,26 @@ if (!hasRequiredEnv) {
   console.warn("[e2e] Skipping E2E tests — missing required env var (REDIS_URL)");
 }
 
+function resolveGeneralSolanaTools(): SolanaTool[] {
+  const moduleExports = generalSolanaToolsModule as Record<string, unknown>;
+
+  if (Array.isArray(moduleExports.generalSolanaTools)) {
+    return moduleExports.generalSolanaTools as SolanaTool[];
+  }
+
+  const createSolanaTools = moduleExports.createSolanaTools;
+  if (typeof createSolanaTools === "function") {
+    const createdTools = (createSolanaTools as (model: unknown | null) => unknown)(null);
+    if (Array.isArray(createdTools)) {
+      return createdTools as SolanaTool[];
+    }
+  }
+
+  return [];
+}
+
 const registeredToolNames = ([] as SolanaTool[])
-  .concat(generalSolanaTools, geminiSolanaTools, solanaEcosystemTools, openAITools)
+  .concat(resolveGeneralSolanaTools(), geminiSolanaTools, solanaEcosystemTools, openAITools)
   .map(tool => tool.title);
 
 describeE2e("e2e", () => {
