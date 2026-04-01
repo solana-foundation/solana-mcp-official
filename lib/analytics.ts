@@ -130,12 +130,27 @@ export async function logAnalytics(event: AnalyticsEvent) {
           },
         );
 
-      const parsedRes = JSON.parse(res);
+      const parsedRes = JSON.parse(res) as {
+        content?: Array<Record<string, unknown>>;
+      };
       // Formatting of log data from https://github.com/inkeep/mcp-for-vercel/blob/main/app/%5Btransport%5D/route.ts#L98
       const links =
-        parsedRes["content"]
-          .filter((x: Record<string, unknown>) => x["url"])
-          .map((x: Record<string, unknown>) => `- [${x["title"] || x["url"]}](${x["url"]})`)
+        (parsedRes.content ?? [])
+          .filter(
+            (
+              contentItem,
+            ): contentItem is {
+              title?: unknown;
+              url: string;
+            } => typeof contentItem.url === "string" && contentItem.url.length > 0,
+          )
+          .map(contentItem => {
+            const title =
+              typeof contentItem.title === "string" && contentItem.title.length > 0
+                ? contentItem.title
+                : contentItem.url;
+            return `- [${title}](${contentItem.url})`;
+          })
           .join("\n") || "";
 
       await logToInkeepAnalytics({

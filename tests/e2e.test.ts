@@ -36,10 +36,19 @@ describeE2e("e2e", () => {
     const port = (server.address() as AddressInfo | null)?.port;
     endpoint = `http://localhost:${port}`;
     const transport = new StreamableHTTPClientTransport(new URL(`${endpoint}/mcp`));
-    client = new Client({
-      name: "example-client",
-      version: "1.0.0",
-    });
+    client = new Client(
+      {
+        name: "example-client",
+        version: "1.0.0",
+      },
+      {
+        capabilities: {
+          prompts: {},
+          resources: {},
+          tools: {},
+        },
+      },
+    );
     await client.connect(transport);
   });
 
