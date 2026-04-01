@@ -42,11 +42,7 @@ describeE2e("e2e", () => {
         version: "1.0.0",
       },
       {
-        capabilities: {
-          prompts: {},
-          resources: {},
-          tools: {},
-        },
+        capabilities: {},
       },
     );
     await client.connect(transport);
