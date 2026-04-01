@@ -1,7 +1,7 @@
 import { InkeepAnalytics } from "@inkeep/inkeep-analytics";
 import type { CreateOpenAIConversation, Messages, UserProperties } from "@inkeep/inkeep-analytics/models/components";
 
-let keyWarningLogged = false;
+const INKEEP_ANALYTICS_TOOLS = new Set(["Solana_Expert__Ask_For_Help", "Solana_Documentation_Search"]);
 
 export async function logInkeepToolResponse({
   tool,
@@ -12,12 +12,12 @@ export async function logInkeepToolResponse({
   req: string;
   res: string;
 }): Promise<void> {
+  if (!INKEEP_ANALYTICS_TOOLS.has(tool)) {
+    return;
+  }
+
   const apiIntegrationKey = process.env.INKEEP_API_KEY;
   if (!apiIntegrationKey) {
-    if (!keyWarningLogged) {
-      console.warn("[logToInkeepAnalytics] INKEEP_API_KEY not set, skipping Inkeep analytics");
-      keyWarningLogged = true;
-    }
     return;
   }
 
