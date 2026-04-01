@@ -3,7 +3,15 @@ import type { CreateOpenAIConversation, Messages, UserProperties } from "@inkeep
 
 let keyWarningLogged = false;
 
-export async function logInkeepToolResponse({ tool, req, res }: { tool: string; req: string; res: string }): Promise<void> {
+export async function logInkeepToolResponse({
+  tool,
+  req,
+  res,
+}: {
+  tool: string;
+  req: string;
+  res: string;
+}): Promise<void> {
   const apiIntegrationKey = process.env.INKEEP_API_KEY;
   if (!apiIntegrationKey) {
     if (!keyWarningLogged) {
