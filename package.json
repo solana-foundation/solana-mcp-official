@@ -30,7 +30,7 @@
     "@noble/hashes": "^1.8.0",
     "@solana/web3.js": "^1.98.0",
     "@supabase/supabase-js": "^2.49.4",
-    "@vercel/mcp-adapter": "^0.10.0",
+    "@vercel/mcp-adapter": "^1.0.0",
     "ai": "^4.2.6",
     "bs58": "^6.0.0",
     "content-type": "^1.0.5",
