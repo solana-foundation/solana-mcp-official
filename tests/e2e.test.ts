@@ -1,9 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createServer, IncomingMessage, ServerResponse, type Server } from "node:http";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { describe, it, expect, beforeEach } from "vitest";
 import { createMcp } from "../lib";
-import { AddressInfo } from "node:net";
 import type { SolanaTool } from "../lib/tools/types";
 import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
 import { geminiSolanaTools } from "../lib/tools/geminiSolanaTools";
@@ -40,45 +36,65 @@ const registeredToolNames = ([] as SolanaTool[])
   .map(tool => tool.title);
 
 describeE2e("e2e", () => {
-  let server: Server;
-  let endpoint: string;
-  let client: Client;
+  let handler: (req: Request) => Promise<Response>;
 
-  beforeEach(async () => {
-    server = createServer(nodeToWebHandler(createMcp()));
-    await new Promise<void>(resolve => {
-      server.listen(0, () => {
-        resolve();
-      });
-    });
-
-    const port = (server.address() as AddressInfo | null)?.port;
-    endpoint = `http://localhost:${port}`;
-    const transport = new StreamableHTTPClientTransport(new URL(`${endpoint}/mcp`));
-
-    client = new Client(
-      {
-        name: "example-client",
-        version: "1.0.0",
-      },
-      {
-        capabilities: {},
-      },
-    );
-
-    await client.connect(transport);
-  });
-
-  afterEach(async () => {
-    await client.close();
-    await new Promise<void>(resolve => {
-      server.close(() => resolve());
-    });
+  beforeEach(() => {
+    handler = createMcp();
   });
 
   it("lists registered tools through the MCP transport", async () => {
-    const { tools } = await client.listTools();
-    const toolNames = tools.map(tool => tool.name);
+    const initializeResponse = await handler(
+      new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-03-26",
+            capabilities: {},
+            clientInfo: {
+              name: "example-client",
+              version: "1.0.0",
+            },
+          },
+        }),
+      }),
+    );
+    const initializePayload = await parseJsonRpcResponse(initializeResponse);
+    expect(initializePayload.error).toBeUndefined();
+    const sessionId = initializeResponse.headers.get("mcp-session-id");
+
+    const listHeaders = new Headers({
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+    });
+    if (sessionId) {
+      listHeaders.set("mcp-session-id", sessionId);
+    }
+
+    const listResponse = await handler(
+      new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: listHeaders,
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/list",
+          params: {},
+        }),
+      }),
+    );
+    const listPayload = await parseJsonRpcResponse(listResponse);
+    expect(listPayload.error).toBeUndefined();
+    const tools = Array.isArray(listPayload.result?.tools) ? listPayload.result.tools : [];
+    const toolNames = tools
+      .map(tool => (typeof tool?.name === "string" ? tool.name : ""))
+      .filter((name): name is string => name.length > 0);
 
     for (const toolName of registeredToolNames) {
       expect(toolNames).toContain(toolName);
@@ -86,59 +102,36 @@ describeE2e("e2e", () => {
   });
 });
 
-function nodeToWebHandler(
-  handler: (req: Request) => Promise<Response>,
-): (req: IncomingMessage, res: ServerResponse) => void {
-  return async (req, res) => {
-    const method = (req.method || "GET").toUpperCase();
-    const requestBody =
-      method === "GET" || method === "HEAD"
-        ? undefined
-        : await new Promise<ArrayBuffer>((resolve, reject) => {
-            const chunks: Buffer[] = [];
-            req.on("data", chunk => {
-              chunks.push(chunk);
-            });
-            req.on("end", () => {
-              const buf = Buffer.concat(chunks);
-              resolve(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
-            });
-            req.on("error", () => {
-              reject(new Error("Failed to read request body"));
-            });
-          });
+type JsonRpcResponse = {
+  error?: unknown;
+  result?: {
+    tools?: Array<{
+      name?: string;
+    }>;
+  };
+};
 
-    const requestHeaders = new Headers();
-    for (const [key, value] of Object.entries(req.headers)) {
-      if (value === undefined) {
+async function parseJsonRpcResponse(response: Response): Promise<JsonRpcResponse> {
+  const responseText = await response.text();
+
+  try {
+    return JSON.parse(responseText) as JsonRpcResponse;
+  } catch {
+    const sseDataLines = responseText
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(line => line.startsWith("data: "))
+      .map(line => line.slice("data: ".length))
+      .filter(line => line.length > 0);
+
+    for (const sseDataLine of sseDataLines) {
+      try {
+        return JSON.parse(sseDataLine) as JsonRpcResponse;
+      } catch {
         continue;
       }
-      if (Array.isArray(value)) {
-        for (const val of value) {
-          requestHeaders.append(key, val);
-        }
-      } else {
-        requestHeaders.append(key, value);
-      }
     }
 
-    const reqUrl = new URL(req.url || "/", "http://localhost");
-    const webReq = new Request(reqUrl, {
-      method: req.method,
-      headers: requestHeaders,
-      body: requestBody,
-    });
-
-    const webResp = await handler(webReq);
-    const responseHeaders = Object.fromEntries(webResp.headers);
-    res.writeHead(webResp.status, webResp.statusText, responseHeaders);
-
-    if (webResp.body) {
-      const arrayBuffer = await webResp.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      res.write(buffer);
-    }
-
-    res.end();
-  };
+    throw new Error(`Expected JSON-RPC response but received: ${responseText}`);
+  }
 }

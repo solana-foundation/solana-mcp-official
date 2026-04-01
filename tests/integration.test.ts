@@ -129,21 +129,47 @@ describe("createMcp", () => {
     expect(registerToolMock).toHaveBeenCalledTimes(toolsWithOutputSchema.length);
     expect(toolMock).toHaveBeenCalledTimes(toolsWithoutOutputSchema.length);
 
-    for (const tool of toolsWithOutputSchema) {
-      expect(registerToolMock).toHaveBeenCalledWith(
-        tool.title,
+    const registerToolCalls = registerToolMock.mock.calls as Array<
+      [
+        string,
         {
-          description: tool.description ?? "",
-          inputSchema: tool.parameters,
-          outputSchema: tool.outputSchema,
-          annotations: {},
+          description: string;
+          inputSchema: unknown;
+          outputSchema: unknown;
+          annotations: Record<string, never>;
         },
-        tool.func,
-      );
+        unknown,
+      ]
+    >;
+    for (const tool of toolsWithOutputSchema) {
+      const matchingCall = registerToolCalls.find(([name]) => name === tool.title);
+      expect(matchingCall).toBeDefined();
+      if (!matchingCall) {
+        continue;
+      }
+
+      const [, options, handler] = matchingCall;
+      expect(options).toEqual({
+        description: tool.description ?? "",
+        inputSchema: tool.parameters,
+        outputSchema: tool.outputSchema,
+        annotations: {},
+      });
+      expect(typeof handler).toBe("function");
     }
 
+    const toolCalls = toolMock.mock.calls as Array<[string, string, unknown, unknown]>;
     for (const tool of toolsWithoutOutputSchema) {
-      expect(toolMock).toHaveBeenCalledWith(tool.title, tool.description ?? "", tool.parameters, tool.func);
+      const matchingCall = toolCalls.find(([name]) => name === tool.title);
+      expect(matchingCall).toBeDefined();
+      if (!matchingCall) {
+        continue;
+      }
+
+      const [, description, inputSchema, handler] = matchingCall;
+      expect(description).toBe(tool.description ?? "");
+      expect(inputSchema).toEqual(tool.parameters);
+      expect(typeof handler).toBe("function");
     }
 
     expect(resourceMock).toHaveBeenCalledTimes(resources.length);
