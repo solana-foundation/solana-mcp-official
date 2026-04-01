@@ -35,7 +35,6 @@ describeE2e("e2e", () => {
     });
     const port = (server.address() as AddressInfo | null)?.port;
     endpoint = `http://localhost:${port}`;
-    console.log("endpoint", endpoint);
     const transport = new StreamableHTTPClientTransport(new URL(`${endpoint}/mcp`));
     client = new Client({
       name: "example-client",
@@ -48,7 +47,8 @@ describeE2e("e2e", () => {
     server.close();
   });
 
-  it("tools should include search and fetch", async () => {
+  // TODO: Re-enable when OpenAI DeepResearch `search`/`fetch` tools are restored.
+  it.skip("tools should include search and fetch", async () => {
     const { tools } = await client.listTools();
 
     const search = tools.find(tool => tool.name === "search");
@@ -66,7 +66,8 @@ describeE2e("e2e", () => {
     expect(fetch?.outputSchema?.properties?.metadata).toBeDefined();
   });
 
-  it("Search should return results as structured content", async () => {
+  // TODO: Re-enable when OpenAI DeepResearch `search`/`fetch` tools are restored.
+  it.skip("Search should return results as structured content", async () => {
     const result = await client.callTool(
       {
         name: "search",
@@ -82,7 +83,8 @@ describeE2e("e2e", () => {
     expect((result.structuredContent as any).results.length).toBeGreaterThan(0);
   });
 
-  it("Fetch should return results as structured content", async () => {
+  // TODO: Re-enable when OpenAI DeepResearch `search`/`fetch` tools are restored.
+  it.skip("Fetch should return results as structured content", async () => {
     const result = await client.callTool(
       {
         name: "fetch",

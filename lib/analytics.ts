@@ -102,7 +102,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
         }
 
         default: {
-          console.log("[logAnalytics] Skipping method:", parsedBody.method);
+          console.warn("[logAnalytics] Skipping method:", parsedBody.method);
         }
       }
     } else if (event.event_type === "message_response") {
