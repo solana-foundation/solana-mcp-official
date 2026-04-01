@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { createMcp } from "../lib";
 import type { SolanaTool } from "../lib/tools/types";
 import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
@@ -37,101 +39,43 @@ const registeredToolNames = ([] as SolanaTool[])
 
 describeE2e("e2e", () => {
   let handler: (req: Request) => Promise<Response>;
+  let client: Client | undefined;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     handler = createMcp();
+    const transport = new StreamableHTTPClientTransport(new URL("http://localhost/mcp"), {
+      fetch: async (input, init) => {
+        if (input instanceof Request) {
+          return handler(input);
+        }
+        return handler(new Request(input, init));
+      },
+    });
+    client = new Client(
+      {
+        name: "example-client",
+        version: "1.0.0",
+      },
+      {
+        capabilities: {},
+      },
+    );
+    await client.connect(transport);
+  });
+
+  afterEach(async () => {
+    if (client) {
+      await client.close();
+      client = undefined;
+    }
   });
 
   it("lists registered tools through the MCP transport", async () => {
-    const initializeResponse = await handler(
-      new Request("http://localhost/mcp", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          accept: "application/json, text/event-stream",
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "initialize",
-          params: {
-            protocolVersion: "2025-03-26",
-            capabilities: {},
-            clientInfo: {
-              name: "example-client",
-              version: "1.0.0",
-            },
-          },
-        }),
-      }),
-    );
-    const initializePayload = await parseJsonRpcResponse(initializeResponse);
-    expect(initializePayload.error).toBeUndefined();
-    const sessionId = initializeResponse.headers.get("mcp-session-id");
-
-    const listHeaders = new Headers({
-      "content-type": "application/json",
-      accept: "application/json, text/event-stream",
-    });
-    if (sessionId) {
-      listHeaders.set("mcp-session-id", sessionId);
-    }
-
-    const listResponse = await handler(
-      new Request("http://localhost/mcp", {
-        method: "POST",
-        headers: listHeaders,
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 2,
-          method: "tools/list",
-          params: {},
-        }),
-      }),
-    );
-    const listPayload = await parseJsonRpcResponse(listResponse);
-    expect(listPayload.error).toBeUndefined();
-    const tools = Array.isArray(listPayload.result?.tools) ? listPayload.result.tools : [];
-    const toolNames = tools
-      .map(tool => (typeof tool?.name === "string" ? tool.name : ""))
-      .filter((name): name is string => name.length > 0);
+    const { tools } = await client!.listTools();
+    const toolNames = tools.map(tool => tool.name);
 
     for (const toolName of registeredToolNames) {
       expect(toolNames).toContain(toolName);
     }
   });
 });
-
-type JsonRpcResponse = {
-  error?: unknown;
-  result?: {
-    tools?: Array<{
-      name?: string;
-    }>;
-  };
-};
-
-async function parseJsonRpcResponse(response: Response): Promise<JsonRpcResponse> {
-  const responseText = await response.text();
-
-  try {
-    return JSON.parse(responseText) as JsonRpcResponse;
-  } catch {
-    const sseDataLines = responseText
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(line => line.startsWith("data: "))
-      .map(line => line.slice("data: ".length))
-      .filter(line => line.length > 0);
-
-    for (const sseDataLine of sseDataLines) {
-      try {
-        return JSON.parse(sseDataLine) as JsonRpcResponse;
-      } catch {
-        continue;
-      }
-    }
-
-    throw new Error(`Expected JSON-RPC response but received: ${responseText}`);
-  }
-}
