@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "vercel dev",
-    "test": "vitest run",
+    "test": "pnpm test:integration",
+    "test:integration": "vitest run tests/integration.test.ts",
+    "test:e2e": "vitest run tests/e2e.test.ts",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

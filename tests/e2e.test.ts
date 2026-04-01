@@ -1,30 +1,48 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createServer, IncomingMessage, ServerResponse, type Server } from "node:http";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { createMcp } from "../lib";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { AddressInfo } from "node:net";
+import { createMcp } from "../lib";
+import type { SolanaTool } from "../lib/tools/types";
+import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
+import { geminiSolanaTools } from "../lib/tools/geminiSolanaTools";
+import { solanaEcosystemTools } from "../lib/tools/ecosystemSolanaTools";
+import { openAITools } from "../lib/tools/openAITools";
 
-const hasRequiredEnv = !!(
-  process.env.SUPABASE_URL &&
-  process.env.SUPABASE_SERVICE_ROLE_KEY &&
-  process.env.INKEEP_API_KEY &&
-  process.env.REDIS_URL
-);
-
+const hasRequiredEnv = !!process.env.REDIS_URL;
 const describeE2e = hasRequiredEnv ? describe : describe.skip;
 
 if (!hasRequiredEnv) {
-  console.warn(
-    "[e2e] Skipping E2E tests — missing required env vars (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, INKEEP_API_KEY, REDIS_URL)",
-  );
+  console.warn("[e2e] Skipping E2E tests — missing required env var (REDIS_URL)");
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+function resolveGeneralSolanaTools(): SolanaTool[] {
+  const moduleExports = generalSolanaToolsModule as Record<string, unknown>;
+
+  if (Array.isArray(moduleExports.generalSolanaTools)) {
+    return moduleExports.generalSolanaTools as SolanaTool[];
+  }
+
+  const createSolanaTools = moduleExports.createSolanaTools;
+  if (typeof createSolanaTools === "function") {
+    const createdTools = (createSolanaTools as (model: unknown | null) => unknown)(null);
+    if (Array.isArray(createdTools)) {
+      return createdTools as SolanaTool[];
+    }
+  }
+
+  return [];
+}
+
+const registeredToolNames = ([] as SolanaTool[])
+  .concat(resolveGeneralSolanaTools(), geminiSolanaTools, solanaEcosystemTools, openAITools)
+  .map(tool => tool.title);
+
 describeE2e("e2e", () => {
   let server: Server;
   let endpoint: string;
-  let client: Client;
+  let client: Client | undefined;
 
   beforeEach(async () => {
     server = createServer(nodeToWebHandler(createMcp()));
@@ -33,9 +51,11 @@ describeE2e("e2e", () => {
         resolve();
       });
     });
+
     const port = (server.address() as AddressInfo | null)?.port;
     endpoint = `http://localhost:${port}`;
     const transport = new StreamableHTTPClientTransport(new URL(`${endpoint}/mcp`));
+
     client = new Client(
       {
         name: "example-client",
@@ -49,64 +69,23 @@ describeE2e("e2e", () => {
   });
 
   afterEach(async () => {
-    server.close();
+    if (client) {
+      await client.close();
+      client = undefined;
+    }
+
+    await new Promise<void>(resolve => {
+      server.close(() => resolve());
+    });
   });
 
-  // TODO: Re-enable when OpenAI DeepResearch `search`/`fetch` tools are restored.
-  it.skip("tools should include search and fetch", async () => {
-    const { tools } = await client.listTools();
+  it("lists registered tools through the MCP transport", async () => {
+    const { tools } = await client!.listTools();
+    const toolNames = tools.map(tool => tool.name);
 
-    const search = tools.find(tool => tool.name === "search");
-    expect(search).toBeDefined();
-    expect(search?.outputSchema).toBeDefined();
-    expect(search?.outputSchema?.properties?.results).toBeDefined();
-
-    const fetch = tools.find(tool => tool.name === "fetch");
-    expect(fetch).toBeDefined();
-    expect(fetch?.outputSchema).toBeDefined();
-    expect(fetch?.outputSchema?.properties?.id).toBeDefined();
-    expect(fetch?.outputSchema?.properties?.title).toBeDefined();
-    expect(fetch?.outputSchema?.properties?.text).toBeDefined();
-    expect(fetch?.outputSchema?.properties?.url).toBeDefined();
-    expect(fetch?.outputSchema?.properties?.metadata).toBeDefined();
-  });
-
-  // TODO: Re-enable when OpenAI DeepResearch `search`/`fetch` tools are restored.
-  it.skip("Search should return results as structured content", async () => {
-    const result = await client.callTool(
-      {
-        name: "search",
-        arguments: {
-          query: "How do I derive a token pda in rust?",
-        },
-      },
-      undefined,
-      {},
-    );
-    expect(result.structuredContent).toBeDefined();
-    expect((result.structuredContent as any).results).toBeInstanceOf(Array);
-    expect((result.structuredContent as any).results.length).toBeGreaterThan(0);
-  });
-
-  // TODO: Re-enable when OpenAI DeepResearch `search`/`fetch` tools are restored.
-  it.skip("Fetch should return results as structured content", async () => {
-    const result = await client.callTool(
-      {
-        name: "fetch",
-        arguments: {
-          id: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-        },
-      },
-      undefined,
-      {},
-    );
-
-    expect(result.structuredContent).toBeDefined();
-    expect((result.structuredContent as any).id).toBeDefined();
-    expect((result.structuredContent as any).title).toBeDefined();
-    expect((result.structuredContent as any).text).toBeDefined();
-    expect((result.structuredContent as any).url).toBeNull();
-    expect((result.structuredContent as any).metadata).toBeNull();
+    for (const toolName of registeredToolNames) {
+      expect(toolNames).toContain(toolName);
+    }
   });
 });
 
@@ -154,16 +133,22 @@ function nodeToWebHandler(
     });
 
     const webResp = await handler(webReq);
-
     const responseHeaders = Object.fromEntries(webResp.headers);
-
     res.writeHead(webResp.status, webResp.statusText, responseHeaders);
 
     if (webResp.body) {
-      const arrayBuffer = await webResp.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      res.write(buffer);
+      const reader = webResp.body.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(Buffer.from(value));
+        }
+      } finally {
+        reader.releaseLock();
+      }
     }
+
     res.end();
   };
 }
