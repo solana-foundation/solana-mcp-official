@@ -52,7 +52,7 @@
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.57.2",
-    "vercel": "^43.0.0",
+    "vercel": "^50.38.2",
     "vitest": "^3.2.3"
   }
 }
