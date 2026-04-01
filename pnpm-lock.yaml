@@ -15,11 +15,11 @@ importers:
         specifier: ^0.3.5
         version: 0.3.5
       '@inkeep/inkeep-analytics':
-        specifier: 0.2.4-alpha.33
-        version: 0.2.4-alpha.33(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(react@19.2.4)
+        specifier: 0.2.4-alpha.36
+        version: 0.2.4-alpha.36(react@19.2.4)
       '@modelcontextprotocol/sdk':
-        specifier: ^1.12.0
-        version: 1.29.0(zod@3.25.76)
+        specifier: 1.26.0
+        version: 1.26.0(zod@3.25.76)
       '@noble/hashes':
         specifier: ^1.8.0
         version: 1.8.0
@@ -29,9 +29,6 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.49.4
         version: 2.101.1(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      '@vercel/mcp-adapter':
-        specifier: ^1.0.0
-        version: 1.0.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))
       ai:
         specifier: ^4.2.6
         version: 4.3.19(react@19.2.4)(zod@3.25.76)
@@ -47,6 +44,9 @@ importers:
       express:
         specifier: ^4.21.2
         version: 4.22.1
+      mcp-handler:
+        specifier: 1.1.0
+        version: 1.1.0(@modelcontextprotocol/sdk@1.26.0(zod@3.25.76))
       raw-body:
         specifier: ^3.0.0
         version: 3.0.2
@@ -572,17 +572,14 @@ packages:
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
 
-  '@inkeep/inkeep-analytics@0.2.4-alpha.33':
-    resolution: {integrity: sha512-9mT/ubIoIAQj65eUm1Vw4DR0gHGhUiHv4XJ6kqe6SDiouUcJX0rSAWclu3Z7LmLftwMNJwgcfOPBCi3qY6SpeQ==}
+  '@inkeep/inkeep-analytics@0.2.4-alpha.36':
+    resolution: {integrity: sha512-L1Ei2rTUsvaKoXiGKbisl2ck6ZB5J3hlXM9GIwtlfgCMWUbqRn7Xs0xB4/6cyq7NrHQ4bMCTulmdw3PjqN/FHA==}
     hasBin: true
     peerDependencies:
-      '@modelcontextprotocol/sdk': '>=1.5.0 <1.10.0'
       '@tanstack/react-query': ^5
       react: ^18 || ^19
       react-dom: ^18 || ^19
     peerDependenciesMeta:
-      '@modelcontextprotocol/sdk':
-        optional: true
       '@tanstack/react-query':
         optional: true
       react:
@@ -628,8 +625,8 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  '@modelcontextprotocol/sdk@1.29.0':
-    resolution: {integrity: sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ==}
+  '@modelcontextprotocol/sdk@1.26.0':
+    resolution: {integrity: sha512-Y5RmPncpiDtTXDbLKswIJzTqu2hyBKxTNsgKqKclDbhIgg1wgtf1fRuvxgTnRfcnxtvvgbIEcqUOzZrJ6iSReg==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -1303,16 +1300,6 @@ packages:
 
   '@vercel/koa@0.1.40':
     resolution: {integrity: sha512-F+ZqZiI+bSnhC52akzibM9nUKKzX//opjMCuD+Kz77L3FI5oLCh/qDauyf6QhqUlTITk8femZY5/ZpESP70NGg==}
-
-  '@vercel/mcp-adapter@1.0.0':
-    resolution: {integrity: sha512-o/QA4LhYCJvuL7/i8CfKPpOm29u25/L4m1LWH44EQZ8cfYJlc4B7Bu+YzDHl23m8A3hDxCJQmlgZEGmsPAQ0vQ==}
-    hasBin: true
-    peerDependencies:
-      '@modelcontextprotocol/sdk': ^1.12.0
-      next: '>=13.0.0'
-    peerDependenciesMeta:
-      next:
-        optional: true
 
   '@vercel/nestjs@0.2.61':
     resolution: {integrity: sha512-zjEZShe9BtUPzSCioYlo3/rhjENpKnJfT7SYL1DdUVIKsR3zWa8cz51omGw0pATHgSVg2zDjCtSo31VwbVk57A==}
@@ -3748,12 +3735,15 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@inkeep/inkeep-analytics@0.2.4-alpha.33(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(react@19.2.4)':
+  '@inkeep/inkeep-analytics@0.2.4-alpha.36(react@19.2.4)':
     dependencies:
+      '@modelcontextprotocol/sdk': 1.26.0(zod@3.25.76)
       zod: 3.25.76
     optionalDependencies:
-      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
       react: 19.2.4
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - supports-color
 
   '@isaacs/balanced-match@4.0.1': {}
 
@@ -3803,7 +3793,7 @@ snapshots:
       - encoding
       - supports-color
 
-  '@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)':
+  '@modelcontextprotocol/sdk@1.26.0(zod@3.25.76)':
     dependencies:
       '@hono/node-server': 1.19.12(hono@4.12.9)
       ajv: 8.18.0
@@ -4481,11 +4471,6 @@ snapshots:
       - encoding
       - rollup
       - supports-color
-
-  '@vercel/mcp-adapter@1.0.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))':
-    dependencies:
-      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
-      mcp-handler: 1.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))
 
   '@vercel/nestjs@0.2.61(rollup@4.60.0)':
     dependencies:
@@ -5784,9 +5769,9 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
-  mcp-handler@1.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)):
+  mcp-handler@1.1.0(@modelcontextprotocol/sdk@1.26.0(zod@3.25.76)):
     dependencies:
-      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
+      '@modelcontextprotocol/sdk': 1.26.0(zod@3.25.76)
       chalk: 5.6.2
       commander: 11.1.0
       redis: 4.7.1

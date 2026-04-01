@@ -11,7 +11,7 @@ const { createMcpHandlerMock } = vi.hoisted(() => ({
   createMcpHandlerMock: vi.fn(),
 }));
 
-vi.mock("@vercel/mcp-adapter", () => ({
+vi.mock("mcp-handler", () => ({
   createMcpHandler: createMcpHandlerMock,
 }));
 
