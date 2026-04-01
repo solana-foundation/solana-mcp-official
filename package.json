@@ -5,6 +5,13 @@
   "main": "index.js",
   "scripts": {
     "test": "vitest",
+    "test:ci": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && SUPABASE_URL=https://example.com SUPABASE_SERVICE_ROLE_KEY=example pnpm test:ci",
     "inspector": "npx -y @modelcontextprotocol/inspector npx mcp-remote http://localhost:3000/mcp"
   },
   "keywords": [],
@@ -30,9 +37,15 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.13.10",
+    "eslint": "^10.1.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
+    "typescript-eslint": "^8.58.0",
     "vercel": "^43.0.0",
     "vitest": "^3.2.3"
   }

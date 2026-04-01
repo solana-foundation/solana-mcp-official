@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { generateText } from "ai";
 import { logAnalytics } from "../analytics";
-import { SolanaTool } from "./types";
 import { inkeep } from "..";
+import type { SolanaTool } from "./types";
 
 export const generalSolanaTools: SolanaTool[] = [
   {
@@ -12,7 +12,7 @@ export const generalSolanaTools: SolanaTool[] = [
       question: z
         .string()
         .describe(
-          "A Solana related question. (how-to, concepts, APIs, SDKs, errors)\n Provide as much context about the problem as needed, to make the expert understand the problem. The expert will do a similarity search based on your question and provide you the results."
+          "A Solana related question. (how-to, concepts, APIs, SDKs, errors)\n Provide as much context about the problem as needed, to make the expert understand the problem. The expert will do a similarity search based on your question and provide you the results.",
         ),
     },
 
@@ -37,12 +37,13 @@ export const generalSolanaTools: SolanaTool[] = [
 
   {
     title: "Solana_Documentation_Search",
-    description: "Search documentation across the Solana ecosystem to get the most up to date information.",
+    description:
+      "Search documentation across the Solana ecosystem to get the most up to date information.",
     parameters: {
       query: z
         .string()
         .describe(
-          "A search query that will be matched against a corpus of Solana documentation using RAG"
+          "A search query that will be matched against a corpus of Solana documentation using RAG",
         ),
     },
 
@@ -63,5 +64,5 @@ export const generalSolanaTools: SolanaTool[] = [
 
       return { content: [{ type: "text", text }] };
     },
-  }
+  },
 ];

@@ -1,58 +1,61 @@
-
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMcpHandler } from "@vercel/mcp-adapter";
 import { z } from "zod";
 
-import { generalSolanaTools, } from "./tools/generalSolanaTools";
+import { generalSolanaTools } from "./tools/generalSolanaTools";
 import { geminiSolanaTools } from "./tools/geminiSolanaTools";
 import { resources } from "./resources";
 import { solanaEcosystemTools } from "./tools/ecosystemSolanaTools";
-import { SolanaTool } from "./tools/types";
 import { createOpenAI } from "@ai-sdk/openai";
 import { openAITools } from "./tools/openAITools";
+import type { SolanaTool } from "./tools/types";
 
 export const inkeep = createOpenAI({
-    apiKey: process.env.INKEEP_API_KEY,
-    baseURL: "https://api.inkeep.com/v1",
+  apiKey: process.env.INKEEP_API_KEY,
+  baseURL: "https://api.inkeep.com/v1",
 });
 
 export const openrouter = createOpenAI({
-    apiKey: process.env.OPENROUTER_API_KEY,
-    baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
 });
 
 export function createMcp() {
-    return createMcpHandler(
-        (server: McpServer) => {
-            ([] as SolanaTool[])
-                .concat(generalSolanaTools, geminiSolanaTools, solanaEcosystemTools, openAITools)
-                .forEach((tool: SolanaTool) => {
-                    if (tool.outputSchema) {
-                        server.registerTool(tool.title, {
-                            description: tool.description ?? "",
-                            inputSchema: tool.parameters,
-                            outputSchema: tool.outputSchema,
-                            annotations: {},
-                        }, tool.func);
-                    } else {
-                        server.tool(tool.title, tool.description ?? "", tool.parameters, tool.func);
-                    }
-                });
+  return createMcpHandler(
+    (server: McpServer) => {
+      ([] as SolanaTool[])
+        .concat(generalSolanaTools, geminiSolanaTools, solanaEcosystemTools, openAITools)
+        .forEach((tool: SolanaTool) => {
+          if (tool.outputSchema) {
+            server.registerTool(
+              tool.title,
+              {
+                description: tool.description ?? "",
+                inputSchema: tool.parameters,
+                outputSchema: tool.outputSchema,
+                annotations: {},
+              },
+              tool.func,
+            );
+          } else {
+            server.tool(tool.title, tool.description ?? "", tool.parameters, tool.func);
+          }
+        });
 
-            resources.forEach((resource) => {
-                server.resource(resource.name, resource.template, resource.func);
-            });
+      resources.forEach((resource) => {
+        server.resource(resource.name, resource.template, resource.func);
+      });
 
-            server.prompt(
-                "<IMPORTANT> Call when starting any Solana related project </IMPORTANT>",
-                { code: z.string() },
-                ({ code }) => ({
-                    messages: [
-                        {
-                            role: "user",
-                            content: {
-                                type: "text",
-                                text: `
+      server.prompt(
+        "<IMPORTANT> Call when starting any Solana related project </IMPORTANT>",
+        { code: z.string() },
+        ({ code: _code }) => ({
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: `
                 <MCP_USE_GUIDELINE>
                   <INSTRUCTION>
                     If you are working on a Solana-related project. Make frequent use of the following MCP tools to accomplish your goals.
@@ -66,20 +69,20 @@ export function createMcp() {
               
                 </MCP_USE_GUIDELINE>
               `,
-                            },
-                        },
-                    ],
-                })
-            );
-        },
-        {
-            capabilities: {},
-        },
-        {
-            basePath: "",
-            redisUrl: process.env.REDIS_URL,
-            maxDuration: 60,
-            verboseLogs: true,
-        }
-    )
+              },
+            },
+          ],
+        }),
+      );
+    },
+    {
+      capabilities: {},
+    },
+    {
+      basePath: "",
+      redisUrl: process.env.REDIS_URL,
+      maxDuration: 60,
+      verboseLogs: true,
+    },
+  );
 }

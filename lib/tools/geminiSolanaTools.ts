@@ -3,8 +3,8 @@ import { generateText } from "ai";
 import fs from "fs/promises";
 import path from "path";
 import { logAnalytics } from "../analytics";
-import { SolanaTool } from "./types";
 import { openrouter } from "..";
+import type { SolanaTool } from "./types";
 
 export const geminiSolanaTools: SolanaTool[] = [
   {
@@ -14,14 +14,14 @@ export const geminiSolanaTools: SolanaTool[] = [
       question: z
         .string()
         .describe(
-          "Any question about the Anchor Framework. (how-to, concepts, APIs, SDKs, errors)"
+          "Any question about the Anchor Framework. (how-to, concepts, APIs, SDKs, errors)",
         ),
     },
 
     func: async ({ question }: { question: string }) => {
       const anchorDocsText = await fs.readFile(
         path.join(__dirname, "..", "context", "anchorDocs.xml"),
-        "utf8"
+        "utf8",
       );
       const systemPrompt = `
       You are an expert software engineer specializing in the Anchor Framework.
