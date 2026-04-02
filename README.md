@@ -4,7 +4,7 @@ Try it out at https://mcp.solana.com !
 
 This is the official Solana Developer MCP. It's purpose is to serve up to date documentation across the ecosystem to vibe coders & AI agents.
 
-This repo contains both the landing page for mcp.solana.com & the MCP server implementation for mcp.solana.com/mcp and mcp.solana.com/sse (thanks to Vercel's `@vercel/mcp-adapter` it's just one server for both endpoints).
+This repo contains both the landing page for mcp.solana.com & the MCP server implementation for mcp.solana.com/mcp and mcp.solana.com/sse (thanks to Vercel's `mcp-handler` it's just one server for both endpoints).
 
 ## Development
 
