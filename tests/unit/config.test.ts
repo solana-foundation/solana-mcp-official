@@ -7,7 +7,7 @@ import {
   resolveSentryEnvironment,
   resolveSentryRelease,
   resolveSentryTracesSampleRate,
-} from "./config";
+} from "../../lib/config";
 
 describe("config resolvers", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;

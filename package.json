@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vercel dev",
     "test": "pnpm test:integration",
-    "test:integration": "vitest run tests/integration.test.ts tests/unit/*.test.ts",
+    "test:integration": "vitest run tests/integration.test.ts tests/unit/",
     "test:e2e": "vitest run tests/e2e.test.ts",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",

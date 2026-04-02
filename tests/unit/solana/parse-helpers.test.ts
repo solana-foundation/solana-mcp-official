@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { asBoolean, asSafeNumeric, asRecord, asString } from "./parse-helpers";
+import { asBoolean, asSafeNumeric, asRecord, asString } from "../../../lib/solana/parse-helpers";
 
 describe("parse helpers", () => {
   it("narrows unknown to record or null", () => {

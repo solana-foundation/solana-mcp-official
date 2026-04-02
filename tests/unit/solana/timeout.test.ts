@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { raceWithTimeout } from "./timeout";
+import { raceWithTimeout } from "../../../lib/solana/timeout";
 
 describe("raceWithTimeout", () => {
   it("resolves when promise settles before timeout", async () => {

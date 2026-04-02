@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { logger } from "./logger";
+import { logger } from "../../../lib/observability/logger";
 
 // Default LOG_LEVEL is "info" (level 4), so fatal/error/warn/info are emitted, debug/trace are not.
 

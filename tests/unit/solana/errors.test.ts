@@ -12,7 +12,7 @@ import {
   notFound,
   sanitizeToolError,
   toToolResult,
-} from "./errors";
+} from "../../../lib/solana/errors";
 
 describe("MCP error taxonomy", () => {
   it("defines the supported tool error codes", () => {
