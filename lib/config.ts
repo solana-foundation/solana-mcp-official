@@ -56,6 +56,10 @@ export type SolanaRpcRuntimeConfig = {
   simd296Url: string | undefined;
 };
 
+export type SquadsRuntimeConfig = {
+  lambdaUrl: string | undefined;
+};
+
 export function resolveLogLevel(value: string | undefined): LogLevel {
   const result = logLevelSchema.safeParse(value);
   if (result.success) return result.data;
@@ -117,6 +121,9 @@ export const serviceConfig = {
     testnetUrl: resolveOptionalNonEmptyString(process.env.SOLANA_RPC_URL_TESTNET),
     simd296Url: resolveOptionalNonEmptyString(process.env.SOLANA_RPC_URL_SIMD296),
   } satisfies SolanaRpcRuntimeConfig,
+  squads: {
+    lambdaUrl: resolveOptionalNonEmptyString(process.env.SOLANA_SQUADS_LAMBDA_URL),
+  } satisfies SquadsRuntimeConfig,
   sentry: {
     enabled: resolveSentryEnabled(process.env.SENTRY_ENABLED),
     dsn: resolveSentryDsn(process.env.SENTRY_DSN),
