@@ -6,9 +6,7 @@ import { AddressInfo } from "node:net";
 import { createMcp } from "../lib";
 import type { SolanaTool } from "../lib/tools/types";
 import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
-import { geminiSolanaTools } from "../lib/tools/geminiSolanaTools";
 import { solanaEcosystemTools } from "../lib/tools/ecosystemSolanaTools";
-import { openAITools } from "../lib/tools/openAITools";
 
 const hasRequiredEnv = !!process.env.REDIS_URL;
 const describeE2e = hasRequiredEnv ? describe : describe.skip;
@@ -36,7 +34,7 @@ function resolveGeneralSolanaTools(): SolanaTool[] {
 }
 
 const registeredToolNames = ([] as SolanaTool[])
-  .concat(resolveGeneralSolanaTools(), geminiSolanaTools, solanaEcosystemTools, openAITools)
+  .concat(resolveGeneralSolanaTools(), solanaEcosystemTools)
   .map(tool => tool.title);
 
 describeE2e("e2e", () => {

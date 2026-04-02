@@ -2,25 +2,17 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
 
-import { geminiSolanaTools } from "./tools/geminiSolanaTools";
 import { resources } from "./resources";
 import { solanaEcosystemTools } from "./tools/ecosystemSolanaTools";
 import { SolanaTool } from "./tools/types";
-import { createOpenAI } from "@ai-sdk/openai";
-import { openAITools } from "./tools/openAITools";
 import { createSolanaTools } from "./tools/generalSolanaTools";
 import { inkeepRagModel } from "./services/inkeep";
-
-export const openrouter = createOpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: "https://openrouter.ai/api/v1",
-});
 
 export function createMcp() {
   return createMcpHandler(
     (server: McpServer) => {
       ([] as SolanaTool[])
-        .concat(createSolanaTools(inkeepRagModel), geminiSolanaTools, solanaEcosystemTools, openAITools)
+        .concat(createSolanaTools(inkeepRagModel), solanaEcosystemTools)
         .forEach((tool: SolanaTool) => {
           if (tool.outputSchema) {
             server.registerTool(
@@ -60,7 +52,6 @@ export function createMcp() {
                     The following Solana tools are at your disposal:
                     - "Solana Expert: Ask For Help": Use this tool to ask detailed questions about Solana (how-to, concepts, APIs, SDKs, errors). Provide as much context as possible when using it.
                     - "Solana Documentation Search": Use this tool to search the Solana documentation corpus for relevant information based on a query.
-                    - "Ask Solana Anchor Framework Expert": Use this tool for any questions specific to the Anchor Framework, including its APIs, SDKs, and error handling.
                   </TOOLS>
               
                 </MCP_USE_GUIDELINE>
