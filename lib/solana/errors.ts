@@ -1,5 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ZodError } from "zod";
+import { asSafeNumeric } from "./parse-helpers";
 
 export const MCP_TOOL_ERROR_CODES = [
   "INVALID_ARGUMENT",
@@ -76,7 +77,8 @@ export function sanitizeToolError(error: unknown): McpToolError {
 // BigInt is not JSON-serializable, so convert to Number (safe) or String (unsafe).
 function bigIntReplacer(_key: string, value: unknown): unknown {
   if (typeof value === "bigint") {
-    return value <= Number.MAX_SAFE_INTEGER && value >= Number.MIN_SAFE_INTEGER ? Number(value) : String(value);
+    // no need for null fallback because asSafeNumeric will return number | string for bigint
+    return asSafeNumeric(value);
   }
   return value;
 }
