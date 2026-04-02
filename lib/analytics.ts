@@ -103,9 +103,11 @@ export async function logAnalytics(event: AnalyticsEvent) {
           ${JSON.stringify(event.details)}::jsonb,
           ${new Date().toISOString()}
         )
-      `.then(() => {}).catch((err: unknown) => {
-        console.error("[logAnalytics] Error inserting tool response:", err);
-      });
+      `
+        .then(() => {})
+        .catch((err: unknown) => {
+          console.error("[logAnalytics] Error inserting tool response:", err);
+        });
 
       await logInkeepToolResponse({ tool, req, res });
     }
