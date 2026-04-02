@@ -1,48 +1,35 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { neonMock, sqlMock, logInkeepToolResponseMock } = vi.hoisted(() => {
-  const sqlMock = vi.fn().mockResolvedValue([]);
-  const neonMock = vi.fn().mockReturnValue(sqlMock);
-  return { neonMock, sqlMock, logInkeepToolResponseMock: vi.fn() };
-});
+const { logInitializationMock, logToolCallRequestMock, logToolCallResponseMock, logInkeepToolResponseMock } =
+  vi.hoisted(() => ({
+    logInitializationMock: vi.fn(),
+    logToolCallRequestMock: vi.fn(),
+    logToolCallResponseMock: vi.fn(),
+    logInkeepToolResponseMock: vi.fn(),
+  }));
 
-vi.mock("@neondatabase/serverless", () => ({
-  neon: neonMock,
+vi.mock("../../lib/services/neon/analytics", () => ({
+  logInitialization: logInitializationMock,
+  logToolCallRequest: logToolCallRequestMock,
+  logToolCallResponse: logToolCallResponseMock,
 }));
 
 vi.mock("../../lib/services/inkeep/analytics", () => ({
   logInkeepToolResponse: logInkeepToolResponseMock,
 }));
 
+import { logAnalytics } from "../../lib/analytics.js";
+
 describe("logAnalytics", () => {
   beforeEach(() => {
-    vi.resetModules();
     vi.clearAllMocks();
-    sqlMock.mockResolvedValue([]);
-    neonMock.mockReturnValue(sqlMock);
+    logInitializationMock.mockResolvedValue(undefined);
+    logToolCallRequestMock.mockResolvedValue(undefined);
+    logToolCallResponseMock.mockReturnValue(undefined);
     logInkeepToolResponseMock.mockResolvedValue(undefined);
-    delete process.env.POSTGRES_URL;
   });
 
-  it("does nothing when POSTGRES_URL is missing", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
-    const { logAnalytics } = await import("../../lib/analytics.js");
-    await logAnalytics({
-      event_type: "message_received",
-      details: { body: JSON.stringify({ method: "initialize", params: {} }) },
-    });
-
-    expect(neonMock).not.toHaveBeenCalled();
-    expect(sqlMock).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith("[analytics] POSTGRES_URL not set — analytics disabled");
-    warnSpy.mockRestore();
-  });
-
-  it("records initialize requests into the initializations table", async () => {
-    process.env.POSTGRES_URL = "postgres://localhost/test";
-
-    const { logAnalytics } = await import("../../lib/analytics.js");
+  it("routes initialize to logInitialization with parsed params", async () => {
     await logAnalytics({
       event_type: "message_received",
       details: {
@@ -57,20 +44,16 @@ describe("logAnalytics", () => {
       },
     });
 
-    expect(neonMock).toHaveBeenCalledWith("postgres://localhost/test");
-    expect(sqlMock).toHaveBeenCalledTimes(1);
-
-    const [strings, ...params] = sqlMock.mock.calls[0] as [TemplateStringsArray, ...unknown[]];
-    expect(strings.join("")).toContain("initializations");
-    expect(params).toContain("2025-03-26");
-    expect(params).toContain("codex");
-    expect(params).toContain("1.2.3");
+    expect(logInitializationMock).toHaveBeenCalledWith({
+      protocolVersion: "2025-03-26",
+      capabilities: { roots: { listChanged: true } },
+      clientName: "codex",
+      clientVersion: "1.2.3",
+      rawBody: expect.objectContaining({ method: "initialize" }),
+    });
   });
 
-  it("records tools/call requests in tool_calls with request metadata", async () => {
-    process.env.POSTGRES_URL = "postgres://localhost/test";
-
-    const { logAnalytics } = await import("../../lib/analytics.js");
+  it("routes tools/call to logToolCallRequest with request metadata", async () => {
     await logAnalytics({
       event_type: "message_received",
       request_id: "req-123",
@@ -86,19 +69,16 @@ describe("logAnalytics", () => {
       },
     });
 
-    expect(sqlMock).toHaveBeenCalledTimes(1);
-
-    const [strings, ...params] = sqlMock.mock.calls[0] as [TemplateStringsArray, ...unknown[]];
-    expect(strings.join("")).toContain("tool_calls");
-    expect(params).toContain("Solana_Documentation_Search");
-    expect(params).toContain("req-123");
-    expect(params).toContain("session-456");
+    expect(logToolCallRequestMock).toHaveBeenCalledWith({
+      toolName: "Solana_Documentation_Search",
+      requestId: "req-123",
+      sessionId: "session-456",
+      toolArgs: { query: "accounts" },
+      rawBody: expect.objectContaining({ method: "tools/call" }),
+    });
   });
 
-  it("records message_response payloads and forwards them to Inkeep analytics", async () => {
-    process.env.POSTGRES_URL = "postgres://localhost/test";
-
-    const { logAnalytics } = await import("../../lib/analytics.js");
+  it("routes message_response to logToolCallResponse and logInkeepToolResponse", async () => {
     await logAnalytics({
       event_type: "message_response",
       details: {
@@ -108,13 +88,12 @@ describe("logAnalytics", () => {
       },
     });
 
-    expect(sqlMock).toHaveBeenCalled();
-
-    const [strings, ...params] = sqlMock.mock.calls[0] as [TemplateStringsArray, ...unknown[]];
-    expect(strings.join("")).toContain("tool_calls");
-    expect(params).toContain("Solana_Documentation_Search");
-    expect(params).toContain('{"content":[]}');
-
+    expect(logToolCallResponseMock).toHaveBeenCalledWith({
+      tool: "Solana_Documentation_Search",
+      req: "find docs",
+      res: '{"content":[]}',
+      rawBody: expect.objectContaining({ tool: "Solana_Documentation_Search" }),
+    });
     expect(logInkeepToolResponseMock).toHaveBeenCalledWith({
       tool: "Solana_Documentation_Search",
       req: "find docs",
@@ -122,20 +101,31 @@ describe("logAnalytics", () => {
     });
   });
 
-  it("rejects malformed message_received JSON payloads without writing rows", async () => {
-    process.env.POSTGRES_URL = "postgres://localhost/test";
+  it("rejects malformed JSON without calling any service", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
-    const { logAnalytics } = await import("../../lib/analytics.js");
     await logAnalytics({
       event_type: "message_received",
-      details: {
-        body: "{invalid-json",
-      },
+      details: { body: "{invalid-json" },
     });
 
-    expect(sqlMock).not.toHaveBeenCalled();
+    expect(logInitializationMock).not.toHaveBeenCalled();
+    expect(logToolCallRequestMock).not.toHaveBeenCalled();
     expect(errorSpy).toHaveBeenCalledWith("[logAnalytics] Could not parse JSON body:", "{invalid-json");
     errorSpy.mockRestore();
+  });
+
+  it("skips unknown methods without calling any service", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    await logAnalytics({
+      event_type: "message_received",
+      details: { body: JSON.stringify({ method: "unknown/method" }) },
+    });
+
+    expect(logInitializationMock).not.toHaveBeenCalled();
+    expect(logToolCallRequestMock).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith("[logAnalytics] Skipping method:", "unknown/method");
+    warnSpy.mockRestore();
   });
 });
