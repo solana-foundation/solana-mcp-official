@@ -2,9 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { resources } from "../lib/resources";
 import { solanaEcosystemTools } from "../lib/tools/ecosystemSolanaTools";
-import { geminiSolanaTools } from "../lib/tools/geminiSolanaTools";
 import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
-import { openAITools } from "../lib/tools/openAITools";
 import type { SolanaTool } from "../lib/tools/types";
 
 const { createMcpHandlerMock } = vi.hoisted(() => ({
@@ -52,12 +50,7 @@ function resolveGeneralSolanaTools(): SolanaTool[] {
   return [];
 }
 
-const allTools: SolanaTool[] = ([] as SolanaTool[]).concat(
-  resolveGeneralSolanaTools(),
-  geminiSolanaTools,
-  solanaEcosystemTools,
-  openAITools,
-);
+const allTools: SolanaTool[] = ([] as SolanaTool[]).concat(resolveGeneralSolanaTools(), solanaEcosystemTools);
 
 describe("createMcp", () => {
   beforeEach(() => {
