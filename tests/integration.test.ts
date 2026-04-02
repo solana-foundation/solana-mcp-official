@@ -94,7 +94,7 @@ describe("createMcp", () => {
     expect(config).toEqual({
       basePath: "",
       redisUrl: "redis://127.0.0.1:6379",
-      maxDuration: 60,
+      maxDuration: 120,
       verboseLogs: true,
     });
   });
