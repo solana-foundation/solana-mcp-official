@@ -1,0 +1,23 @@
+repos:
+  - repo: local
+    hooks:
+      - id: format-check
+        name: prettier format check
+        entry: pnpm format:check
+        language: system
+        types: [ts]
+        pass_filenames: false
+
+      - id: lint
+        name: eslint
+        entry: pnpm lint
+        language: system
+        types: [ts]
+        pass_filenames: false
+
+      - id: typecheck
+        name: tsc typecheck
+        entry: pnpm typecheck
+        language: system
+        types: [ts]
+        pass_filenames: false
