@@ -30,6 +30,9 @@ function extractProgramDataAddress(parsedData: unknown): string | null {
   return asString(asRecord(parsedRecord?.info)?.programData);
 }
 
+// FIXME(@rogaldh, @pashpashkin: jsonParsed responses for programData accounts don't include
+// info.data — bytecode lives in the top-level data field and requires a separate
+// base64 fetch. This will return null until a dedicated base64 call is wired in (Step 5).
 function extractProgramDataRawBase64(parsedData: unknown): string | null {
   const parsedRecord = asRecord(parsedData);
   if (asString(parsedRecord?.type) !== "programData") return null;
