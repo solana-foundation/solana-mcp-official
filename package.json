@@ -13,7 +13,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "pnpm typecheck:ts && pnpm typecheck:vitest",
+    "typecheck:ts": "tsc --noEmit",
+    "typecheck:vitest": "vitest --run --typecheck.only",
     "inspector": "npx -y @modelcontextprotocol/inspector npx mcp-remote http://localhost:3000/mcp",
     "audit:security": "pnpm audit --audit-level=high"
   },
@@ -31,6 +33,7 @@
     "@modelcontextprotocol/sdk": "1.27.1",
     "@neondatabase/serverless": "^1.0.2",
     "@noble/hashes": "^1.8.0",
+    "@solana/kit": "^6.4.0",
     "@solana/web3.js": "^1.98.0",
     "ai": "^4.2.6",
     "bs58": "^6.0.0",
