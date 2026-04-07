@@ -166,6 +166,9 @@ export async function enrichUpgradeableProgramData(
       };
     }
 
+    // FIXME(@rogaldh): this catch branch handles non-RPC errors (e.g. TypeError,
+    // serialization bugs). "source_unavailable" is misleading here — revisit
+    // the status value when wiring up the tool in Step 4.
     logger.warn({
       event: "normalizer.enrich_program_data_failed",
       programAddress: account.address,
