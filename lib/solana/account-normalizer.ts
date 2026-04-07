@@ -138,8 +138,9 @@ export async function enrichUpgradeableProgramData(
       };
     }
 
-    const parsedProgramData = extractProgramDataInfo(normalizedProgramDataAccount.parsedData);
-    if (!parsedProgramData) {
+    // FIXME(@rogaldh): normalizeAccountProbe already calls extractProgramDataInfo,
+    // so programData is pre-computed. No need to re-extract.
+    if (!normalizedProgramDataAccount.programData) {
       return {
         ...account,
         programDataStatus: "missing",
@@ -148,7 +149,7 @@ export async function enrichUpgradeableProgramData(
 
     return {
       ...account,
-      programData: parsedProgramData,
+      programData: normalizedProgramDataAccount.programData,
       programDataStatus: "resolved",
       programDataRawBase64: extractProgramDataRawBase64(normalizedProgramDataAccount.parsedData),
     };
