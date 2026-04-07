@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import {
   enrichUpgradeableProgramData,
@@ -6,7 +6,7 @@ import {
   extractRawDataBytesFromAccountData,
   normalizeAccountProbe,
 } from "../../../lib/solana/account-normalizer";
-import type { AccountProbeEnvelope, NormalizedAccountInfo } from "../../../lib/solana/types";
+import type { AccountProbeEnvelope, NormalizedAccountInfo, NormalizedProgramDataInfo } from "../../../lib/solana/types";
 import { SourceUnavailableError } from "../../../lib/solana/rpc";
 import { logger } from "../../../lib/observability/logger";
 
@@ -132,6 +132,11 @@ describe("inspect-entity account normalizer", () => {
 
     expect(enriched.programDataRawBase64).toBe(programDataB64);
     expect(enriched.programDataStatus).toBe("resolved");
+    expect(enriched.programData).toEqual({
+      authority: "Auth11111111111111111111111111111111111111111",
+      slot: 100,
+    });
+    expectTypeOf(enriched.programData).toEqualTypeOf<NormalizedProgramDataInfo | null | undefined>();
   });
 
   it("returns source_unavailable when fetchAccount throws non-SourceUnavailableError", async () => {

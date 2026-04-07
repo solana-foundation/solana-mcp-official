@@ -13,7 +13,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "pnpm typecheck:ts && pnpm typecheck:vitest",
+    "typecheck:ts": "tsc --noEmit",
+    "typecheck:vitest": "vitest --run --typecheck.only",
     "inspector": "npx -y @modelcontextprotocol/inspector npx mcp-remote http://localhost:3000/mcp",
     "audit:security": "pnpm audit --audit-level=high"
   },
