@@ -1,6 +1,11 @@
 import { getBase58Encoder } from "@solana/kit";
 
-import { FEATURE_PROGRAM_ID, NFTOKEN_ADDRESS, SOLANA_ATTESTATION_SERVICE_PROGRAM_ID } from "./constants";
+import {
+  ADDRESS_LOOKUP_TABLE_PROGRAM_ADDRESS,
+  FEATURE_PROGRAM_ID,
+  NFTOKEN_ADDRESS,
+  SOLANA_ATTESTATION_SERVICE_PROGRAM_ID,
+} from "./constants";
 import type {
   BaseAccountEntityKind,
   DasClassificationOutcome,
@@ -100,7 +105,10 @@ export function classifyAccountKindBase(account: NormalizedAccountInfo): BaseAcc
   if (parsedProgram === "config") {
     return "config";
   }
-  if (parsedProgram === "address-lookup-table" || hasAddressLookupTableLayout(account.rawDataBytes)) {
+  if (
+    parsedProgram === "address-lookup-table" ||
+    (account.owner === ADDRESS_LOOKUP_TABLE_PROGRAM_ADDRESS && hasAddressLookupTableLayout(account.rawDataBytes))
+  ) {
     return "address-lookup-table";
   }
   if (account.owner === FEATURE_PROGRAM_ID) {

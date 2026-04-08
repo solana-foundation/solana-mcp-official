@@ -8,6 +8,7 @@ import {
   promoteAccountKindWithDas,
 } from "../../../lib/solana/inspect-entity-classifier";
 import {
+  ADDRESS_LOOKUP_TABLE_PROGRAM_ADDRESS,
   FEATURE_PROGRAM_ID,
   NFTOKEN_ADDRESS,
   SOLANA_ATTESTATION_SERVICE_PROGRAM_ID,
@@ -50,24 +51,36 @@ describe("inspect-entity classifier", () => {
     expect(kind).toBe("nftoken");
   });
 
-  it("supports address-lookup-table fallback from same-response raw bytes", () => {
+  it("supports address-lookup-table fallback from same-response raw bytes when owner matches", () => {
     const altRawBytes = new Uint8Array(56);
     const kind = classifyAccountKindBase({
-      owner: "SomeOwner",
+      owner: ADDRESS_LOOKUP_TABLE_PROGRAM_ADDRESS,
       parsedProgram: null,
       parsedData: null,
       rawDataBytes: altRawBytes,
     });
 
-    const unknownKind = classifyAccountKindBase({
-      owner: "SomeOwner",
+    const wrongSizeKind = classifyAccountKindBase({
+      owner: ADDRESS_LOOKUP_TABLE_PROGRAM_ADDRESS,
       parsedProgram: null,
       parsedData: null,
       rawDataBytes: new Uint8Array(57),
     });
 
     expect(kind).toBe("address-lookup-table");
-    expect(unknownKind).toBe("unknown");
+    expect(wrongSizeKind).toBe("unknown");
+  });
+
+  it("rejects address-lookup-table heuristic when owner does not match", () => {
+    const altRawBytes = new Uint8Array(56);
+    const kind = classifyAccountKindBase({
+      owner: "SomeOtherProgram",
+      parsedProgram: null,
+      parsedData: null,
+      rawDataBytes: altRawBytes,
+    });
+
+    expect(kind).toBe("unknown");
   });
 
   it("covers deterministic classification branches across parsed programs and owners", () => {
