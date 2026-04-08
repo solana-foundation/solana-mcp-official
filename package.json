@@ -39,7 +39,7 @@
     "bs58": "^6.0.0",
     "content-type": "^1.0.5",
     "dotenv": "^17.3.1",
-    "express": "^4.21.2",
+    "express": "^5.2.1",
     "mcp-handler": "1.1.0",
     "raw-body": "^3.0.0",
     "redis": "^4.7.0",
