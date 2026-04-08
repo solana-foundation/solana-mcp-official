@@ -16,28 +16,51 @@ function shouldLog(level: LogLevel): boolean {
   return LEVEL_ORDER[level] <= currentLevel;
 }
 
-// FIXME(@rogaldh, @pashpashkin): wrap JSON.stringify in try/catch to handle circular references.
-// Left as-is for easier migration; will be fixed at the end of the inspect_entity port.
+type SerializableError = {
+  name: string;
+  message: string;
+  stack: string | undefined;
+  cause: unknown;
+};
+
+function safeStringify(obj: Record<string, unknown>): string {
+  try {
+    return JSON.stringify(obj, (_key, value) => {
+      if (value instanceof Error) {
+        return {
+          name: value.name,
+          message: value.message,
+          stack: value.stack,
+          cause: value.cause,
+        } satisfies SerializableError;
+      }
+      return value;
+    });
+  } catch {
+    return JSON.stringify({ event: "logger.serialization_failed" });
+  }
+}
+
 export const logger = {
   fatal(obj: Record<string, unknown>): void {
-    if (shouldLog("fatal")) console.error(JSON.stringify(obj));
+    if (shouldLog("fatal")) console.error(safeStringify(obj));
   },
   error(obj: Record<string, unknown>): void {
-    if (shouldLog("error")) console.error(JSON.stringify(obj));
+    if (shouldLog("error")) console.error(safeStringify(obj));
   },
   warn(obj: Record<string, unknown>): void {
-    if (shouldLog("warn")) console.warn(JSON.stringify(obj));
+    if (shouldLog("warn")) console.warn(safeStringify(obj));
   },
   info(obj: Record<string, unknown>): void {
     // eslint-disable-next-line no-console
-    if (shouldLog("info")) console.log(JSON.stringify(obj));
+    if (shouldLog("info")) console.log(safeStringify(obj));
   },
   debug(obj: Record<string, unknown>): void {
     // eslint-disable-next-line no-console
-    if (shouldLog("debug")) console.log(JSON.stringify(obj));
+    if (shouldLog("debug")) console.log(safeStringify(obj));
   },
   trace(obj: Record<string, unknown>): void {
     // eslint-disable-next-line no-console
-    if (shouldLog("trace")) console.log(JSON.stringify(obj));
+    if (shouldLog("trace")) console.log(safeStringify(obj));
   },
 };
