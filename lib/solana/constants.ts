@@ -5,7 +5,10 @@ export {
 } from "@solana-program/loader-v3";
 export { STAKE_PROGRAM_ADDRESS } from "@solana-program/stake";
 export { TOKEN_PROGRAM_ADDRESS, TOKEN_PROGRAM_ADDRESS as TOKEN_PROGRAM_ID } from "@solana-program/token";
-export { TOKEN_2022_PROGRAM_ADDRESS, TOKEN_2022_PROGRAM_ADDRESS as TOKEN_2022_PROGRAM_ID } from "@solana-program/token-2022";
+export {
+  TOKEN_2022_PROGRAM_ADDRESS,
+  TOKEN_2022_PROGRAM_ADDRESS as TOKEN_2022_PROGRAM_ID,
+} from "@solana-program/token-2022";
 
 export const NFTOKEN_ADDRESS = "nftokf9qcHSYkVSP3P2gUMmV6d4AwjMueXgUu43HyLL";
 export const FEATURE_PROGRAM_ID = "Feature111111111111111111111111111111111111";
