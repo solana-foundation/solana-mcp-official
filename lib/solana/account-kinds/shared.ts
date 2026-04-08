@@ -19,6 +19,7 @@ export function unknownMarker(reason: string): {
   };
 }
 
+// FIXME(@rogaldh): sparse keys (omit vs null) — callers cannot distinguish "field absent" from "not set".
 export function buildTokenEntityFields(
   kind: AccountEntityKind,
   account: NormalizedAccountInfo,
