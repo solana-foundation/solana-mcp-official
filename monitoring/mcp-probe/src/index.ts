@@ -1,4 +1,4 @@
-import { createServer, type ServerResponse } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import {
@@ -23,7 +23,26 @@ const logRecord = (record: ProbeLogRecord): void => {
   process.stdout.write(payload);
 };
 
-const server = createServer(async (req, res) => {
+const server = createServer((req, res) => {
+  void handleRequest(req, res).catch(error => {
+    logUnhandledRequestError(error, req, res);
+  });
+});
+
+server.listen(port, () => {
+  logRecord({
+    severity: "INFO",
+    event: "mcp_probe.server_started",
+    target_url: config.targetUrl,
+    max_retries: config.maxRetries,
+    timeout_ms: config.timeoutMs,
+    backoff_ms: config.backoffMs,
+    min_tools: config.minTools,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const method = req.method ?? "GET";
   const path = req.url ?? "/";
 
@@ -39,20 +58,25 @@ const server = createServer(async (req, res) => {
   }
 
   await handleInvalidRequest(req, res, logRecord);
-});
+}
 
-server.listen(port, () => {
+function logUnhandledRequestError(error: unknown, req: IncomingMessage, res: ServerResponse): void {
   logRecord({
-    severity: "INFO",
-    event: "mcp_probe.server_started",
-    target_url: config.targetUrl,
-    max_retries: config.maxRetries,
-    timeout_ms: config.timeoutMs,
-    backoff_ms: config.backoffMs,
-    min_tools: config.minTools,
+    severity: "ERROR",
+    event: "mcp_probe.request_failed",
+    method: req.method,
+    path: req.url,
+    error_message: error instanceof Error ? error.message : String(error),
     timestamp: new Date().toISOString(),
   });
-});
+
+  if (!res.headersSent) {
+    sendJsonResponse(res, 500, { ok: false, error: "Internal server error" });
+    return;
+  }
+
+  res.end();
+}
 
 async function handleRunRequest(res: ServerResponse): Promise<void> {
   const result = await runProbe(config, {
@@ -90,7 +114,7 @@ function createProbeClient(targetUrl: URL): ProbeClient {
 }
 
 function resolvePort(value: string | undefined): number {
-  const resolvedValue = Number.parseInt(value ?? "8080", 10);
+  const resolvedValue = value === undefined ? 8080 : Number(value);
   if (!Number.isInteger(resolvedValue) || resolvedValue <= 0) {
     throw new Error("PORT must be a positive integer.");
   }

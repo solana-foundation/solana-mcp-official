@@ -1,3 +1,4 @@
+import { PassThrough } from "node:stream";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 type ProbeModule = typeof import("../../../monitoring/mcp-probe/src/probe.js", {
@@ -20,10 +21,11 @@ let ProbeConfigurationError: ProbeModule["ProbeConfigurationError"];
 let ProbeValidationError: ProbeModule["ProbeValidationError"];
 let resolveProbeConfig: ProbeModule["resolveProbeConfig"];
 let runProbe: ProbeModule["runProbe"];
+let handleInvalidRequest: ProbeModule["handleInvalidRequest"];
 
 beforeAll(async () => {
   const probeModule = await import("../../../monitoring/mcp-probe/src/probe.js");
-  ({ ProbeConfigurationError, ProbeValidationError, resolveProbeConfig, runProbe } = probeModule);
+  ({ ProbeConfigurationError, ProbeValidationError, resolveProbeConfig, runProbe, handleInvalidRequest } = probeModule);
 });
 
 describe("resolveProbeConfig", () => {
@@ -41,6 +43,7 @@ describe("resolveProbeConfig", () => {
 
   it("throws when a numeric environment variable is invalid", () => {
     expect(() => resolveProbeConfig({ MCP_PROBE_MAX_RETRIES: "0" })).toThrow(ProbeConfigurationError);
+    expect(() => resolveProbeConfig({ MCP_PROBE_MAX_RETRIES: "3ms" })).toThrow(ProbeConfigurationError);
   });
 });
 
@@ -79,6 +82,43 @@ describe("runProbe", () => {
         event: "mcp_probe.success",
         attempt: 1,
         tool_count: 2,
+      }),
+    );
+  });
+
+  it("returns consistent attempt and total latency values for a first-attempt success", async () => {
+    const clientFactory = createClientFactory([
+      {
+        connect: vi.fn().mockResolvedValue(undefined),
+        listTools: vi.fn().mockResolvedValue({ tools: [{ name: "tool-a" }] }),
+        close: vi.fn().mockResolvedValue(undefined),
+      },
+    ]);
+    const log = vi.fn<(record: ProbeLogRecord) => void>();
+    const now = createNowMock([0, 5, 10]);
+
+    const result = await runProbe(
+      {
+        targetUrl: "https://mcp.solana.com/mcp",
+        maxRetries: 1,
+        timeoutMs: 1000,
+        backoffMs: 10,
+        minTools: 1,
+      },
+      { clientFactory, log, now },
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      targetUrl: "https://mcp.solana.com/mcp",
+      attempts: 1,
+      toolCount: 1,
+      totalLatencyMs: 10,
+    });
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: "mcp_probe.success",
+        latency_ms: 5,
       }),
     );
   });
@@ -263,6 +303,32 @@ describe("runProbe", () => {
   });
 });
 
+describe("handleInvalidRequest", () => {
+  it("drains the request body, logs the event, and returns 404", async () => {
+    const log = vi.fn<(record: ProbeLogRecord) => void>();
+    const req = createMockRequest({ method: "GET", url: "/unknown" });
+    const res = createMockResponse();
+
+    queueMicrotask(() => {
+      req.write("ignored");
+      req.end();
+    });
+
+    await handleInvalidRequest(req as never as Parameters<typeof handleInvalidRequest>[0], res as never, log);
+
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: "mcp_probe.invalid_request",
+        method: "GET",
+        path: "/unknown",
+      }),
+    );
+    expect(res.statusCode).toBe(404);
+    expect(res.headers.get("content-type")).toBe("application/json; charset=utf-8");
+    expect(JSON.parse(res.body)).toEqual({ ok: false, error: "Not found" });
+  });
+});
+
 function assertFailureResult(result: ProbeResult): asserts result is Extract<ProbeResult, { ok: false }> {
   if (result.ok) {
     throw new Error("Expected failure result.");
@@ -290,5 +356,40 @@ function createNowMock(values: number[]): () => number {
       throw new Error("Ran out of mocked time values.");
     }
     return value;
+  };
+}
+
+type MockResponse = {
+  statusCode: number;
+  headers: Map<string, string>;
+  body: string;
+  headersSent: boolean;
+  setHeader: (name: string, value: string) => void;
+  end: (chunk?: string) => void;
+};
+
+function createMockRequest(values: { method: string; url: string }): PassThrough & {
+  method: string;
+  url: string;
+} {
+  const stream = new PassThrough() as PassThrough & { method: string; url: string };
+  stream.method = values.method;
+  stream.url = values.url;
+  return stream;
+}
+
+function createMockResponse(): MockResponse {
+  return {
+    statusCode: 200,
+    headers: new Map<string, string>(),
+    body: "",
+    headersSent: false,
+    setHeader(name: string, value: string) {
+      this.headers.set(name, value);
+    },
+    end(chunk?: string) {
+      this.headersSent = true;
+      this.body = chunk ?? "";
+    },
   };
 }

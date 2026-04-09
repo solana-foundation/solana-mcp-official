@@ -56,7 +56,8 @@ export type ProbeLogRecord = {
     | "mcp_probe.attempt_failed"
     | "mcp_probe.hard_failure"
     | "mcp_probe.close_failed"
-    | "mcp_probe.invalid_request";
+    | "mcp_probe.invalid_request"
+    | "mcp_probe.request_failed";
   readonly target_url?: string;
   readonly attempt?: number;
   readonly attempts?: number;
@@ -185,8 +186,9 @@ export async function runProbe(config: ProbeConfig, dependencies: ProbeDependenc
         throw new ProbeValidationError(`Expected at least ${config.minTools} tool(s), received ${toolCount}.`);
       }
 
-      const totalLatencyMs = now() - startedAt;
-      const latencyMs = now() - attemptStartedAt;
+      const attemptEndedAt = now();
+      const totalLatencyMs = attemptEndedAt - startedAt;
+      const latencyMs = attemptEndedAt - attemptStartedAt;
       log({
         severity: "INFO",
         event: "mcp_probe.success",
@@ -319,7 +321,7 @@ function resolveRequiredUrl(value: string, field: string): string {
 }
 
 function resolvePositiveInteger(value: string | undefined, fallback: number, field: string): number {
-  const resolvedValue = value === undefined ? fallback : Number.parseInt(value, 10);
+  const resolvedValue = value === undefined ? fallback : Number(value);
   if (!Number.isInteger(resolvedValue) || resolvedValue <= 0) {
     throw new ProbeConfigurationError(`${field} must be a positive integer.`);
   }
