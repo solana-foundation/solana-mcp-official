@@ -98,7 +98,10 @@ export type SignatureStatusEnvelope = {
 };
 
 export type AccountEntityKind =
+  | "bpf-loader"
+  | "bpf-loader-2"
   | "bpf-upgradeable-loader"
+  | "loader-v4"
   | "stake"
   | "nftoken"
   | "spl-token:mint"

@@ -9,7 +9,10 @@ import {
 } from "../../../lib/solana/inspect-entity-classifier";
 import {
   ADDRESS_LOOKUP_TABLE_PROGRAM_ADDRESS,
+  BPF_LOADER_PROGRAM_ID,
+  BPF_LOADER_2_PROGRAM_ID,
   FEATURE_PROGRAM_ID,
+  LOADER_V4_PROGRAM_ID,
   NFTOKEN_ADDRESS,
   SOLANA_ATTESTATION_SERVICE_PROGRAM_ID,
 } from "../../../lib/solana/constants";
@@ -49,6 +52,35 @@ describe("inspect-entity classifier", () => {
     });
 
     expect(kind).toBe("nftoken");
+  });
+
+  it("classifies accounts owned by BPF Loader 1, BPF Loader 2, and Loader v4 by owner address", () => {
+    expect(
+      classifyAccountKindBase({
+        owner: BPF_LOADER_PROGRAM_ID,
+        parsedProgram: null,
+        parsedData: null,
+        rawDataBytes: null,
+      }),
+    ).toBe("bpf-loader");
+
+    expect(
+      classifyAccountKindBase({
+        owner: BPF_LOADER_2_PROGRAM_ID,
+        parsedProgram: null,
+        parsedData: null,
+        rawDataBytes: null,
+      }),
+    ).toBe("bpf-loader-2");
+
+    expect(
+      classifyAccountKindBase({
+        owner: LOADER_V4_PROGRAM_ID,
+        parsedProgram: null,
+        parsedData: null,
+        rawDataBytes: null,
+      }),
+    ).toBe("loader-v4");
   });
 
   it("supports address-lookup-table fallback from same-response raw bytes when owner matches", () => {

@@ -5,7 +5,10 @@ import { buildAccountPayloadWithRouter } from "../../../lib/solana/inspect-entit
 import type { AccountEntityKind, AccountPayloadContext } from "../../../lib/solana/types";
 
 const ALL_ACCOUNT_KINDS = [
+  "bpf-loader",
+  "bpf-loader-2",
   "bpf-upgradeable-loader",
+  "loader-v4",
   "stake",
   "nftoken",
   "spl-token:mint",
