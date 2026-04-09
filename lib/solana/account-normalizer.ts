@@ -59,7 +59,7 @@ export function extractProgramDataInfo(parsedData: unknown): NormalizedProgramDa
     asRecordO(parsedData),
     O.filter(r => asString(r.type) === "programData"), // only programData entries carry authority/slot
     O.flatMap(r => asRecordO(r.info)), // drill into nested info object
-    O.flatMap(info => {
+    O.flatMap((info): O.Option<NormalizedProgramDataInfo> => {
       const slot = asSafeNumeric(info.slot);
       if (slot === null) return O.none;
       if (info.authority === null) return O.some({ authority: null, slot }); // frozen program
