@@ -45,12 +45,11 @@ function extractProgramDataRawBase64(parsedData: unknown): string | null {
     O.filter(r => asString(r.type) === "programData"), // only programData entries carry bytecode
     O.flatMap(r => asRecordO(r.info)), // drill into nested info object
     O.flatMap(info => {
-      // extract base64-encoded bytecode from [string, "base64"] tuple
       const data = info.data;
       if (!Array.isArray(data) || data.length < 2) return O.none;
       if (typeof data[0] !== "string" || data[1] !== "base64") return O.none;
       return O.some(data[0]);
-    }),
+    }), // extract base64-encoded bytecode from [string, "base64"] tuple
     O.getOrElse(() => null as string | null),
   );
 }
@@ -61,7 +60,6 @@ export function extractProgramDataInfo(parsedData: unknown): NormalizedProgramDa
     O.filter(r => asString(r.type) === "programData"), // only programData entries carry authority/slot
     O.flatMap(r => asRecordO(r.info)), // drill into nested info object
     O.flatMap(info => {
-      // extract authority + slot, handling frozen programs (authority === null)
       const slot = asSafeNumeric(info.slot);
       if (slot === null) return O.none;
       if (info.authority === null) return O.some({ authority: null, slot }); // frozen program
@@ -70,7 +68,7 @@ export function extractProgramDataInfo(parsedData: unknown): NormalizedProgramDa
         O.filter(s => s.length > 0), // reject empty-string authority (asStringO yields Some(""))
         O.map(authority => ({ authority, slot })),
       );
-    }),
+    }), // extract authority + slot, handling frozen programs (authority === null)
     O.getOrElse(() => null as NormalizedProgramDataInfo | null),
   );
 }
