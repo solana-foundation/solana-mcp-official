@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import {
   enrichUpgradeableProgramData,
+  extractProgramDataAddress,
   extractProgramDataInfo,
   extractRawDataBytesFromAccountData,
   normalizeAccountProbe,
@@ -206,6 +207,30 @@ describe("inspect-entity account normalizer", () => {
 
     const result = normalizeAccountProbe("addr", envelope);
     expect(result?.lamports).toBe("9007199254740993");
+  });
+
+  it("extracts programData address only from program-typed parsed data", () => {
+    expect(
+      extractProgramDataAddress({
+        type: "program",
+        info: { programData: "ProgramData1111111111111111111111111111111111" },
+      }),
+    ).toBe("ProgramData1111111111111111111111111111111111");
+
+    expect(extractProgramDataAddress({ type: "programData", info: { slot: 1 } })).toBeNull();
+    expect(extractProgramDataAddress({ type: "program", info: {} })).toBeNull();
+    expect(extractProgramDataAddress({ type: "program", info: { programData: 123 } })).toBeNull();
+    expect(extractProgramDataAddress(null)).toBeNull();
+    expect(extractProgramDataAddress("not an object")).toBeNull();
+  });
+
+  it("rejects empty-string authority as invalid", () => {
+    expect(
+      extractProgramDataInfo({
+        type: "programData",
+        info: { authority: "", slot: 42 },
+      }),
+    ).toBeNull();
   });
 
   it("returns null for invalid programData payloads", () => {
