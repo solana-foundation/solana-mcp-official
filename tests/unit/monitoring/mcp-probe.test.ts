@@ -1,14 +1,30 @@
-import { describe, expect, it, vi } from "vitest";
-import {
-  ProbeConfigurationError,
-  ProbeValidationError,
-  resolveProbeConfig,
-  runProbe,
-  type ProbeClient,
-  type ProbeClientFactory,
-  type ProbeLogRecord,
-  type ProbeResult,
-} from "../../../monitoring/mcp-probe/src/probe.js";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+
+type ProbeModule = typeof import("../../../monitoring/mcp-probe/src/probe.js", {
+  with: { "resolution-mode": "import" },
+});
+type ProbeClient = import("../../../monitoring/mcp-probe/src/probe.js", {
+  with: { "resolution-mode": "import" },
+}).ProbeClient;
+type ProbeClientFactory = import("../../../monitoring/mcp-probe/src/probe.js", {
+  with: { "resolution-mode": "import" },
+}).ProbeClientFactory;
+type ProbeLogRecord = import("../../../monitoring/mcp-probe/src/probe.js", {
+  with: { "resolution-mode": "import" },
+}).ProbeLogRecord;
+type ProbeResult = import("../../../monitoring/mcp-probe/src/probe.js", {
+  with: { "resolution-mode": "import" },
+}).ProbeResult;
+
+let ProbeConfigurationError: ProbeModule["ProbeConfigurationError"];
+let ProbeValidationError: ProbeModule["ProbeValidationError"];
+let resolveProbeConfig: ProbeModule["resolveProbeConfig"];
+let runProbe: ProbeModule["runProbe"];
+
+beforeAll(async () => {
+  const probeModule = await import("../../../monitoring/mcp-probe/src/probe.js");
+  ({ ProbeConfigurationError, ProbeValidationError, resolveProbeConfig, runProbe } = probeModule);
+});
 
 describe("resolveProbeConfig", () => {
   it("returns defaults when optional environment variables are unset", () => {
