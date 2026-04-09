@@ -4,7 +4,7 @@ import { pipe } from "fp-ts/function";
 import type { AccountProbeEnvelope, NormalizedAccountInfo, NormalizedProgramDataInfo } from "./types";
 import type { SupportedCluster } from "./constants";
 import { isSourceUnavailableError } from "./rpc";
-import { asSafeNumeric, asRecord, asString, asRecordO, asStringO } from "./parse-helpers";
+import { asSafeNumeric, asString, asRecordO, asStringO } from "./parse-helpers";
 import { logger } from "../observability/logger";
 
 export function extractRawDataBytesFromAccountData(data: unknown): Uint8Array | null {
