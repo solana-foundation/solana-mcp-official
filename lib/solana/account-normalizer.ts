@@ -1,7 +1,10 @@
+import * as O from "fp-ts/Option";
+import { pipe } from "fp-ts/function";
+
 import type { AccountProbeEnvelope, NormalizedAccountInfo, NormalizedProgramDataInfo } from "./types";
 import type { SupportedCluster } from "./constants";
 import { isSourceUnavailableError } from "./rpc";
-import { asSafeNumeric, asRecord, asString } from "./parse-helpers";
+import { asSafeNumeric, asString, asRecordO, asStringO } from "./parse-helpers";
 import { logger } from "../observability/logger";
 
 export function extractRawDataBytesFromAccountData(data: unknown): Uint8Array | null {
@@ -22,55 +25,52 @@ export function extractRawDataBytesFromAccountData(data: unknown): Uint8Array | 
   }
 }
 
-function extractProgramDataAddress(parsedData: unknown): string | null {
-  const parsedRecord = asRecord(parsedData);
-  if (asString(parsedRecord?.type) !== "program") {
-    return null;
-  }
-  return asString(asRecord(parsedRecord?.info)?.programData);
+/** @internal Exported for test coverage. */
+export function extractProgramDataAddress(parsedData: unknown): string | null {
+  return pipe(
+    asRecordO(parsedData),
+    O.filter(r => asString(r.type) === "program"), // only "program"-typed entries carry a programData pointer
+    O.flatMap(r => asRecordO(r.info)), // drill into nested info object
+    O.flatMap(info => asStringO(info.programData)), // extract the programData address
+    O.getOrElse(() => null as string | null),
+  );
 }
 
 // FIXME(@rogaldh, @pashpashkin: jsonParsed responses for programData accounts don't include
 // info.data — bytecode lives in the top-level data field and requires a separate
 // base64 fetch. This will return null until a dedicated base64 call is wired in (Step 5).
 function extractProgramDataRawBase64(parsedData: unknown): string | null {
-  const parsedRecord = asRecord(parsedData);
-  if (asString(parsedRecord?.type) !== "programData") return null;
-  const info = asRecord(parsedRecord?.info);
-  const data = info?.data;
-  if (!Array.isArray(data) || data.length < 2) return null;
-  if (typeof data[0] !== "string" || data[1] !== "base64") return null;
-  return data[0];
+  return pipe(
+    asRecordO(parsedData),
+    O.filter(r => asString(r.type) === "programData"), // only programData entries carry bytecode
+    O.flatMap(r => asRecordO(r.info)), // drill into nested info object
+    O.flatMap(info => {
+      const data = info.data;
+      if (!Array.isArray(data) || data.length < 2) return O.none;
+      if (typeof data[0] !== "string" || data[1] !== "base64") return O.none;
+      return O.some(data[0]);
+    }), // extract base64-encoded bytecode from [string, "base64"] tuple
+    O.getOrElse(() => null as string | null),
+  );
 }
 
 export function extractProgramDataInfo(parsedData: unknown): NormalizedProgramDataInfo | null {
-  const parsedRecord = asRecord(parsedData);
-  if (asString(parsedRecord?.type) !== "programData") {
-    return null;
-  }
-
-  const info = asRecord(parsedRecord?.info);
-  const slot = asSafeNumeric(info?.slot);
-  if (slot === null) {
-    return null;
-  }
-
-  if (info?.authority === null) {
-    return {
-      authority: null,
-      slot,
-    };
-  }
-
-  const authority = asString(info?.authority);
-  if (!authority) {
-    return null;
-  }
-
-  return {
-    authority,
-    slot,
-  };
+  return pipe(
+    asRecordO(parsedData),
+    O.filter(r => asString(r.type) === "programData"), // only programData entries carry authority/slot
+    O.flatMap(r => asRecordO(r.info)), // drill into nested info object
+    O.flatMap((info): O.Option<NormalizedProgramDataInfo> => {
+      const slot = asSafeNumeric(info.slot);
+      if (slot === null) return O.none;
+      if (info.authority === null) return O.some({ authority: null, slot }); // frozen program
+      return pipe(
+        asStringO(info.authority),
+        O.filter(s => s.length > 0), // reject empty-string authority (asStringO yields Some(""))
+        O.map(authority => ({ authority, slot })),
+      );
+    }), // extract authority + slot, handling frozen programs (authority === null)
+    O.getOrElse(() => null as NormalizedProgramDataInfo | null),
+  );
 }
 
 export function normalizeAccountProbe(address: string, envelope: AccountProbeEnvelope): NormalizedAccountInfo | null {

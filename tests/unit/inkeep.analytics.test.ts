@@ -4,11 +4,13 @@ const { logConversationMock, InkeepAnalyticsMock } = vi.hoisted(() => {
   const logConversationMock = vi.fn();
   return {
     logConversationMock,
-    InkeepAnalyticsMock: vi.fn(() => ({
-      conversations: {
-        log: logConversationMock,
-      },
-    })),
+    InkeepAnalyticsMock: vi.fn(function () {
+      return {
+        conversations: {
+          log: logConversationMock,
+        },
+      };
+    }),
   };
 });
 

@@ -1,3 +1,5 @@
+import * as O from "fp-ts/Option";
+
 import type { SafeNumeric } from "./types";
 
 export function asRecord(value: unknown): Record<string, unknown> | null {
@@ -25,3 +27,6 @@ export function asSafeNumeric(value: unknown): SafeNumeric {
 export function asBoolean(value: unknown): boolean | null {
   return typeof value === "boolean" ? value : null;
 }
+
+export const asRecordO = (value: unknown): O.Option<Record<string, unknown>> => O.fromNullable(asRecord(value));
+export const asStringO = (value: unknown): O.Option<string> => O.fromNullable(asString(value));
