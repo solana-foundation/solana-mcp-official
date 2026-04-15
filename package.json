@@ -48,7 +48,7 @@
     "fp-ts": "^2.16.11",
     "mcp-handler": "1.1.0",
     "raw-body": "^3.0.0",
-    "redis": "^4.7.0",
+    "redis": "^5.12.1",
     "zod": "^3.24.2"
   },
   "devDependencies": {
