@@ -1,6 +1,6 @@
 import { asRecord, asString } from "../parse-helpers";
 import type { NormalizedAccountInfo } from "../types";
-import { buildMintOverviewFields, type AccountKindBuilder } from "./shared";
+import { buildMetaplexMetadataField, buildMintOverviewFields, type AccountKindBuilder } from "./shared";
 
 function extractExtensions(account: NormalizedAccountInfo): unknown[] | null {
   const parsedInfo = asRecord(asRecord(account.parsedData)?.info);
@@ -28,6 +28,7 @@ export const buildSplToken2022MintPayload: AccountKindBuilder = context => {
       kind: context.kind,
       ...buildMintOverviewFields(context.account),
       extensions: extractExtensions(context.account),
+      metaplex_metadata: buildMetaplexMetadataField(context.metaplexMetadataResult),
     },
   };
 };

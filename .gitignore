@@ -1,6 +1,9 @@
 .vercel
 node_modules/
 .env
+.env.*
+!.env.example
 dist/
 coverage/
 .pnpm-store/
+.mcp.json

@@ -219,7 +219,7 @@ describe("inspect-entity account router", () => {
     });
   });
 
-  it("builds spl-token:mint payload with core mint fields", () => {
+  it("builds spl-token:mint payload with core mint fields and null metaplex_metadata", () => {
     const payload = buildAccountPayloadWithRouter(contextForKind("spl-token:mint"));
     expect(payload).toMatchObject({
       entity: {
@@ -232,9 +232,38 @@ describe("inspect-entity account router", () => {
         mint_authority: "AuthAddr1111111111111111111111111111111111111",
         freeze_authority: null,
         supply_type: "variable",
+        metaplex_metadata: null,
       },
     });
     expect(payload.entity).not.toHaveProperty("extensions");
+  });
+
+  it("builds spl-token:mint payload with metaplex_metadata when present", () => {
+    const context = contextForKind("spl-token:mint");
+    context.metaplexMetadataResult = {
+      status: "found",
+      name: "Test NFT",
+      symbol: "TNFT",
+      uri: "https://example.com/nft.json",
+      seller_fee_basis_points: 250,
+      creators: [{ address: "Creator111", verified: true, share: 100 }],
+      token_standard: "ProgrammableNonFungible",
+      collection: { verified: true, key: "Collection111" },
+      is_collection: false,
+      primary_sale_happened: false,
+      is_mutable: true,
+    };
+    const payload = buildAccountPayloadWithRouter(context);
+    expect(payload).toMatchObject({
+      entity: {
+        kind: "spl-token:mint",
+        metaplex_metadata: {
+          name: "Test NFT",
+          token_standard: "ProgrammableNonFungible",
+          collection: { verified: true, key: "Collection111" },
+        },
+      },
+    });
   });
 
   it("builds spl-token-2022:mint payload with extensions", () => {
