@@ -30,8 +30,6 @@ export const SUPPORTED_CLUSTERS = ["mainnet-beta", "devnet", "testnet", "simd296
 
 export type SupportedCluster = (typeof SUPPORTED_CLUSTERS)[number];
 
-export const TOKEN_METADATA_PROGRAM_ID = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
-
 export const RPC_REQUEST_TIMEOUT_MS = 5000;
 export const DAS_REQUEST_TIMEOUT_MS = 3000;
 export const METAPLEX_METADATA_TIMEOUT_MS = 3000;

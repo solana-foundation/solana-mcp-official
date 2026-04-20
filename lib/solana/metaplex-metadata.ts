@@ -5,6 +5,7 @@ import { mplTokenMetadata } from "@metaplex-foundation/mpl-token-metadata";
 
 import { resolveRpcEndpoint } from "./rpc";
 import { METAPLEX_METADATA_TIMEOUT_MS, type SupportedCluster } from "./constants";
+import { raceWithTimeout } from "./timeout";
 import { logger } from "../observability/logger";
 
 const TOKEN_STANDARD_LABELS: Record<number, MetaplexTokenStandard> = {
@@ -117,12 +118,11 @@ export async function resolveMetaplexMetadata(
     const mintKey = publicKey(mintAddress);
     const metadataPda = findMetadataPda(umi, { mint: mintKey });
 
-    const metadata = await Promise.race([
+    const metadata = await raceWithTimeout(
       fetchMetadata(umi, metadataPda),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Metaplex metadata fetch timed out")), METAPLEX_METADATA_TIMEOUT_MS),
-      ),
-    ]);
+      METAPLEX_METADATA_TIMEOUT_MS,
+      "Metaplex metadata fetch",
+    );
 
     return normalizeMetadata(metadata);
   } catch (error) {

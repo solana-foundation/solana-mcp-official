@@ -1,5 +1,18 @@
+import { TOKEN_2022_PROGRAM_ADDRESS } from "../constants";
 import type { AccountPayloadContext, AccountEntityKind, MetaplexMetadataResult, NormalizedAccountInfo } from "../types";
 import { asBoolean, asSafeNumeric, asRecord, asString } from "../parse-helpers";
+
+const PROGRAM_ADDRESS_LABELS: Record<string, string> = {
+  [TOKEN_2022_PROGRAM_ADDRESS]: "Token-2022 Program",
+  Vote111111111111111111111111111111111111111: "Vote Program",
+};
+
+export function resolveProgramAddressLabel(address: string | undefined): string | null {
+  if (!address) {
+    return null;
+  }
+  return PROGRAM_ADDRESS_LABELS[address] ?? null;
+}
 
 export type AccountKindBuilder = (context: AccountPayloadContext) => Record<string, unknown>;
 
