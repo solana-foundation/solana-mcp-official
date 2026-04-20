@@ -88,9 +88,7 @@ export function buildMintOverviewFields(account: NormalizedAccountInfo): Record<
   return fields;
 }
 
-export function buildMetaplexMetadataField(
-  result: MetaplexMetadataResult | undefined,
-): Record<string, unknown> | null {
+export function buildMetaplexMetadataField(result: MetaplexMetadataResult | undefined): Record<string, unknown> | null {
   if (!result || result.status === "not_found") {
     return null;
   }

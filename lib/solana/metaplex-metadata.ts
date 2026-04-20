@@ -66,7 +66,9 @@ function getUmi(rpcEndpoint: string): Umi {
   return umi;
 }
 
-function isSome<T>(option: { __option: "Some"; value: T } | { __option: "None" }): option is { __option: "Some"; value: T } {
+function isSome<T>(
+  option: { __option: "Some"; value: T } | { __option: "None" },
+): option is { __option: "Some"; value: T } {
   return option.__option === "Some";
 }
 
