@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { buildMetaplexMetadataField } from "../../../lib/solana/account-kinds/shared";
 import type { MetaplexMetadataResult } from "../../../lib/solana/types";
