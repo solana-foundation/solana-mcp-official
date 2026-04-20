@@ -18,12 +18,9 @@ import type {
 } from "./types";
 
 export class SourceUnavailableError extends Error {
-  cause?: unknown;
-
-  constructor(message: string, options?: { cause?: unknown }) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "SourceUnavailableError";
-    this.cause = options?.cause;
   }
 }
 
@@ -84,6 +81,9 @@ export async function fetchAccountInfo(
   options?: AccountInfoRequestOptions,
 ): Promise<AccountProbeEnvelope> {
   const endpoint = resolveRpcEndpoint(cluster);
+  // Intentionally cast to a plain shape — using @solana/kit branded Address<string>
+  // would require address() calls at every site for no runtime benefit; validation
+  // happens upstream and RPC errors are wrapped in SourceUnavailableError.
   const rpc = createSolanaRpc(endpoint) as {
     getAccountInfo: (inputAddress: unknown, config: AccountInfoRequestOptions) => RpcRequest<AccountProbeEnvelope>;
   };

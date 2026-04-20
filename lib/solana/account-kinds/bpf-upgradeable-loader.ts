@@ -1,9 +1,9 @@
-import { BPF_UPGRADEABLE_LOADER_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "../constants";
+import { BPF_UPGRADEABLE_LOADER_PROGRAM_ID, TOKEN_2022_PROGRAM_ADDRESS } from "../constants";
 import type { NormalizedAccountInfo } from "../types";
 import { unknownMarker, type AccountKindBuilder } from "./shared";
 
 const PROGRAM_ADDRESS_LABELS: Record<string, string> = {
-  [TOKEN_2022_PROGRAM_ID]: "Token-2022 Program",
+  [TOKEN_2022_PROGRAM_ADDRESS]: "Token-2022 Program",
   Vote111111111111111111111111111111111111111: "Vote Program",
 };
 

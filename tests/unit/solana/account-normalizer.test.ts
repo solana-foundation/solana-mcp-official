@@ -1,12 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import {
   enrichUpgradeableProgramData,
+  extractProgramDataAddress,
   extractProgramDataInfo,
   extractRawDataBytesFromAccountData,
   normalizeAccountProbe,
 } from "../../../lib/solana/account-normalizer";
-import type { AccountProbeEnvelope, NormalizedAccountInfo } from "../../../lib/solana/types";
+import type { AccountProbeEnvelope, NormalizedAccountInfo, NormalizedProgramDataInfo } from "../../../lib/solana/types";
 import { SourceUnavailableError } from "../../../lib/solana/rpc";
 import { logger } from "../../../lib/observability/logger";
 
@@ -132,6 +133,11 @@ describe("inspect-entity account normalizer", () => {
 
     expect(enriched.programDataRawBase64).toBe(programDataB64);
     expect(enriched.programDataStatus).toBe("resolved");
+    expect(enriched.programData).toEqual({
+      authority: "Auth11111111111111111111111111111111111111111",
+      slot: 100,
+    });
+    expectTypeOf(enriched.programData).toEqualTypeOf<NormalizedProgramDataInfo | null | undefined>();
   });
 
   it("returns source_unavailable when fetchAccount throws non-SourceUnavailableError", async () => {
@@ -201,6 +207,30 @@ describe("inspect-entity account normalizer", () => {
 
     const result = normalizeAccountProbe("addr", envelope);
     expect(result?.lamports).toBe("9007199254740993");
+  });
+
+  it("extracts programData address only from program-typed parsed data", () => {
+    expect(
+      extractProgramDataAddress({
+        type: "program",
+        info: { programData: "ProgramData1111111111111111111111111111111111" },
+      }),
+    ).toBe("ProgramData1111111111111111111111111111111111");
+
+    expect(extractProgramDataAddress({ type: "programData", info: { slot: 1 } })).toBeNull();
+    expect(extractProgramDataAddress({ type: "program", info: {} })).toBeNull();
+    expect(extractProgramDataAddress({ type: "program", info: { programData: 123 } })).toBeNull();
+    expect(extractProgramDataAddress(null)).toBeNull();
+    expect(extractProgramDataAddress("not an object")).toBeNull();
+  });
+
+  it("rejects empty-string authority as invalid", () => {
+    expect(
+      extractProgramDataInfo({
+        type: "programData",
+        info: { authority: "", slot: 42 },
+      }),
+    ).toBeNull();
   });
 
   it("returns null for invalid programData payloads", () => {

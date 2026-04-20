@@ -1,6 +1,8 @@
 import type { AccountEntityKind, AccountPayloadContext } from "./types";
 import { buildAddressLookupTablePayload } from "./account-kinds/address-lookup-table";
+import { buildBpfLoaderPayload, buildBpfLoader2Payload } from "./account-kinds/bpf-loader";
 import { buildBpfUpgradeableLoaderPayload } from "./account-kinds/bpf-upgradeable-loader";
+import { buildLoaderV4Payload } from "./account-kinds/loader";
 import { buildCompressedNftPayload } from "./account-kinds/compressed-nft";
 import { buildConfigPayload } from "./account-kinds/config";
 import { buildFeaturePayload } from "./account-kinds/feature";
@@ -21,8 +23,14 @@ import { assertUnreachable, type AccountKindBuilder } from "./account-kinds/shar
 
 function selectBuilder(kind: AccountEntityKind): AccountKindBuilder {
   switch (kind) {
+    case "bpf-loader":
+      return buildBpfLoaderPayload;
+    case "bpf-loader-2":
+      return buildBpfLoader2Payload;
     case "bpf-upgradeable-loader":
       return buildBpfUpgradeableLoaderPayload;
+    case "loader-v4":
+      return buildLoaderV4Payload;
     case "stake":
       return buildStakePayload;
     case "nftoken":

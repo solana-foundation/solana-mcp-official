@@ -1,6 +1,14 @@
 import { getBase58Encoder } from "@solana/kit";
 
-import { FEATURE_PROGRAM_ID, NFTOKEN_ADDRESS, SOLANA_ATTESTATION_SERVICE_PROGRAM_ID } from "./constants";
+import {
+  ADDRESS_LOOKUP_TABLE_PROGRAM_ADDRESS,
+  BPF_LOADER_PROGRAM_ID,
+  BPF_LOADER_2_PROGRAM_ID,
+  FEATURE_PROGRAM_ID,
+  LOADER_V4_PROGRAM_ID,
+  NFTOKEN_ADDRESS,
+  SOLANA_ATTESTATION_SERVICE_PROGRAM_ID,
+} from "./constants";
 import type {
   BaseAccountEntityKind,
   DasClassificationOutcome,
@@ -73,6 +81,15 @@ export function classifyAccountKindBase(account: NormalizedAccountInfo): BaseAcc
   if (parsedProgram === "bpf-upgradeable-loader") {
     return "bpf-upgradeable-loader";
   }
+  if (account.owner === BPF_LOADER_PROGRAM_ID) {
+    return "bpf-loader";
+  }
+  if (account.owner === BPF_LOADER_2_PROGRAM_ID) {
+    return "bpf-loader-2";
+  }
+  if (account.owner === LOADER_V4_PROGRAM_ID) {
+    return "loader-v4";
+  }
   if (parsedProgram === "stake") {
     return "stake";
   }
@@ -100,7 +117,10 @@ export function classifyAccountKindBase(account: NormalizedAccountInfo): BaseAcc
   if (parsedProgram === "config") {
     return "config";
   }
-  if (parsedProgram === "address-lookup-table" || hasAddressLookupTableLayout(account.rawDataBytes)) {
+  if (
+    parsedProgram === "address-lookup-table" ||
+    (account.owner === ADDRESS_LOOKUP_TABLE_PROGRAM_ADDRESS && hasAddressLookupTableLayout(account.rawDataBytes))
+  ) {
     return "address-lookup-table";
   }
   if (account.owner === FEATURE_PROGRAM_ID) {

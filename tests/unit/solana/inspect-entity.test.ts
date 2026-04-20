@@ -292,7 +292,7 @@ describe("inspect_entity handler", () => {
     const dependencies = createDependencies({
       fetchAccountInfo: vi.fn().mockResolvedValue({
         value: {
-          owner: "SomeOwner",
+          owner: "AddressLookupTab1e1111111111111111111111111",
           lamports: 0,
           executable: false,
           data: [Buffer.from(new Uint8Array(56)).toString("base64"), "base64"],
