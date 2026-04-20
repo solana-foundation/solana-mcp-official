@@ -12,10 +12,12 @@ import {
 import type {
   DasClassificationOutcome,
   IdlDiscoveryResult,
+  MetaplexMetadataResult,
   MultisigReferenceResult,
   SecurityMetadataResult,
   VerificationResult,
 } from "./types";
+import { resolveMetaplexMetadata } from "./metaplex-metadata";
 import { fetchAccountInfo, fetchAsset, fetchSignatureStatus, fetchTransaction, isSourceUnavailableError } from "./rpc";
 import { SUPPORTED_CLUSTERS, type SupportedCluster } from "./constants";
 import {
@@ -58,6 +60,7 @@ type InspectEntityDependencies = {
     cluster: SupportedCluster,
   ) => Promise<MultisigReferenceResult>;
   resolveProgramIdl: (programAddress: string, cluster: SupportedCluster) => Promise<IdlDiscoveryResult>;
+  resolveMetaplexMetadata: (mintAddress: string, cluster: SupportedCluster) => Promise<MetaplexMetadataResult>;
   fetchSignatureStatus: typeof fetchSignatureStatus;
 };
 
@@ -70,6 +73,7 @@ const defaultDependencies: InspectEntityDependencies = {
   resolveProgramSecurityMetadata: async () => ({ status: "missing" as const }),
   resolveMultisigReference: async () => ({ status: "not_multisig" as const }),
   resolveProgramIdl: async () => ({ status: "not_found" as const }),
+  resolveMetaplexMetadata,
   fetchSignatureStatus,
 };
 
@@ -189,6 +193,23 @@ async function resolveAccount(
     }
 
     const finalKind = promoteAccountKindWithDas(baseKind, dasOutcome);
+
+    let metaplexMetadataResult: MetaplexMetadataResult | undefined;
+
+    if (finalKind === "spl-token:mint" || finalKind === "spl-token-2022:mint") {
+      metaplexMetadataResult = await dependencies
+        .resolveMetaplexMetadata(identifier, cluster)
+        .catch((error): MetaplexMetadataResult => {
+          logger.warn({
+            event: "inspect_entity.safety_catch",
+            resolver: "metaplex_metadata",
+            identifier,
+            error,
+          });
+          return { status: "unknown", reason: "source_unavailable" };
+        });
+    }
+
     const payload = buildAccountPayload({
       kind: finalKind,
       account: enrichedAccount,
@@ -197,6 +218,7 @@ async function resolveAccount(
       ...(securityMetadataResult ? { securityMetadataResult } : {}),
       ...(multisigReferenceResult ? { multisigReferenceResult } : {}),
       ...(idlDiscoveryResult ? { idlDiscoveryResult } : {}),
+      ...(metaplexMetadataResult ? { metaplexMetadataResult } : {}),
     });
 
     return toToolResult({

@@ -1,3 +1,6 @@
+import type { MetaplexMetadataResult } from "./metaplex-metadata";
+export type { MetaplexMetadataResult };
+
 // Inlined from resolvers/security-txt-parser.ts (ported in Step 5)
 export type SecurityTxtFields = {
   name: string;
@@ -203,6 +206,7 @@ export type AccountPayloadContext = {
   securityMetadataResult?: SecurityMetadataResult;
   multisigReferenceResult?: MultisigReferenceResult;
   idlDiscoveryResult?: IdlDiscoveryResult;
+  metaplexMetadataResult?: MetaplexMetadataResult;
 };
 
 /** A numeric value that may be represented as a decimal string when it exceeds Number.MAX_SAFE_INTEGER. */

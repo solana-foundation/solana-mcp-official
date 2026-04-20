@@ -19,6 +19,7 @@ function createDependencies(overrides: Partial<InspectEntityDeps> = {}): Inspect
     resolveProgramSecurityMetadata: vi.fn().mockResolvedValue({ status: "unknown", reason: "source_unavailable" }),
     resolveMultisigReference: vi.fn().mockResolvedValue({ status: "not_multisig" }),
     resolveProgramIdl: vi.fn().mockResolvedValue({ status: "not_found" }),
+    resolveMetaplexMetadata: vi.fn().mockResolvedValue({ status: "not_found" }),
     fetchSignatureStatus: vi.fn().mockResolvedValue({ value: null }),
     ...overrides,
   };
@@ -305,6 +306,81 @@ describe("inspect_entity handler", () => {
 
     expect(result.isError).toBe(false);
     expect(fetchAsset).not.toHaveBeenCalled();
+  });
+
+  it("resolves Metaplex metadata for spl-token:mint accounts", async () => {
+    const resolveMetaplexMetadata = vi.fn().mockResolvedValue({
+      status: "found",
+      name: "My NFT",
+      symbol: "MNFT",
+      uri: "https://example.com/nft.json",
+      seller_fee_basis_points: 500,
+      creators: [{ address: "Creator111", verified: true, share: 100 }],
+      token_standard: "NonFungible",
+      collection: { verified: true, key: "Collection111" },
+      is_collection: false,
+      primary_sale_happened: true,
+      is_mutable: true,
+    });
+    const dependencies = createDependencies({
+      fetchAccountInfo: vi.fn().mockResolvedValue({
+        value: {
+          owner: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          lamports: 0,
+          executable: false,
+          data: {
+            program: "spl-token",
+            parsed: {
+              type: "mint",
+              info: {
+                supply: "1",
+                decimals: 0,
+                isInitialized: true,
+                mintAuthority: null,
+                freezeAuthority: null,
+              },
+            },
+          },
+        },
+      }),
+      resolveMetaplexMetadata,
+    });
+
+    const result = await handleInspectEntity({ identifier: ACCOUNT_IDENTIFIER }, dependencies);
+    const envelope = parseEnvelope(result);
+
+    expect(result.isError).toBe(false);
+    expect(resolveMetaplexMetadata).toHaveBeenCalledWith(ACCOUNT_IDENTIFIER, "mainnet-beta");
+    expect(envelope).toMatchObject({
+      payload: {
+        entity: {
+          kind: "spl-token:mint",
+          metaplex_metadata: {
+            name: "My NFT",
+            token_standard: "NonFungible",
+          },
+        },
+      },
+    });
+  });
+
+  it("skips Metaplex metadata for non-mint account kinds", async () => {
+    const resolveMetaplexMetadata = vi.fn();
+    const dependencies = createDependencies({
+      fetchAccountInfo: vi.fn().mockResolvedValue({
+        value: {
+          owner: "Stake11111111111111111111111111111111111111",
+          lamports: 0,
+          executable: false,
+          data: { program: "stake", parsed: {} },
+        },
+      }),
+      resolveMetaplexMetadata,
+    });
+
+    await handleInspectEntity({ identifier: ACCOUNT_IDENTIFIER }, dependencies);
+
+    expect(resolveMetaplexMetadata).not.toHaveBeenCalled();
   });
 
   it("returns CURRENTLY_UNSUPPORTED for transaction identifiers", async () => {
