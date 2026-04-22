@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { resources } from "../lib/resources";
 import { solanaEcosystemTools } from "../lib/tools/ecosystemSolanaTools";
+import { inspectEntityTools } from "../lib/tools/inspectEntityTools";
 import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
 import type { SolanaTool } from "../lib/tools/types";
 
@@ -50,7 +51,11 @@ function resolveGeneralSolanaTools(): SolanaTool[] {
   return [];
 }
 
-const allTools: SolanaTool[] = ([] as SolanaTool[]).concat(resolveGeneralSolanaTools(), solanaEcosystemTools);
+const allTools: SolanaTool[] = ([] as SolanaTool[]).concat(
+  resolveGeneralSolanaTools(),
+  solanaEcosystemTools,
+  inspectEntityTools,
+);
 
 describe("createMcp", () => {
   beforeEach(() => {
@@ -116,11 +121,11 @@ describe("createMcp", () => {
 
     await initializeServer(server);
 
-    const toolsWithOutputSchema = allTools.filter(tool => tool.outputSchema !== undefined);
-    const toolsWithoutOutputSchema = allTools.filter(tool => tool.outputSchema === undefined);
+    const toolsViaRegisterTool = allTools.filter(t => t.outputSchema !== undefined || t.annotations !== undefined);
+    const toolsViaTool = allTools.filter(t => t.outputSchema === undefined && t.annotations === undefined);
 
-    expect(registerToolMock).toHaveBeenCalledTimes(toolsWithOutputSchema.length);
-    expect(toolMock).toHaveBeenCalledTimes(toolsWithoutOutputSchema.length);
+    expect(registerToolMock).toHaveBeenCalledTimes(toolsViaRegisterTool.length);
+    expect(toolMock).toHaveBeenCalledTimes(toolsViaTool.length);
 
     const registerToolCalls = registerToolMock.mock.calls as Array<
       [
@@ -129,12 +134,12 @@ describe("createMcp", () => {
           description: string;
           inputSchema: unknown;
           outputSchema: unknown;
-          annotations: Record<string, never>;
+          annotations: Record<string, unknown>;
         },
         unknown,
       ]
     >;
-    for (const tool of toolsWithOutputSchema) {
+    for (const tool of toolsViaRegisterTool) {
       const matchingCall = registerToolCalls.find(([name]) => name === tool.title);
       expect(matchingCall).toBeDefined();
       if (!matchingCall) {
@@ -144,13 +149,15 @@ describe("createMcp", () => {
       const [, options, handler] = matchingCall;
       expect(options.description).toBe(tool.description ?? "");
       expect(options.inputSchema).toBeDefined();
-      expect(options.outputSchema).toBeDefined();
-      expect(options.annotations).toEqual({});
+      if (tool.outputSchema) {
+        expect(options.outputSchema).toBeDefined();
+      }
+      expect(options.annotations).toEqual(tool.annotations ?? {});
       expect(typeof handler).toBe("function");
     }
 
     const toolCalls = toolMock.mock.calls as Array<[string, string, unknown, unknown]>;
-    for (const tool of toolsWithoutOutputSchema) {
+    for (const tool of toolsViaTool) {
       const matchingCall = toolCalls.find(([name]) => name === tool.title);
       expect(matchingCall).toBeDefined();
       if (!matchingCall) {

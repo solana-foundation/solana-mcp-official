@@ -1,18 +1,6 @@
-import { LOADER_V4_PROGRAM_ID, TOKEN_2022_PROGRAM_ADDRESS } from "../constants";
+import { LOADER_V4_PROGRAM_ID } from "../constants";
 import type { NormalizedAccountInfo } from "../types";
-import { unknownMarker, type AccountKindBuilder } from "./shared";
-
-const PROGRAM_ADDRESS_LABELS: Record<string, string> = {
-  [TOKEN_2022_PROGRAM_ADDRESS]: "Token-2022 Program",
-  Vote111111111111111111111111111111111111111: "Vote Program",
-};
-
-function resolveProgramAddressLabel(address: string | undefined): string | null {
-  if (!address) {
-    return null;
-  }
-  return PROGRAM_ADDRESS_LABELS[address] ?? null;
-}
+import { resolveProgramAddressLabel, unknownMarker, type AccountKindBuilder } from "./shared";
 
 function buildLoaderOverviewFields(account: NormalizedAccountInfo): Record<string, unknown> {
   return {

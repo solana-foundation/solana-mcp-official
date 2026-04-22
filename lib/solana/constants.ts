@@ -32,3 +32,4 @@ export type SupportedCluster = (typeof SUPPORTED_CLUSTERS)[number];
 
 export const RPC_REQUEST_TIMEOUT_MS = 5000;
 export const DAS_REQUEST_TIMEOUT_MS = 3000;
+export const METAPLEX_METADATA_TIMEOUT_MS = 3000;

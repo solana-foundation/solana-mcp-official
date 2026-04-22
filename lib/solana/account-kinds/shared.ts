@@ -1,5 +1,18 @@
-import type { AccountPayloadContext, AccountEntityKind, NormalizedAccountInfo } from "../types";
+import { TOKEN_2022_PROGRAM_ADDRESS } from "../constants";
+import type { AccountPayloadContext, AccountEntityKind, MetaplexMetadataResult, NormalizedAccountInfo } from "../types";
 import { asBoolean, asSafeNumeric, asRecord, asString } from "../parse-helpers";
+
+const PROGRAM_ADDRESS_LABELS: Record<string, string> = {
+  [TOKEN_2022_PROGRAM_ADDRESS]: "Token-2022 Program",
+  Vote111111111111111111111111111111111111111: "Vote Program",
+};
+
+export function resolveProgramAddressLabel(address: string | undefined): string | null {
+  if (!address) {
+    return null;
+  }
+  return PROGRAM_ADDRESS_LABELS[address] ?? null;
+}
 
 export type AccountKindBuilder = (context: AccountPayloadContext) => Record<string, unknown>;
 
@@ -86,6 +99,27 @@ export function buildMintOverviewFields(account: NormalizedAccountInfo): Record<
   }
 
   return fields;
+}
+
+export function buildMetaplexMetadataField(result: MetaplexMetadataResult | undefined): Record<string, unknown> | null {
+  if (!result || result.status === "not_found") {
+    return null;
+  }
+  if (result.status === "unknown") {
+    return unknownMarker(result.reason);
+  }
+  return {
+    name: result.name,
+    symbol: result.symbol,
+    uri: result.uri,
+    seller_fee_basis_points: result.seller_fee_basis_points,
+    creators: result.creators,
+    token_standard: result.token_standard,
+    collection: result.collection,
+    is_collection: result.is_collection,
+    primary_sale_happened: result.primary_sale_happened,
+    is_mutable: result.is_mutable,
+  };
 }
 
 export function buildSplMultisigFields(account: NormalizedAccountInfo): Record<string, unknown> {

@@ -6,27 +6,28 @@ import { resources } from "./resources";
 import { solanaEcosystemTools } from "./tools/ecosystemSolanaTools";
 import { SolanaTool } from "./tools/types";
 import { createSolanaTools } from "./tools/generalSolanaTools";
+import { inspectEntityTools } from "./tools/inspectEntityTools";
 import { inkeepRagModel } from "./services/inkeep";
 
 export function createMcp() {
   return createMcpHandler(
     (server: McpServer) => {
       ([] as SolanaTool[])
-        .concat(createSolanaTools(inkeepRagModel), solanaEcosystemTools)
+        .concat(createSolanaTools(inkeepRagModel), solanaEcosystemTools, inspectEntityTools)
         .forEach((tool: SolanaTool) => {
-          if (tool.outputSchema) {
+          if (tool.outputSchema || tool.annotations) {
             server.registerTool(
               tool.title,
               {
                 description: tool.description ?? "",
                 inputSchema: tool.parameters,
-                outputSchema: tool.outputSchema,
-                annotations: {},
+                ...(tool.outputSchema ? { outputSchema: tool.outputSchema } : {}),
+                annotations: tool.annotations ?? {},
               },
               tool.func,
             );
           } else {
-            server.tool(tool.title, tool.description ?? "", tool.parameters, tool.func);
+            server.tool(tool.title, tool.description ?? "", tool.parameters as z.ZodRawShape, tool.func);
           }
         });
 
