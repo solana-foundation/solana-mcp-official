@@ -24,6 +24,7 @@ import { type McpToolError, internalError, invalidArgument, notFound, sanitizeTo
 import { enrichUpgradeableProgramData, normalizeAccountProbe } from "./account-normalizer";
 import { normalizeTransactionProbe } from "./transaction/normalizer";
 import { buildTransactionPayload } from "./transaction/build-payload";
+import { resolveMultisigReference } from "./resolvers/multisig";
 import { logger } from "../observability/logger";
 
 export const inspectEntityInputSchema = z
@@ -65,7 +66,7 @@ const defaultDependencies: InspectEntityDependencies = {
   fetchAsset,
   resolveProgramVerification: async () => ({ status: "unverified" as const }),
   resolveProgramSecurityMetadata: async () => ({ status: "missing" as const }),
-  resolveMultisigReference: async () => ({ status: "not_multisig" as const }),
+  resolveMultisigReference,
   resolveProgramIdl: async () => ({ status: "not_found" as const }),
   resolveMetaplexMetadata,
   fetchSignatureStatus,
