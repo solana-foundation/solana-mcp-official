@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+.git/
+.env
+.env.*
+!.env.example
+tests/
+monitoring/
+public/
+*.log
+.DS_Store
+pnpm-lock.yaml
+# `prod.yml` holds variable values for `databricks bundle deploy`; never
+# upload it to the workspace.
+prod.yml
+prod.yaml
