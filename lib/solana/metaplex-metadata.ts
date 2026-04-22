@@ -1,4 +1,10 @@
-import { fetchMetadata, findMetadataPda, mplTokenMetadata, type Metadata, TokenStandard } from "@metaplex-foundation/mpl-token-metadata";
+import {
+  fetchMetadata,
+  findMetadataPda,
+  mplTokenMetadata,
+  type Metadata,
+  TokenStandard,
+} from "@metaplex-foundation/mpl-token-metadata";
 import { publicKey, type Umi } from "@metaplex-foundation/umi";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 
