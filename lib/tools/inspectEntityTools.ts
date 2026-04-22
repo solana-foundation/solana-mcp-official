@@ -18,8 +18,10 @@ const INSPECT_ENTITY_DESCRIPTION = [
   '- "stake", "vote", "nonce", "sysvar", "config", "address-lookup-table", "feature", "nftoken", "solana-attestation-service": Recognized system account types.',
   '- "unknown": Unrecognized account type.',
   "",
-  "TRANSACTION DATA (entity.kind = transaction):",
-  'signature, slot, block time, status (success/failed/unknown), fee in lamports, ordered signer list, transaction version, recent blockhash, compute units consumed, confirmation status and confirmations (numeric count or "max" when finalized), error detail (when failed), program log messages, accounts with signer/writable roles, instructions with resolved program addresses and nested CPI (inner instructions). Numeric fields that exceed safe integer range are returned as decimal strings.',
+  "NOTE: Transaction inspection is not yet supported and will be added in a future update. Currently only account addresses are resolved.",
+  // FIXME(@rogaldh): Replace with full TRANSACTION DATA description once resolveTransaction is implemented (Step 5):
+  // "TRANSACTION DATA (entity.kind = transaction):",
+  // 'signature, slot, block time, status (success/failed/unknown), fee in lamports, ordered signer list, transaction version, recent blockhash, compute units consumed, confirmation status and confirmations (numeric count or "max" when finalized), error detail (when failed), program log messages, accounts with signer/writable roles, instructions with resolved program addresses and nested CPI (inner instructions). Numeric fields that exceed safe integer range are returned as decimal strings.',
   "",
   "OUTPUT: Responses use { payload: { entity: { kind, ...fields } }, errors: [] }. Unresolvable fields return explicit unknown markers instead of being silently omitted.",
 ].join("\n");
