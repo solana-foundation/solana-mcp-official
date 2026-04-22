@@ -383,13 +383,85 @@ describe("inspect_entity handler", () => {
     expect(resolveMetaplexMetadata).not.toHaveBeenCalled();
   });
 
-  it("returns CURRENTLY_UNSUPPORTED for transaction identifiers", async () => {
-    const result = await handleInspectEntity({ identifier: TRANSACTION_IDENTIFIER });
+  it("returns NOT_FOUND for transaction identifiers when envelope is null", async () => {
+    const dependencies = createDependencies({
+      fetchTransaction: vi.fn().mockResolvedValue(null),
+    });
+
+    const result = await handleInspectEntity({ identifier: TRANSACTION_IDENTIFIER }, dependencies);
     const envelope = parseEnvelope(result);
 
     expect(result.isError).toBe(true);
     expect(envelope).toMatchObject({
-      errors: [{ code: "CURRENTLY_UNSUPPORTED" }],
+      payload: { entity: { kind: "transaction" } },
+      errors: [{ code: "NOT_FOUND" }],
+    });
+  });
+
+  it("resolves a valid transaction with signature status", async () => {
+    const dependencies = createDependencies({
+      fetchTransaction: vi.fn().mockResolvedValue({
+        slot: 123456,
+        blockTime: 1700000000,
+        version: "legacy",
+        meta: {
+          err: null,
+          fee: 5000,
+          computeUnitsConsumed: 1000,
+          logMessages: ["Program log: success"],
+          innerInstructions: [],
+        },
+        transaction: {
+          message: {
+            header: {
+              numRequiredSignatures: 1,
+              numReadonlySignedAccounts: 0,
+              numReadonlyUnsignedAccounts: 1,
+            },
+            accountKeys: ["signer1", "program1"],
+            recentBlockhash: "blockhash",
+            instructions: [{ programIdIndex: 1, accounts: [0], data: "data" }],
+          },
+        },
+      }),
+      fetchSignatureStatus: vi.fn().mockResolvedValue({
+        value: { confirmationStatus: "finalized", confirmations: null },
+      }),
+    });
+
+    const result = await handleInspectEntity({ identifier: TRANSACTION_IDENTIFIER }, dependencies);
+    const envelope = parseEnvelope(result);
+
+    expect(result.isError).toBe(false);
+    expect(envelope).toMatchObject({
+      payload: {
+        entity: {
+          kind: "transaction",
+          signature: TRANSACTION_IDENTIFIER,
+          slot: 123456,
+          status: "success",
+        },
+      },
+      errors: [],
+    });
+  });
+
+  it("maps transaction SourceUnavailableError to INTERNAL_ERROR with source marker", async () => {
+    const dependencies = createDependencies({
+      fetchTransaction: vi.fn().mockRejectedValue(new SourceUnavailableError("RPC timeout")),
+    });
+
+    const result = await handleInspectEntity({ identifier: TRANSACTION_IDENTIFIER }, dependencies);
+    const envelope = parseEnvelope(result);
+
+    expect(envelope).toMatchObject({
+      payload: {
+        entity: {
+          kind: "transaction",
+          source: { value: null, status: "unknown", reason: "source_unavailable" },
+        },
+      },
+      errors: [{ code: "INTERNAL_ERROR" }],
     });
   });
 
