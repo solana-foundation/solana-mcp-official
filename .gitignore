@@ -7,3 +7,14 @@ dist/
 coverage/
 .pnpm-store/
 .mcp.json
+
+# Deployment-specific Databricks App manifest — real catalog/warehouse/index
+# values. Committed template lives at app.yaml; prod.yml overrides locally.
+prod.yml
+prod.yaml
+
+# Deployment-specific Lakeview dashboard with real catalog/schema in datasets.
+# Committed template: dashboards/solana_mcp.example.lvdash.json
+dashboards/solana_mcp.lvdash.json
+
+eval/

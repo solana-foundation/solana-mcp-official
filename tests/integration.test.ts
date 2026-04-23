@@ -89,6 +89,7 @@ describe("createMcp", () => {
       {
         basePath: string;
         redisUrl?: string;
+        disableSse: boolean;
         maxDuration: number;
         verboseLogs: boolean;
       },
@@ -99,9 +100,30 @@ describe("createMcp", () => {
     expect(config).toEqual({
       basePath: "",
       redisUrl: "redis://127.0.0.1:6379",
+      disableSse: false,
       maxDuration: 120,
       verboseLogs: true,
     });
+  });
+
+  it("disables SSE when no REDIS_URL is set", () => {
+    const previousRedisUrl = process.env.REDIS_URL;
+    delete process.env.REDIS_URL;
+    createMcpHandlerMock.mockReturnValue(vi.fn());
+
+    try {
+      createMcp();
+    } finally {
+      if (previousRedisUrl !== undefined) process.env.REDIS_URL = previousRedisUrl;
+    }
+
+    const [, , config] = createMcpHandlerMock.mock.calls[0] as [
+      unknown,
+      unknown,
+      { disableSse: boolean; redisUrl?: string },
+    ];
+    expect(config.disableSse).toBe(true);
+    expect(config.redisUrl).toBeUndefined();
   });
 
   it("registers tools, resources, and startup prompt", async () => {

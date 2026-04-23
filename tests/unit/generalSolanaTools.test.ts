@@ -1,9 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LanguageModel } from "ai";
+import type { DocChunk } from "../../lib/services/databricks/vectorSearch.js";
 
-const { generateTextMock, logAnalyticsMock } = vi.hoisted(() => ({
+const { generateTextMock, logAnalyticsMock, searchDocsMock } = vi.hoisted(() => ({
   generateTextMock: vi.fn(),
   logAnalyticsMock: vi.fn(),
+  searchDocsMock: vi.fn(),
 }));
 
 vi.mock("ai", () => ({
@@ -14,13 +16,23 @@ vi.mock("../../lib/analytics", () => ({
   logAnalytics: logAnalyticsMock,
 }));
 
+vi.mock("../../lib/services/databricks/vectorSearch.js", () => ({
+  searchDocs: searchDocsMock,
+}));
+
 import { createSolanaTools } from "../../lib/tools/generalSolanaTools";
 
 describe("createSolanaTools", () => {
   beforeEach(() => {
     generateTextMock.mockReset();
     logAnalyticsMock.mockReset();
+    searchDocsMock.mockReset();
     logAnalyticsMock.mockResolvedValue(undefined);
+    delete process.env.USE_DATABRICKS;
+  });
+
+  afterEach(() => {
+    delete process.env.USE_DATABRICKS;
   });
 
   it("returns explicit tool error when no model is configured", async () => {
@@ -93,6 +105,74 @@ describe("createSolanaTools", () => {
         req: searchQuery,
         res: "search-answer",
       },
+    });
+  });
+
+  describe("USE_DATABRICKS=1", () => {
+    beforeEach(() => {
+      process.env.USE_DATABRICKS = "1";
+    });
+
+    const sampleChunk: DocChunk = {
+      id: "chunk-1",
+      url: "https://www.solana-program.com/docs/pda",
+      title: "PDA Basics",
+      sourceId: "solana-program-site",
+      content: "A PDA is derived from seeds and program id.",
+      score: 0.812,
+    };
+
+    it("uses Databricks retrieval for ask tool, ignores model, skips generateText", async () => {
+      searchDocsMock.mockResolvedValueOnce([sampleChunk]);
+      const model = {} as unknown as LanguageModel;
+
+      const tools = createSolanaTools(model);
+      const askTool = tools.find(t => t.title === "Solana_Expert__Ask_For_Help");
+      if (!askTool) throw new Error("missing tool");
+
+      const result = await askTool.func({ question: "what is a PDA?" });
+
+      expect(searchDocsMock).toHaveBeenCalledWith("what is a PDA?", 8);
+      expect(generateTextMock).not.toHaveBeenCalled();
+      const text = (result as { content: [{ text: string }] }).content[0].text;
+      expect(text).toContain("PDA Basics");
+      expect(text).toContain("https://www.solana-program.com/docs/pda");
+      expect(text).toContain("source: solana-program-site");
+      expect(logAnalyticsMock).toHaveBeenCalledWith({
+        event_type: "message_response",
+        details: {
+          tool: "Solana_Expert__Ask_For_Help",
+          req: "what is a PDA?",
+          res: expect.stringContaining("PDA Basics"),
+        },
+      });
+    });
+
+    it("uses Databricks retrieval for search tool", async () => {
+      searchDocsMock.mockResolvedValueOnce([sampleChunk]);
+
+      const tools = createSolanaTools(null);
+      const searchTool = tools.find(t => t.title === "Solana_Documentation_Search");
+      if (!searchTool) throw new Error("missing tool");
+
+      const result = await searchTool.func({ query: "pda seeds" });
+
+      expect(searchDocsMock).toHaveBeenCalledWith("pda seeds", 8);
+      const text = (result as { content: [{ text: string }] }).content[0].text;
+      expect(text).toContain("PDA Basics");
+    });
+
+    it("returns no-result message when Databricks returns empty", async () => {
+      searchDocsMock.mockResolvedValueOnce([]);
+
+      const tools = createSolanaTools(null);
+      const searchTool = tools.find(t => t.title === "Solana_Documentation_Search");
+      if (!searchTool) throw new Error("missing tool");
+
+      const result = await searchTool.func({ query: "nothing matches" });
+
+      const text = (result as { content: [{ text: string }] }).content[0].text;
+      expect(text).toContain("No relevant documentation found");
     });
   });
 });

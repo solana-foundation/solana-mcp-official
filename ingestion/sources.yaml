@@ -1,0 +1,527 @@
+# Solana MCP ingestion corpus
+# Schema consumed by ingestion/crawl_and_index.py.
+#
+# kind: github | web | openapi
+#   github: clones repo shallow, ingests .md/.mdx (+ source code if include_source_code)
+#   web:    crawls via sitemaps/start_urls/ingest_urls, extracts article-body text
+#   openapi: fetches JSON spec, chunks by operation
+# enabled: false → skip this source on job run (use to gate noisy/huge sources)
+# url_include: optional list of case-insensitive substrings. Applied after URL
+#   collection (sitemap/BFS/ingest_urls) — URL is kept only if it contains at
+#   least one substring. Use for multi-chain doc sites to filter to Solana-only.
+
+sources:
+  # --- Core Solana docs / SDKs ---
+  - id: solana-docs
+    name: Solana Docs (solana.com/docs)
+    kind: web
+    enabled: true
+    primary_url: https://solana.com/docs
+    start_urls:
+      - https://solana.com/docs
+
+  - id: anchor-docs
+    name: Solana > Anchor Docs
+    kind: web
+    enabled: true
+    primary_url: https://www.anchor-lang.com/docs
+    start_urls:
+      - https://www.anchor-lang.com/docs
+
+  - id: solana-kit-docs
+    name: Solana Kit Docs
+    kind: web
+    enabled: true
+    primary_url: https://www.solanakit.com
+    start_urls:
+      - https://www.solanakit.com
+
+  - id: solana-gill-docs
+    name: Solana > Gill Docs
+    kind: web
+    enabled: true
+    primary_url: https://gill.site/docs
+    start_urls:
+      - https://gill.site/docs
+
+  - id: solana-program-site
+    name: Solana Program (solana-program.com)
+    kind: web
+    enabled: true
+    primary_url: https://www.solana-program.com
+    start_urls:
+      - https://www.solana-program.com
+      - https://www.solana-program.com/docs
+
+  - id: solana-mobile-docs
+    name: Solana Mobile Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.solanamobile.com
+    sitemaps:
+      - https://docs.solanamobile.com/sitemap.xml
+
+  - id: firedancer-docs
+    name: Firedancer Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.firedancer.io
+    start_urls:
+      - https://docs.firedancer.io
+
+  - id: zk-compression-docs
+    name: ZK Compression Docs
+    kind: web
+    enabled: true
+    primary_url: https://www.zkcompression.com
+    sitemaps:
+      - https://www.zkcompression.com/sitemap.xml
+
+  # --- Rust / Python / Java SDK docs ---
+  - id: solana-program-rust-docs
+    name: solana_program - Rust Docs (docs.rs)
+    kind: web
+    enabled: true
+    primary_url: https://docs.rs/solana-program/2.1.18/solana_program
+    ingest_urls:
+      - https://docs.rs/solana-program/2.1.18/solana_program
+
+  - id: solders-docs
+    name: Solders Docs
+    kind: web
+    enabled: true
+    primary_url: https://kevinheavey.github.io/solders/
+    start_urls:
+      - https://kevinheavey.github.io/solders/
+
+  - id: anchorpy-docs
+    name: AnchorPy Docs
+    kind: web
+    enabled: true
+    primary_url: https://kevinheavey.github.io/anchorpy/
+    start_urls:
+      - https://kevinheavey.github.io/anchorpy/
+
+  - id: solana-py-docs
+    name: Solana.py > Solana Python SDK Docs
+    kind: web
+    enabled: true
+    primary_url: https://michaelhly.com/solana-py/
+    start_urls:
+      - https://michaelhly.com/solana-py/
+
+  - id: sava-java-sdk-docs
+    name: Sava > Solana Java SDK Docs
+    kind: web
+    enabled: true
+    primary_url: https://sava.software
+    sitemaps:
+      - https://sava.software/sitemap.xml
+
+  # --- Core GitHub repos (READMEs + source) ---
+  - id: gh-anchor
+    name: GitHub coral-xyz/anchor
+    kind: github
+    enabled: true
+    primary_url: https://github.com/coral-xyz/anchor
+    github: { owner: coral-xyz, repo: anchor, include_readmes: true, include_source_code: true }
+
+  - id: gh-kit
+    name: GitHub anza-xyz/kit (Solana JS SDK)
+    kind: github
+    enabled: true
+    primary_url: https://github.com/anza-xyz/kit
+    github: { owner: anza-xyz, repo: kit, include_readmes: true, include_source_code: true }
+
+  - id: gh-solana-sdk
+    name: GitHub anza-xyz/solana-sdk (Rust SDK)
+    kind: github
+    enabled: true
+    primary_url: https://github.com/anza-xyz/solana-sdk
+    github: { owner: anza-xyz, repo: solana-sdk, include_readmes: true, include_source_code: true }
+
+  - id: gh-web3js
+    name: GitHub solana-foundation/solana-web3.js (v1.x)
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-foundation/solana-web3.js
+    github: { owner: solana-foundation, repo: solana-web3.js, include_readmes: true, include_source_code: true }
+
+  - id: gh-pinocchio
+    name: GitHub anza-xyz/pinocchio
+    kind: github
+    enabled: true
+    primary_url: https://github.com/anza-xyz/pinocchio
+    github: { owner: anza-xyz, repo: pinocchio, include_readmes: true, include_source_code: true }
+
+  - id: gh-mollusk
+    name: GitHub anza-xyz/mollusk
+    kind: github
+    enabled: true
+    primary_url: https://github.com/anza-xyz/mollusk
+    github: { owner: anza-xyz, repo: mollusk, include_readmes: true, include_source_code: true }
+
+  - id: gh-litesvm
+    name: GitHub LiteSVM/litesvm
+    kind: github
+    enabled: true
+    primary_url: https://github.com/LiteSVM/litesvm
+    github: { owner: LiteSVM, repo: litesvm, include_readmes: true, include_source_code: true }
+
+  - id: gh-codama
+    name: GitHub codama-idl/codama
+    kind: github
+    enabled: true
+    primary_url: https://github.com/codama-idl/codama
+    github: { owner: codama-idl, repo: codama, include_readmes: true, include_source_code: false }
+
+  - id: gh-codama-rs
+    name: GitHub codama-idl/codama-rs
+    kind: github
+    enabled: true
+    primary_url: https://github.com/codama-idl/codama-rs
+    github: { owner: codama-idl, repo: codama-rs, include_readmes: true, include_source_code: false }
+
+  - id: gh-simd
+    name: GitHub solana-foundation/solana-improvement-documents
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-foundation/solana-improvement-documents
+    github: { owner: solana-foundation, repo: solana-improvement-documents, include_readmes: false, include_source_code: true }
+
+  - id: gh-program-examples
+    name: GitHub solana-developers/program-examples
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-developers/program-examples
+    github: { owner: solana-developers, repo: program-examples, include_readmes: false, include_source_code: true }
+
+  # --- SPL programs ---
+  - id: gh-spl-token
+    name: SPL Token
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-program/token
+    github: { owner: solana-program, repo: token, include_readmes: true, include_source_code: true }
+
+  - id: gh-spl-token-2022
+    name: SPL Token 2022
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-program/token-2022
+    github: { owner: solana-program, repo: token-2022, include_readmes: true, include_source_code: true }
+
+  - id: gh-spl-ata
+    name: SPL Associated Token Account
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-program/associated-token-account
+    github: { owner: solana-program, repo: associated-token-account, include_readmes: true, include_source_code: true }
+
+  - id: gh-spl-address-lookup-table
+    name: Address Lookup Table
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-program/address-lookup-table
+    github: { owner: solana-program, repo: address-lookup-table, include_readmes: true, include_source_code: true }
+
+  - id: gh-spl-loader-v4
+    name: Loader V4
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-program/loader-v4
+    github: { owner: solana-program, repo: loader-v4, include_readmes: true, include_source_code: true }
+
+  # --- Infra / RPC providers ---
+  - id: helius-docs
+    name: Helius Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.helius.dev
+    sitemaps: [https://docs.helius.dev/sitemap.xml]
+
+  - id: quicknode-docs
+    name: QuickNode Docs
+    kind: web
+    enabled: true
+    primary_url: https://www.quicknode.com/docs/solana
+    sitemaps: [https://www.quicknode.com/docs/sitemap.xml]
+    url_include: [solana]
+
+  - id: alchemy-docs
+    name: Alchemy Docs
+    kind: web
+    enabled: true
+    primary_url: https://www.alchemy.com/docs
+    sitemaps:
+      - https://www.alchemy.com/docs/sitemap-0.xml
+      - https://www.alchemy.com/docs/sitemap-1.xml
+    url_include: [solana]
+
+  - id: chainstack-docs
+    name: Chainstack Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.chainstack.com/reference/solana-getting-started
+    sitemaps: [https://docs.chainstack.com/sitemap.xml]
+    url_include: [solana]
+
+  - id: tatum-docs
+    name: Tatum Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.tatum.io
+    sitemaps: [https://docs.tatum.io/sitemap.xml]
+    url_include: [solana]
+
+  - id: jito-docs
+    name: Jito Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.jito.wtf
+    start_urls: [https://docs.jito.wtf]
+
+  # --- Explorers / data providers ---
+  - id: solscan-docs
+    name: Solscan Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.solscan.io
+    sitemaps: [https://docs.solscan.io/sitemap-pages.xml]
+
+  - id: magic-eden-docs
+    name: Magic Eden Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.magiceden.io
+    sitemaps: [https://docs.magiceden.io/sitemap.xml]
+    url_include: [solana, /sol-, -sol-, /sol/, /mmm-sol-]
+
+  - id: birdeye-docs
+    name: Birdeye Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.birdeye.so
+    sitemaps: [https://docs.birdeye.so/sitemap.xml]
+    url_include: [solana]
+
+  - id: dexscreener-docs
+    name: DEX Screener Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.dexscreener.com
+    sitemaps: [https://docs.dexscreener.com/sitemap.xml]
+
+  - id: geckoterminal-docs
+    name: GeckoTerminal API Docs
+    kind: web
+    enabled: true
+    primary_url: https://apiguide.geckoterminal.com
+    sitemaps: [https://apiguide.geckoterminal.com/sitemap-pages.xml]
+
+  - id: coingecko-docs
+    name: CoinGecko Public API Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.coingecko.com/v3.0.1/reference/introduction
+    start_urls:
+      - https://docs.coingecko.com/v3.0.1/reference/introduction
+      - https://docs.coingecko.com/v3.0.1/
+
+  - id: bitquery-docs
+    name: Bitquery Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.bitquery.io
+    sitemaps: [https://docs.bitquery.io/sitemap.xml]
+    url_include: [solana]
+
+  - id: dune-docs
+    name: Dune Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.dune.com/data-catalog/solana
+    sitemaps: [https://docs.dune.com/sitemap.xml]
+    url_include: [solana]
+
+  - id: pumpportal-docs
+    name: PumpPortal Docs
+    kind: web
+    enabled: true
+    primary_url: https://pumpportal.fun
+    sitemaps: [https://pumpportal.fun/sitemap.xml]
+
+  # --- Wallets ---
+  - id: phantom-docs
+    name: Phantom Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.phantom.com/solana
+    sitemaps: [https://docs.phantom.com/sitemap.xml]
+    url_include: [solana]
+
+  - id: solflare-docs
+    name: Solflare Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.solflare.com/solflare
+    sitemaps: [https://docs.solflare.com/solflare/sitemap-pages.xml]
+
+  - id: squads-docs
+    name: Squads Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.squads.so/main
+    sitemaps: [https://docs.squads.so/main/sitemap-pages.xml]
+
+  # --- DEX / AMM / Perps / Lending ---
+  - id: raydium-docs
+    name: Raydium Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.raydium.io/raydium
+    sitemaps: [https://docs.raydium.io/raydium/sitemap-pages.xml]
+
+  - id: orca-docs
+    name: Orca Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.orca.so
+    sitemaps: [https://docs.orca.so/sitemap.xml]
+
+  - id: meteora-docs
+    name: Meteora Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.meteora.ag
+    sitemaps: [https://docs.meteora.ag/sitemap.xml]
+
+  - id: phoenix-docs
+    name: Phoenix Docs
+    kind: web
+    enabled: true
+    primary_url: https://ellipsis-labs.gitbook.io/phoenix-dex/tRIkEFlLUzWK9uKO3W2V
+    start_urls:
+      - https://ellipsis-labs.gitbook.io/phoenix-dex/tRIkEFlLUzWK9uKO3W2V
+
+  - id: goosefx-docs
+    name: GooseFX Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.goosefx.io
+    sitemaps: [https://docs.goosefx.io/sitemap.xml]
+
+  - id: fluxbeam-docs
+    name: FluxBeam Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.fluxbeam.xyz/
+    sitemaps: [https://docs.fluxbeam.xyz/sitemap.xml]
+
+  - id: lifinity-docs
+    name: Lifinity Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.lifinity.io
+    sitemaps: [https://docs.lifinity.io/sitemap.xml]
+
+  - id: hxro-docs
+    name: Hxro Network Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.hxro.network
+    sitemaps: [https://docs.hxro.network/sitemap-pages.xml]
+
+  - id: flash-trade-docs
+    name: Flash.Trade Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.flash.trade
+    sitemaps: [https://docs.flash.trade/flash-trade/sitemap.xml]
+
+  - id: zeta-docs
+    name: Zeta Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.zeta.markets/
+    sitemaps: [https://docs.zeta.markets/sitemap.xml]
+
+  - id: drift-docs
+    name: Drift Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.drift.trade
+    start_urls: [https://docs.drift.trade]
+
+  - id: drift-v2-teacher
+    name: Drift v2 API Docs
+    kind: web
+    enabled: true
+    primary_url: https://drift-labs.github.io/v2-teacher
+    ingest_urls: [https://drift-labs.github.io/v2-teacher]
+
+  - id: drift-data-api
+    name: Drift Data API (OpenAPI)
+    kind: openapi
+    enabled: true
+    primary_url: https://data.api.drift.trade/playground
+    spec_url: https://data.api.drift.trade/playground/json
+
+  - id: gh-drift-protocol-v2
+    name: GitHub drift-labs/protocol-v2
+    kind: github
+    enabled: true
+    primary_url: https://github.com/drift-labs/protocol-v2
+    github: { owner: drift-labs, repo: protocol-v2, include_readmes: true, include_source_code: true }
+
+  - id: kamino-docs
+    name: Kamino Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.kamino.finance
+    sitemaps: [https://docs.kamino.finance/sitemap.xml]
+
+  - id: solend-docs
+    name: Solend Docs
+    kind: web
+    enabled: true
+    primary_url: https://dev.solend.fi
+    start_urls:
+      - https://dev.solend.fi
+      - https://dev.solend.fi/docs/intro/
+
+  - id: marginfi-docs
+    name: marginfi Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.marginfi.com
+    start_urls: [https://docs.marginfi.com]
+
+  - id: marinade-docs
+    name: Marinade Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.marinade.finance
+    sitemaps: [https://docs.marinade.finance/sitemap.xml]
+
+  - id: blazestake-docs
+    name: BlazeStake Docs
+    kind: web
+    enabled: true
+    primary_url: https://stake-docs.solblaze.org
+    sitemaps: [https://stake-docs.solblaze.org/sitemap.xml]
+
+  - id: sanctum-infinity-docs
+    name: Sanctum > Infinity Docs
+    kind: web
+    enabled: true
+    primary_url: https://learn.sanctum.so/docs
+    sitemaps: [https://learn.sanctum.so/docs/sitemap-pages.xml]
+
+  # --- Community Q&A (LARGE, gated off by default) ---
+  - id: solana-stackexchange
+    name: Solana Stackexchange
+    kind: web
+    enabled: false  # huge corpus — enable when chunking + rate-limit strategy ready
+    primary_url: https://solana.stackexchange.com
+    start_urls: [https://solana.stackexchange.com]
