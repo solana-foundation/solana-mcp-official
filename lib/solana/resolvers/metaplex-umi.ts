@@ -23,19 +23,12 @@ function getUmi(rpcEndpoint: string): Umi {
   return umi;
 }
 
-export async function fetchRawMetaplexMetadata(
-  mintAddress: string,
-  cluster: SupportedCluster,
-): Promise<Metadata> {
+export async function fetchRawMetaplexMetadata(mintAddress: string, cluster: SupportedCluster): Promise<Metadata> {
   const endpoint = resolveRpcEndpoint(cluster);
   const umi = getUmi(endpoint);
 
   const mintKey = publicKey(mintAddress);
   const metadataPda = findMetadataPda(umi, { mint: mintKey });
 
-  return raceWithTimeout(
-    fetchMetadata(umi, metadataPda),
-    METAPLEX_METADATA_TIMEOUT_MS,
-    "Metaplex metadata fetch",
-  );
+  return raceWithTimeout(fetchMetadata(umi, metadataPda), METAPLEX_METADATA_TIMEOUT_MS, "Metaplex metadata fetch");
 }
