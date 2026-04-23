@@ -7,4 +7,6 @@ const inkeep = process.env.INKEEP_API_KEY
     })
   : null;
 
-export const inkeepRagModel = inkeep?.("inkeep-rag") ?? null;
+// Force chat completions endpoint — @ai-sdk/openai v3 defaults to /v1/responses
+// (OpenAI's Responses API) which Inkeep does not implement.
+export const inkeepRagModel = inkeep?.chat("inkeep-rag") ?? null;

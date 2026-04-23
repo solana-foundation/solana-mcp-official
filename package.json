@@ -6,6 +6,8 @@
   "scripts": {
     "start": "vercel dev",
     "dev:local": "vercel dev --local",
+    "build": "tsup",
+    "start:app": "node dist/start.js",
     "test": "pnpm test:integration",
     "test:integration": "vitest run tests/integration.test.ts tests/unit/",
     "test:e2e": "vitest run tests/e2e.test.ts",
@@ -60,6 +62,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@solana/prettier-config-solana": "^0.0.6",
+    "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.3",
     "eslint": "^10.1.0",

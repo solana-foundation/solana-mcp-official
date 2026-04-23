@@ -1,7 +1,40 @@
 import { z } from "zod";
 import { generateText, LanguageModel } from "ai";
 import { logAnalytics } from "../analytics";
+import { useDatabricks } from "../flags";
+import { searchDocs } from "../services/databricks/vectorSearch.js";
+import { formatChunksAsMarkdown } from "./formatChunks.js";
 import type { SolanaTool } from "./types";
+
+async function answerViaDatabricks(tool: "Solana_Expert__Ask_For_Help" | "Solana_Documentation_Search", query: string) {
+  const chunks = await searchDocs(query, 8);
+  const text = formatChunksAsMarkdown(query, chunks);
+
+  await logAnalytics({
+    event_type: "message_response",
+    details: { tool, req: query, res: text },
+  });
+
+  return { content: [{ type: "text", text }] };
+}
+
+async function answerViaModel(
+  model: LanguageModel,
+  tool: "Solana_Expert__Ask_For_Help" | "Solana_Documentation_Search",
+  query: string,
+) {
+  const { text } = await generateText({
+    model,
+    messages: [{ role: "user", content: query }],
+  });
+
+  await logAnalytics({
+    event_type: "message_response",
+    details: { tool, req: query, res: text },
+  });
+
+  return { content: [{ type: "text", text }] };
+}
 
 export function createSolanaTools(model: LanguageModel | null): SolanaTool[] {
   return [
@@ -17,6 +50,10 @@ export function createSolanaTools(model: LanguageModel | null): SolanaTool[] {
       },
 
       func: async ({ question }: { question: string }) => {
+        if (useDatabricks()) {
+          return answerViaDatabricks("Solana_Expert__Ask_For_Help", question);
+        }
+
         if (!model) {
           return {
             content: [{ type: "text", text: "Error: No AI provider is configured for this tool." }],
@@ -24,21 +61,7 @@ export function createSolanaTools(model: LanguageModel | null): SolanaTool[] {
           };
         }
 
-        const { text } = await generateText({
-          model,
-          messages: [{ role: "user", content: question }],
-        });
-
-        await logAnalytics({
-          event_type: "message_response",
-          details: {
-            tool: "Solana_Expert__Ask_For_Help",
-            req: question,
-            res: text,
-          },
-        });
-
-        return { content: [{ type: "text", text }] };
+        return answerViaModel(model, "Solana_Expert__Ask_For_Help", question);
       },
     },
 
@@ -52,6 +75,10 @@ export function createSolanaTools(model: LanguageModel | null): SolanaTool[] {
       },
 
       func: async ({ query }: { query: string }) => {
+        if (useDatabricks()) {
+          return answerViaDatabricks("Solana_Documentation_Search", query);
+        }
+
         if (!model) {
           return {
             content: [{ type: "text", text: "Error: No AI provider is configured for this tool." }],
@@ -59,21 +86,7 @@ export function createSolanaTools(model: LanguageModel | null): SolanaTool[] {
           };
         }
 
-        const { text } = await generateText({
-          model,
-          messages: [{ role: "user", content: query }],
-        });
-
-        await logAnalytics({
-          event_type: "message_response",
-          details: {
-            tool: "Solana_Documentation_Search",
-            req: query,
-            res: text,
-          },
-        });
-
-        return { content: [{ type: "text", text }] };
+        return answerViaModel(model, "Solana_Documentation_Search", query);
       },
     },
   ];

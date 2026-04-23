@@ -1,0 +1,85 @@
+bundle:
+  name: solana-mcp
+
+# Optional gitignored include supplies target variable values. Matches zero
+# or one file; if missing, `databricks bundle deploy` will complain about
+# unresolved variables and fail clearly.
+include:
+  - prod.yml
+
+# All deployment-specific values come through these variables. Supply real
+# values in a gitignored `prod.yml` or per-invocation with `--var`.
+variables:
+  catalog:
+    description: Unity Catalog catalog holding MCP tables.
+  schema:
+    description: Schema inside the catalog (combined path becomes `${catalog}.${schema}`).
+  warehouse_id:
+    description: SQL warehouse id for analytics inserts.
+  vs_endpoint:
+    description: Vector Search endpoint name.
+  vs_index:
+    description: Fully-qualified Vector Search index.
+  notebook_sources_path:
+    description: Workspace path to ingestion/sources.yaml once uploaded.
+  bundle_root:
+    description: Workspace path prefix where the bundle artifacts live.
+    default: /Workspace/.bundle/solana-mcp/${bundle.target}
+
+targets:
+  prod:
+    mode: production
+    default: true
+    # Workspace host resolved from the active `databricks auth` profile or
+    # the DATABRICKS_HOST env var — not committed here.
+    workspace:
+      root_path: ${var.bundle_root}
+
+resources:
+  apps:
+    solana_mcp:
+      name: solana-mcp
+      description: "Solana MCP server — Databricks-hosted TS MCP handler."
+      source_code_path: ${workspace.file_path}
+      config:
+        command:
+          - node
+          - dist/start.js
+        env:
+          - name: USE_DATABRICKS
+            value: "1"
+          - name: DATABRICKS_VS_INDEX
+            value: ${var.vs_index}
+          - name: DATABRICKS_WAREHOUSE_ID
+            value: ${var.warehouse_id}
+          - name: DATABRICKS_ANALYTICS_SCHEMA
+            value: ${var.catalog}.${var.schema}
+
+  jobs:
+    solana_mcp_ingest:
+      name: solana-mcp-ingest
+      description: "Daily corpus refresh — crawl sources, MERGE into Delta, trigger VS sync."
+      tasks:
+        - task_key: crawl
+          notebook_task:
+            notebook_path: ./ingestion/crawl_and_index.py
+            base_parameters:
+              target_table: ${var.catalog}.${var.schema}.docs_chunks
+              vs_endpoint: ${var.vs_endpoint}
+              vs_index: ${var.vs_index}
+              sources_path: ${var.notebook_sources_path}
+              max_pages_per_source: "2000"
+      schedule:
+        quartz_cron_expression: "0 0 9 * * ?"  # daily 09:00 UTC
+        timezone_id: UTC
+        pause_status: UNPAUSED
+      email_notifications:
+        on_failure: []  # set via var file if desired
+
+  dashboards:
+    solana_mcp_dashboard:
+      display_name: Solana MCP
+      # Gitignored file with real catalog/schema per dataset. See
+      # dashboards/solana_mcp.example.lvdash.json for the template.
+      file_path: ./dashboards/solana_mcp.lvdash.json
+      warehouse_id: ${var.warehouse_id}

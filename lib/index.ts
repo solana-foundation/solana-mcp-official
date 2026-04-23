@@ -69,6 +69,7 @@ export function createMcp() {
     {
       basePath: "",
       redisUrl: process.env.REDIS_URL,
+      disableSse: !process.env.REDIS_URL,
       maxDuration: 120,
       verboseLogs: true,
     },

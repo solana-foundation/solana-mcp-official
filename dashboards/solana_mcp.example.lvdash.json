@@ -1,0 +1,449 @@
+{
+  "datasets": [
+    {
+      "name": "corpus_totals",
+      "displayName": "Corpus totals",
+      "queryLines": [
+        "SELECT\n",
+        "  count(*) AS total_chunks,\n",
+        "  count(DISTINCT url) AS distinct_urls,\n",
+        "  count(DISTINCT source_id) AS sources,\n",
+        "  max(fetched_at) AS last_fetch\n",
+        "FROM docs_chunks"
+      ]
+    },
+    {
+      "name": "chunks_per_source",
+      "displayName": "Chunks per source",
+      "queryLines": [
+        "SELECT source_id, count(*) AS chunks\n",
+        "FROM docs_chunks\n",
+        "GROUP BY source_id\n",
+        "ORDER BY chunks DESC"
+      ]
+    },
+    {
+      "name": "freshness",
+      "displayName": "Corpus freshness (weekly)",
+      "queryLines": [
+        "SELECT date_trunc('week', fetched_at) AS week, count(*) AS chunks\n",
+        "FROM docs_chunks\n",
+        "GROUP BY 1 ORDER BY 1"
+      ]
+    },
+    {
+      "name": "tool_calls_daily",
+      "displayName": "Tool calls per day",
+      "queryLines": [
+        "SELECT date(timestamp) AS day, tool_name, count(*) AS calls\n",
+        "FROM mcp_tool_calls\n",
+        "WHERE row_type = 'request'\n",
+        "GROUP BY 1, 2 ORDER BY 1"
+      ]
+    },
+    {
+      "name": "top_queries",
+      "displayName": "Top 50 queries",
+      "queryLines": [
+        "SELECT\n",
+        "  coalesce(\n",
+        "    get_json_object(arguments, '$.query'),\n",
+        "    get_json_object(arguments, '$.question')\n",
+        "  ) AS q,\n",
+        "  count(*) AS calls\n",
+        "FROM mcp_tool_calls\n",
+        "WHERE row_type = 'request'\n",
+        "GROUP BY 1 ORDER BY 2 DESC LIMIT 50"
+      ]
+    },
+    {
+      "name": "clients",
+      "displayName": "Clients",
+      "queryLines": [
+        "SELECT client_name, client_version, count(*) AS handshakes\n",
+        "FROM mcp_initializations\n",
+        "GROUP BY 1, 2 ORDER BY 3 DESC"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "overview",
+      "displayName": "Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "hdr_corpus",
+            "textbox_spec": "# Corpus\n\nDocs_chunks Delta table. Fed daily by `solana-mcp-ingest` job."
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_total_chunks",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "corpus_totals",
+                  "fields": [
+                    {
+                      "name": "total_chunks",
+                      "expression": "`total_chunks`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_chunks",
+                  "displayName": "Total chunks"
+                }
+              },
+              "frame": {
+                "title": "Total chunks",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_distinct_urls",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "corpus_totals",
+                  "fields": [
+                    {
+                      "name": "distinct_urls",
+                      "expression": "`distinct_urls`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "distinct_urls",
+                  "displayName": "Distinct URLs"
+                }
+              },
+              "frame": {
+                "title": "Distinct URLs",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 1,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_sources",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "corpus_totals",
+                  "fields": [
+                    {
+                      "name": "sources",
+                      "expression": "`sources`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sources",
+                  "displayName": "Sources"
+                }
+              },
+              "frame": {
+                "title": "Sources",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 1,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_chunks_per_source",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "chunks_per_source",
+                  "fields": [
+                    {
+                      "name": "source_id",
+                      "expression": "`source_id`"
+                    },
+                    {
+                      "name": "chunks",
+                      "expression": "`chunks`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "chunks",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Chunks"
+                },
+                "y": {
+                  "fieldName": "source_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Source"
+                }
+              },
+              "frame": {
+                "title": "Chunks per source",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "hdr_traffic",
+            "textbox_spec": "# Traffic"
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "line_tool_calls_daily",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "tool_calls_daily",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "tool_name",
+                      "expression": "`tool_name`"
+                    },
+                    {
+                      "name": "calls",
+                      "expression": "`calls`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Day"
+                },
+                "y": {
+                  "fieldName": "calls",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Calls"
+                },
+                "color": {
+                  "fieldName": "tool_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Tool"
+                }
+              },
+              "frame": {
+                "title": "Tool calls per day",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_top_queries",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_queries",
+                  "fields": [
+                    {
+                      "name": "q",
+                      "expression": "`q`"
+                    },
+                    {
+                      "name": "calls",
+                      "expression": "`calls`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "q",
+                    "displayName": "Query"
+                  },
+                  {
+                    "fieldName": "calls",
+                    "displayName": "Calls"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Top queries",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_clients",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "clients",
+                  "fields": [
+                    {
+                      "name": "client_name",
+                      "expression": "`client_name`"
+                    },
+                    {
+                      "name": "handshakes",
+                      "expression": "`handshakes`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "handshakes",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Handshakes"
+                },
+                "y": {
+                  "fieldName": "client_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Client"
+                }
+              },
+              "frame": {
+                "title": "Clients",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 23,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGN_LEFT"
+    }
+  }
+}
