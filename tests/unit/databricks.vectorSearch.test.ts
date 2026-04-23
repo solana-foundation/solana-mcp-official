@@ -28,6 +28,7 @@ describe("databricks vectorSearch", () => {
     delete process.env.DATABRICKS_HOST;
     delete process.env.DATABRICKS_TOKEN;
     delete process.env.DATABRICKS_VS_INDEX;
+    delete process.env.DATABRICKS_VS_K;
   });
 
   it("returns [] and warns when index env missing, without calling fetch", async () => {
@@ -188,6 +189,46 @@ describe("databricks vectorSearch", () => {
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
     const chunks = await searchDocs("x", 5);
     expect(chunks.map(c => c.id)).toEqual(["id-1", "id-2"]);
+  });
+
+  it("defaults k to 20 (oversampled num_results=60) when no arg or env", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        manifest: { columns: [{ name: "id" }, { name: "score" }] },
+        result: { data_array: [] },
+      }),
+    );
+    const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
+    await searchDocs("hello");
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string).num_results).toBe(60);
+  });
+
+  it("reads DATABRICKS_VS_K env when arg omitted", async () => {
+    process.env.DATABRICKS_VS_K = "12";
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        manifest: { columns: [{ name: "id" }, { name: "score" }] },
+        result: { data_array: [] },
+      }),
+    );
+    const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
+    await searchDocs("hello");
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string).num_results).toBe(36); // 12 * 3
+  });
+
+  it("caps k at 50 regardless of arg or env", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        manifest: { columns: [{ name: "id" }, { name: "score" }] },
+        result: { data_array: [] },
+      }),
+    );
+    const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
+    await searchDocs("hello", 9999);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string).num_results).toBe(150); // 50 * 3
   });
 
   it("handles empty result set", async () => {
