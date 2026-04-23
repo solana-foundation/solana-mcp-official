@@ -24,8 +24,18 @@ interface VsQueryResponse {
 const REQUESTED_COLUMNS = ["id", "url", "title", "source_id", "content"] as const;
 
 const OVERSAMPLE_MULTIPLIER = 3;
+const DEFAULT_K = 20;
+const MAX_K = 50;
 
-export async function searchDocs(query: string, k = 8): Promise<DocChunk[]> {
+function resolveK(k?: number): number {
+  if (typeof k === "number" && Number.isInteger(k) && k > 0) return Math.min(k, MAX_K);
+  const envK = Number(process.env.DATABRICKS_VS_K);
+  if (Number.isInteger(envK) && envK > 0) return Math.min(envK, MAX_K);
+  return DEFAULT_K;
+}
+
+export async function searchDocs(query: string, k?: number): Promise<DocChunk[]> {
+  const topK = resolveK(k);
   const index = process.env.DATABRICKS_VS_INDEX;
   if (!isDatabricksConfigured() || !index) {
     console.warn("[vectorSearch] DATABRICKS_VS_INDEX (or host/token) not set — retrieval disabled");
@@ -35,7 +45,7 @@ export async function searchDocs(query: string, k = 8): Promise<DocChunk[]> {
   const body = {
     query_text: query,
     columns: [...REQUESTED_COLUMNS],
-    num_results: k * OVERSAMPLE_MULTIPLIER,
+    num_results: topK * OVERSAMPLE_MULTIPLIER,
   };
 
   const res = await dbxFetch<VsQueryResponse>(`/api/2.0/vector-search/indexes/${index}/query`, {
@@ -50,7 +60,7 @@ export async function searchDocs(query: string, k = 8): Promise<DocChunk[]> {
   // Sort score-descending before dedupe so the highest-scored chunk per URL
   // is kept, independent of any ordering guarantee from the Databricks API.
   chunks.sort((a, b) => b.score - a.score);
-  return dedupeByUrl(chunks).slice(0, k);
+  return dedupeByUrl(chunks).slice(0, topK);
 }
 
 function dedupeByUrl(chunks: DocChunk[]): DocChunk[] {

@@ -7,7 +7,7 @@ import { formatChunksAsMarkdown } from "./formatChunks.js";
 import type { SolanaTool } from "./types";
 
 async function answerViaDatabricks(tool: "Solana_Expert__Ask_For_Help" | "Solana_Documentation_Search", query: string) {
-  const chunks = await searchDocs(query, 8);
+  const chunks = await searchDocs(query);
   const text = formatChunksAsMarkdown(query, chunks);
 
   await logAnalytics({

@@ -132,7 +132,7 @@ describe("createSolanaTools", () => {
 
       const result = await askTool.func({ question: "what is a PDA?" });
 
-      expect(searchDocsMock).toHaveBeenCalledWith("what is a PDA?", 8);
+      expect(searchDocsMock).toHaveBeenCalledWith("what is a PDA?");
       expect(generateTextMock).not.toHaveBeenCalled();
       const text = (result as { content: [{ text: string }] }).content[0].text;
       expect(text).toContain("PDA Basics");
@@ -157,7 +157,7 @@ describe("createSolanaTools", () => {
 
       const result = await searchTool.func({ query: "pda seeds" });
 
-      expect(searchDocsMock).toHaveBeenCalledWith("pda seeds", 8);
+      expect(searchDocsMock).toHaveBeenCalledWith("pda seeds");
       const text = (result as { content: [{ text: string }] }).content[0].text;
       expect(text).toContain("PDA Basics");
     });
