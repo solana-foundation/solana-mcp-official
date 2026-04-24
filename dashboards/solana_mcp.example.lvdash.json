@@ -37,7 +37,7 @@
       "queryLines": [
         "SELECT date(timestamp) AS day, tool_name, count(*) AS calls\n",
         "FROM mcp_tool_calls\n",
-        "WHERE row_type = 'request'\n",
+        "WHERE row_type = 'response'\n",
         "GROUP BY 1, 2 ORDER BY 1"
       ]
     },
@@ -45,14 +45,9 @@
       "name": "top_queries",
       "displayName": "Top 50 queries",
       "queryLines": [
-        "SELECT\n",
-        "  coalesce(\n",
-        "    get_json_object(arguments, '$.query'),\n",
-        "    get_json_object(arguments, '$.question')\n",
-        "  ) AS q,\n",
-        "  count(*) AS calls\n",
+        "SELECT regexp_replace(arguments, '^\"|\"$', '') AS q, count(*) AS calls\n",
         "FROM mcp_tool_calls\n",
-        "WHERE row_type = 'request'\n",
+        "WHERE row_type = 'response' AND arguments IS NOT NULL\n",
         "GROUP BY 1 ORDER BY 2 DESC LIMIT 50"
       ]
     },
@@ -357,7 +352,7 @@
               }
             ],
             "spec": {
-              "version": 1,
+              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [

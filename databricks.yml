@@ -20,6 +20,9 @@ variables:
     description: Vector Search endpoint name.
   vs_index:
     description: Fully-qualified Vector Search index.
+  reranker_endpoint:
+    description: Databricks Model Serving endpoint name used as a cross-encoder reranker.
+    default: databricks-claude-haiku-4-5
   notebook_sources_path:
     description: Workspace path to ingestion/sources.yaml once uploaded.
   bundle_root:
@@ -41,6 +44,7 @@ resources:
       name: solana-mcp
       description: "Solana MCP server — Databricks-hosted TS MCP handler."
       source_code_path: ${workspace.file_path}
+      compute_size: SMALL
       config:
         command:
           - node
@@ -54,6 +58,8 @@ resources:
             value: ${var.warehouse_id}
           - name: DATABRICKS_ANALYTICS_SCHEMA
             value: ${var.catalog}.${var.schema}
+          - name: DATABRICKS_RERANKER_ENDPOINT
+            value: ${var.reranker_endpoint}
 
   jobs:
     solana_mcp_ingest:
