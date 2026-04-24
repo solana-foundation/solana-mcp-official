@@ -1,5 +1,6 @@
 import * as dotenv from "dotenv";
 import { dbxFetch, isDatabricksConfigured } from "./client.js";
+import { rerank } from "./rerank.js";
 
 dotenv.config();
 
@@ -57,10 +58,45 @@ export async function searchDocs(query: string, k?: number): Promise<DocChunk[]>
   const rows = res.result?.data_array ?? [];
   const chunks = rows.map(row => rowToChunk(columns, row));
 
+  // Optionally replace embedding-similarity scores with reranker scores
+  // (cross-encoder). Skipped when DATABRICKS_RERANKER_ENDPOINT is unset.
+  const reranked = await maybeRerank(query, chunks);
+
   // Sort score-descending before dedupe so the highest-scored chunk per URL
-  // is kept, independent of any ordering guarantee from the Databricks API.
-  chunks.sort((a, b) => b.score - a.score);
-  return dedupeByUrl(chunks).slice(0, topK);
+  // is kept, independent of any ordering guarantee from the Databricks API
+  // (or the reranker).
+  reranked.sort((a, b) => b.score - a.score);
+  return dedupeByUrl(reranked).slice(0, topK);
+}
+
+async function maybeRerank(query: string, chunks: DocChunk[]): Promise<DocChunk[]> {
+  if (chunks.length === 0) return chunks;
+  try {
+    const scores = await rerank(
+      query,
+      chunks.map(c => c.content ?? ""),
+    );
+    // Require full coverage: a partial response would mix cross-encoder
+    // scores with embedding cosine scores (different scales), producing a
+    // meaningless sort. Fall back whenever the reranker doesn't cover every
+    // chunk so the ranking stays internally consistent.
+    if (!scores || scores.length < chunks.length) {
+      if (scores && scores.length < chunks.length) {
+        console.warn(
+          `[vectorSearch] rerank returned ${scores.length}/${chunks.length} scores — falling back to embedding scores`,
+        );
+      }
+      return chunks;
+    }
+    const byIndex = new Map(scores.map(s => [s.index, s.score]));
+    return chunks.map((c, i) => {
+      const s = byIndex.get(i);
+      return typeof s === "number" ? { ...c, score: s } : c;
+    });
+  } catch (err) {
+    console.warn("[vectorSearch] rerank failed, falling back to embedding scores:", err);
+    return chunks;
+  }
 }
 
 function dedupeByUrl(chunks: DocChunk[]): DocChunk[] {
