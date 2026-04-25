@@ -173,6 +173,7 @@ export function normalizeTransactionProbe(
     staticKeys,
     header,
     loadedAddresses: meta?.loadedAddresses,
+    addressTableLookups: envelope.transaction.message.addressTableLookups,
   });
 
   validateInstructionIntegrity(instructions, innerInstructions, allKeys.length);

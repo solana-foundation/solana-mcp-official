@@ -1,4 +1,4 @@
-import type { ResolvedAccount, TransactionVersion } from "../types";
+import type { AddressTableLookup, ResolvedAccount, TransactionVersion } from "../types";
 
 type MessageHeader = {
   numRequiredSignatures: number;
@@ -15,6 +15,7 @@ type AccountResolutionParams = {
   staticKeys: string[];
   header: MessageHeader;
   loadedAddresses?: LoadedAddresses | null;
+  addressTableLookups?: readonly AddressTableLookup[];
 };
 
 type AccountResolutionResult = {
@@ -34,8 +35,37 @@ function classifyStaticKeys(staticKeys: string[], header: MessageHeader): Resolv
     const readonlySigned = signer && i >= readonlySignerStart;
     const readonlyUnsigned = !signer && i >= readonlyUnsignedStart;
     const writable = !readonlySigned && !readonlyUnsigned;
-    return { address, signer, writable };
+    return { address, signer, writable, source: "static" as const };
   });
+}
+
+/**
+ * Build a mapping from loaded address position to its source ALT account.
+ *
+ * `addressTableLookups` entries are ordered — their writable/readonly counts
+ * correspond 1:1 with the flattened `loadedAddresses.writable` and
+ * `loadedAddresses.readonly` arrays respectively.
+ */
+function buildLookupTableMap(
+  addressTableLookups: readonly AddressTableLookup[] | undefined,
+): { writableMap: string[]; readonlyMap: string[] } {
+  const writableMap: string[] = [];
+  const readonlyMap: string[] = [];
+
+  if (!addressTableLookups) {
+    return { writableMap, readonlyMap };
+  }
+
+  for (const lookup of addressTableLookups) {
+    for (let i = 0; i < lookup.writableIndexes.length; i++) {
+      writableMap.push(lookup.accountKey);
+    }
+    for (let i = 0; i < lookup.readonlyIndexes.length; i++) {
+      readonlyMap.push(lookup.accountKey);
+    }
+  }
+
+  return { writableMap, readonlyMap };
 }
 
 export function resolveStaticAccounts(params: AccountResolutionParams): AccountResolutionResult {
@@ -47,22 +77,28 @@ export function resolveStaticAccounts(params: AccountResolutionParams): AccountR
 }
 
 export function resolveV0Accounts(params: AccountResolutionParams): AccountResolutionResult {
-  const { staticKeys, header, loadedAddresses } = params;
+  const { staticKeys, header, loadedAddresses, addressTableLookups } = params;
   const staticAccounts = classifyStaticKeys(staticKeys, header);
 
   const loadedWritable = loadedAddresses?.writable ?? [];
   const loadedReadonly = loadedAddresses?.readonly ?? [];
 
-  const loadedWritableAccounts: ResolvedAccount[] = loadedWritable.map(address => ({
+  const { writableMap, readonlyMap } = buildLookupTableMap(addressTableLookups);
+
+  const loadedWritableAccounts: ResolvedAccount[] = loadedWritable.map((address, i) => ({
     address,
     signer: false,
     writable: true,
+    source: "lookupTable" as const,
+    ...(writableMap[i] != null && { lookupTableAddress: writableMap[i] }),
   }));
 
-  const loadedReadonlyAccounts: ResolvedAccount[] = loadedReadonly.map(address => ({
+  const loadedReadonlyAccounts: ResolvedAccount[] = loadedReadonly.map((address, i) => ({
     address,
     signer: false,
     writable: false,
+    source: "lookupTable" as const,
+    ...(readonlyMap[i] != null && { lookupTableAddress: readonlyMap[i] }),
   }));
 
   return {

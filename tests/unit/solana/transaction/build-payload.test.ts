@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import type { TransactionPayloadContext } from "../../../../lib/solana/types";
+import type { AccountRole, ResolvedAccount, TransactionPayloadContext } from "../../../../lib/solana/types";
 import { buildTransactionPayload } from "../../../../lib/solana/transaction/build-payload";
+
+function staticAccount(role: AccountRole): ResolvedAccount {
+  return { ...role, source: "static" };
+}
+
+function lookupTableAccount(role: AccountRole, lookupTableAddress?: string): ResolvedAccount {
+  return { ...role, source: "lookupTable", ...(lookupTableAddress != null && { lookupTableAddress }) };
+}
 
 function makeFullContext(overrides: Partial<TransactionPayloadContext> = {}): TransactionPayloadContext {
   return {
@@ -12,10 +20,10 @@ function makeFullContext(overrides: Partial<TransactionPayloadContext> = {}): Tr
     feeLamports: 5000,
     accountKeys: ["fee-payer", "readonly-signer", "writable-nonsigner", "program"],
     resolvedAccounts: [
-      { address: "fee-payer", signer: true, writable: true },
-      { address: "readonly-signer", signer: true, writable: false },
-      { address: "writable-nonsigner", signer: false, writable: true },
-      { address: "program", signer: false, writable: false },
+      staticAccount({ address: "fee-payer", signer: true, writable: true }),
+      staticAccount({ address: "readonly-signer", signer: true, writable: false }),
+      staticAccount({ address: "writable-nonsigner", signer: false, writable: true }),
+      staticAccount({ address: "program", signer: false, writable: false }),
     ],
     numRequiredSignatures: 2,
     version: 0,
@@ -58,7 +66,7 @@ describe("transaction payload builder", () => {
       makeFullContext({
         numRequiredSignatures: -1,
         accountKeys: ["a"],
-        resolvedAccounts: [{ address: "a", signer: false, writable: true }],
+        resolvedAccounts: [staticAccount({ address: "a", signer: false, writable: true })],
         numReadonlySignedAccounts: 0,
         numReadonlyUnsignedAccounts: 0,
         instructions: [],
@@ -73,10 +81,10 @@ describe("transaction payload builder", () => {
     const result = buildTransactionPayload(makeFullContext());
 
     expect(result.entity.accounts).toEqual([
-      { address: "fee-payer", signer: true, writable: true },
-      { address: "readonly-signer", signer: true, writable: false },
-      { address: "writable-nonsigner", signer: false, writable: true },
-      { address: "program", signer: false, writable: false },
+      staticAccount({ address: "fee-payer", signer: true, writable: true }),
+      staticAccount({ address: "readonly-signer", signer: true, writable: false }),
+      staticAccount({ address: "writable-nonsigner", signer: false, writable: true }),
+      staticAccount({ address: "program", signer: false, writable: false }),
     ]);
   });
 
@@ -125,8 +133,8 @@ describe("transaction payload builder", () => {
       makeFullContext({
         accountKeys: ["payer", "system-program"],
         resolvedAccounts: [
-          { address: "payer", signer: true, writable: true },
-          { address: "system-program", signer: false, writable: false },
+          staticAccount({ address: "payer", signer: true, writable: true }),
+          staticAccount({ address: "system-program", signer: false, writable: false }),
         ],
         numRequiredSignatures: 1,
         numReadonlySignedAccounts: 0,
@@ -137,8 +145,8 @@ describe("transaction payload builder", () => {
     );
 
     expect(result.entity.accounts).toEqual([
-      { address: "payer", signer: true, writable: true },
-      { address: "system-program", signer: false, writable: false },
+      staticAccount({ address: "payer", signer: true, writable: true }),
+      staticAccount({ address: "system-program", signer: false, writable: false }),
     ]);
   });
 
@@ -160,9 +168,9 @@ describe("transaction payload builder", () => {
       makeFullContext({
         accountKeys: ["signer-a", "signer-b", "other"],
         resolvedAccounts: [
-          { address: "signer-a", signer: true, writable: true },
-          { address: "signer-b", signer: true, writable: true },
-          { address: "other", signer: false, writable: true },
+          staticAccount({ address: "signer-a", signer: true, writable: true }),
+          staticAccount({ address: "signer-b", signer: true, writable: true }),
+          staticAccount({ address: "other", signer: false, writable: true }),
         ],
         numRequiredSignatures: 2,
         numReadonlySignedAccounts: 0,
@@ -173,9 +181,9 @@ describe("transaction payload builder", () => {
     );
 
     expect(result.entity.accounts).toEqual([
-      { address: "signer-a", signer: true, writable: true },
-      { address: "signer-b", signer: true, writable: true },
-      { address: "other", signer: false, writable: true },
+      staticAccount({ address: "signer-a", signer: true, writable: true }),
+      staticAccount({ address: "signer-b", signer: true, writable: true }),
+      staticAccount({ address: "other", signer: false, writable: true }),
     ]);
   });
 
@@ -184,10 +192,10 @@ describe("transaction payload builder", () => {
       makeFullContext({
         accountKeys: ["fee-payer", "cosigner-ro-1", "cosigner-ro-2", "other"],
         resolvedAccounts: [
-          { address: "fee-payer", signer: true, writable: true },
-          { address: "cosigner-ro-1", signer: true, writable: false },
-          { address: "cosigner-ro-2", signer: true, writable: false },
-          { address: "other", signer: false, writable: true },
+          staticAccount({ address: "fee-payer", signer: true, writable: true }),
+          staticAccount({ address: "cosigner-ro-1", signer: true, writable: false }),
+          staticAccount({ address: "cosigner-ro-2", signer: true, writable: false }),
+          staticAccount({ address: "other", signer: false, writable: true }),
         ],
         numRequiredSignatures: 3,
         numReadonlySignedAccounts: 2,
@@ -198,10 +206,10 @@ describe("transaction payload builder", () => {
     );
 
     expect(result.entity.accounts).toEqual([
-      { address: "fee-payer", signer: true, writable: true },
-      { address: "cosigner-ro-1", signer: true, writable: false },
-      { address: "cosigner-ro-2", signer: true, writable: false },
-      { address: "other", signer: false, writable: true },
+      staticAccount({ address: "fee-payer", signer: true, writable: true }),
+      staticAccount({ address: "cosigner-ro-1", signer: true, writable: false }),
+      staticAccount({ address: "cosigner-ro-2", signer: true, writable: false }),
+      staticAccount({ address: "other", signer: false, writable: true }),
     ]);
   });
 
@@ -210,10 +218,10 @@ describe("transaction payload builder", () => {
       makeFullContext({
         accountKeys: ["signer", "prog-a", "prog-b", "prog-c"],
         resolvedAccounts: [
-          { address: "signer", signer: true, writable: true },
-          { address: "prog-a", signer: false, writable: false },
-          { address: "prog-b", signer: false, writable: false },
-          { address: "prog-c", signer: false, writable: false },
+          staticAccount({ address: "signer", signer: true, writable: true }),
+          staticAccount({ address: "prog-a", signer: false, writable: false }),
+          staticAccount({ address: "prog-b", signer: false, writable: false }),
+          staticAccount({ address: "prog-c", signer: false, writable: false }),
         ],
         numRequiredSignatures: 1,
         numReadonlySignedAccounts: 0,
@@ -247,9 +255,9 @@ describe("transaction payload builder", () => {
       makeFullContext({
         accountKeys: ["signer", "prog-a", "prog-b"],
         resolvedAccounts: [
-          { address: "signer", signer: true, writable: true },
-          { address: "prog-a", signer: false, writable: false },
-          { address: "prog-b", signer: false, writable: false },
+          staticAccount({ address: "signer", signer: true, writable: true }),
+          staticAccount({ address: "prog-a", signer: false, writable: false }),
+          staticAccount({ address: "prog-b", signer: false, writable: false }),
         ],
         numRequiredSignatures: 1,
         numReadonlySignedAccounts: 0,
@@ -302,12 +310,20 @@ describe("transaction payload builder", () => {
 
   it("uses resolvedAccounts for output accounts", () => {
     const resolvedAccounts = [
-      { address: "fee-payer", signer: true, writable: true },
-      { address: "readonly-signer", signer: true, writable: false },
-      { address: "writable-nonsigner", signer: false, writable: true },
-      { address: "program", signer: false, writable: false },
+      staticAccount({ address: "fee-payer", signer: true, writable: true }),
+      staticAccount({ address: "readonly-signer", signer: true, writable: false }),
     ];
-    const result = buildTransactionPayload(makeFullContext({ resolvedAccounts }));
+    const result = buildTransactionPayload(
+      makeFullContext({
+        accountKeys: ["fee-payer", "readonly-signer"],
+        resolvedAccounts,
+        numRequiredSignatures: 2,
+        numReadonlySignedAccounts: 1,
+        numReadonlyUnsignedAccounts: 0,
+        instructions: [],
+        innerInstructions: null,
+      }),
+    );
 
     expect(result.entity.accounts).toEqual(resolvedAccounts);
   });
@@ -317,10 +333,10 @@ describe("transaction payload builder", () => {
       makeFullContext({
         accountKeys: ["signer", "program", "alt-w1", "alt-r1"],
         resolvedAccounts: [
-          { address: "signer", signer: true, writable: true },
-          { address: "program", signer: false, writable: false },
-          { address: "alt-w1", signer: false, writable: true },
-          { address: "alt-r1", signer: false, writable: false },
+          staticAccount({ address: "signer", signer: true, writable: true }),
+          staticAccount({ address: "program", signer: false, writable: false }),
+          lookupTableAccount({ address: "alt-w1", signer: false, writable: true }, "ALT-A"),
+          lookupTableAccount({ address: "alt-r1", signer: false, writable: false }, "ALT-A"),
         ],
         numRequiredSignatures: 1,
         numReadonlySignedAccounts: 0,
@@ -331,8 +347,12 @@ describe("transaction payload builder", () => {
     );
 
     expect(result.entity.accounts).toHaveLength(4);
-    expect(result.entity.accounts[2]).toEqual({ address: "alt-w1", signer: false, writable: true });
-    expect(result.entity.accounts[3]).toEqual({ address: "alt-r1", signer: false, writable: false });
+    expect(result.entity.accounts[2]).toEqual(
+      lookupTableAccount({ address: "alt-w1", signer: false, writable: true }, "ALT-A"),
+    );
+    expect(result.entity.accounts[3]).toEqual(
+      lookupTableAccount({ address: "alt-r1", signer: false, writable: false }, "ALT-A"),
+    );
     expect(result.entity.instructions[0]!.accounts).toEqual(["signer", "alt-w1", "alt-r1"]);
   });
 

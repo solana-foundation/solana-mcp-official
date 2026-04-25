@@ -66,10 +66,21 @@ export type CompiledInnerInstruction = {
 
 export type TransactionVersion = "legacy" | 0 | 1 | null;
 
-export type ResolvedAccount = {
+export type AccountRole = {
   address: string;
   signer: boolean;
   writable: boolean;
+};
+
+export type ResolvedAccount = AccountRole & {
+  source: "static" | "lookupTable";
+  lookupTableAddress?: string;
+};
+
+export type AddressTableLookup = {
+  accountKey: string;
+  writableIndexes: readonly number[];
+  readonlyIndexes: readonly number[];
 };
 
 export type TransactionProbeEnvelope = {
@@ -97,6 +108,7 @@ export type TransactionProbeEnvelope = {
       accountKeys: readonly (string | { pubkey: string })[];
       recentBlockhash?: string;
       instructions: readonly CompiledInstruction[];
+      addressTableLookups?: readonly AddressTableLookup[];
     };
   };
 } | null;
@@ -266,11 +278,7 @@ type TransactionPayloadEntityBase = {
   confirmation_status: ConfirmationStatus | null;
   confirmations: number | "max" | null;
   log_messages: readonly string[] | null;
-  accounts: {
-    address: string;
-    signer: boolean;
-    writable: boolean;
-  }[];
+  accounts: ResolvedAccount[];
   instructions: {
     program_id: string;
     accounts: string[];

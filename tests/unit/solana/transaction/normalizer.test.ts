@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
+import type { AccountRole, ResolvedAccount } from "../../../../lib/solana/types";
 import { normalizeTransactionProbe } from "../../../../lib/solana/transaction/normalizer";
+
+function staticAccount(role: AccountRole): ResolvedAccount {
+  return { ...role, source: "static" };
+}
+
+function lookupTableAccount(role: AccountRole, lookupTableAddress?: string): ResolvedAccount {
+  return { ...role, source: "lookupTable", ...(lookupTableAddress != null && { lookupTableAddress }) };
+}
 
 function makeFullEnvelope(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -854,14 +863,14 @@ describe("transaction normalizer", () => {
     expect(normalized!.feeLamports).toBe(String(unsafeNumber));
   });
 
-  it("includes resolvedAccounts in normalized output", () => {
+  it("includes resolvedAccounts with source in normalized output", () => {
     const normalized = normalizeTransactionProbe("sig", makeFullEnvelope() as never);
 
     expect(normalized!.resolvedAccounts).toEqual([
-      { address: "signer-1", signer: true, writable: true },
-      { address: "signer-2", signer: true, writable: false },
-      { address: "program-1", signer: false, writable: true },
-      { address: "readonly-1", signer: false, writable: false },
+      staticAccount({ address: "signer-1", signer: true, writable: true }),
+      staticAccount({ address: "signer-2", signer: true, writable: false }),
+      staticAccount({ address: "program-1", signer: false, writable: true }),
+      staticAccount({ address: "readonly-1", signer: false, writable: false }),
     ]);
   });
 
@@ -894,11 +903,53 @@ describe("transaction normalizer", () => {
 
     expect(normalized!.accountKeys).toEqual(["signer", "program", "alt-w1", "alt-r1"]);
     expect(normalized!.resolvedAccounts).toEqual([
-      { address: "signer", signer: true, writable: true },
-      { address: "program", signer: false, writable: false },
-      { address: "alt-w1", signer: false, writable: true },
-      { address: "alt-r1", signer: false, writable: false },
+      staticAccount({ address: "signer", signer: true, writable: true }),
+      staticAccount({ address: "program", signer: false, writable: false }),
+      lookupTableAccount({ address: "alt-w1", signer: false, writable: true }),
+      lookupTableAccount({ address: "alt-r1", signer: false, writable: false }),
     ]);
+  });
+
+  it("tags loaded accounts with their lookup table address", () => {
+    const normalized = normalizeTransactionProbe(
+      "sig",
+      makeFullEnvelope({
+        version: 0,
+        meta: {
+          err: null,
+          fee: 5000,
+          loadedAddresses: {
+            writable: ["alt-w1", "alt-w2"],
+            readonly: ["alt-r1"],
+          },
+        },
+        transaction: {
+          message: {
+            header: {
+              numRequiredSignatures: 1,
+              numReadonlySignedAccounts: 0,
+              numReadonlyUnsignedAccounts: 0,
+            },
+            accountKeys: ["signer"],
+            instructions: [{ programIdIndex: 0, accounts: [0], data: "3Bxs" }],
+            addressTableLookups: [
+              { accountKey: "ALT-A", writableIndexes: [0], readonlyIndexes: [1] },
+              { accountKey: "ALT-B", writableIndexes: [2], readonlyIndexes: [] },
+            ],
+          },
+        },
+      }) as never,
+    );
+
+    expect(normalized!.resolvedAccounts[1]).toEqual(
+      lookupTableAccount({ address: "alt-w1", signer: false, writable: true }, "ALT-A"),
+    );
+    expect(normalized!.resolvedAccounts[2]).toEqual(
+      lookupTableAccount({ address: "alt-w2", signer: false, writable: true }, "ALT-B"),
+    );
+    expect(normalized!.resolvedAccounts[3]).toEqual(
+      lookupTableAccount({ address: "alt-r1", signer: false, writable: false }, "ALT-A"),
+    );
   });
 
   it("v0 instruction index into loaded address range passes validation", () => {
