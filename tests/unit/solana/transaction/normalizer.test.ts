@@ -192,9 +192,9 @@ describe("transaction normalizer", () => {
   });
 
   it("throws on unsupported bigint version", () => {
-    expect(() =>
-      normalizeTransactionProbe("sig", makeFullEnvelope({ version: BigInt(99) }) as never),
-    ).toThrow("unsupported version 99");
+    expect(() => normalizeTransactionProbe("sig", makeFullEnvelope({ version: BigInt(99) }) as never)).toThrow(
+      "unsupported version 99",
+    );
   });
 
   it("normalizes computeUnitsConsumed from bigint", () => {
