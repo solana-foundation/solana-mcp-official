@@ -1,4 +1,4 @@
-import type { MetaplexMetadataResult } from "./metaplex-metadata";
+import type { MetaplexMetadataResult } from "./resolvers/metaplex-metadata";
 export type { MetaplexMetadataResult };
 
 // Inlined from resolvers/security-txt-parser.ts (ported in Step 5)

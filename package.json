@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.52",
+    "@coral-xyz/anchor": "^0.32.1",
     "@duneanalytics/client-sdk": "^0.3.5",
     "@inkeep/inkeep-analytics": "0.2.4-alpha.36",
     "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
@@ -41,6 +42,7 @@
     "@noble/hashes": "^2.0.1",
     "@solana-program/address-lookup-table": "^0.11.0",
     "@solana-program/loader-v3": "^0.3.0",
+    "@solana-program/program-metadata": "^0.5.1",
     "@solana-program/stake": "^0.6.0",
     "@solana-program/token": "^0.13.0",
     "@solana-program/token-2022": "^0.9.0",

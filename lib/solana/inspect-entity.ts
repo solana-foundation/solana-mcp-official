@@ -17,18 +17,14 @@ import type {
   SecurityMetadataResult,
   VerificationResult,
 } from "./types";
-import { resolveMetaplexMetadata } from "./metaplex-metadata";
+import { resolveMetaplexMetadata } from "./resolvers/metaplex-metadata";
 import { fetchAccountInfo, fetchAsset, fetchSignatureStatus, fetchTransaction, isSourceUnavailableError } from "./rpc";
 import { SUPPORTED_CLUSTERS, type SupportedCluster } from "./constants";
-import {
-  currentlyUnsupported,
-  internalError,
-  invalidArgument,
-  notFound,
-  sanitizeToolError,
-  toToolResult,
-} from "./errors";
+import { type McpToolError, internalError, invalidArgument, notFound, sanitizeToolError, toToolResult } from "./errors";
 import { enrichUpgradeableProgramData, normalizeAccountProbe } from "./account-normalizer";
+import { normalizeTransactionProbe } from "./transaction/normalizer";
+import { buildTransactionPayload } from "./transaction/build-payload";
+import { resolveProgramIdl } from "./resolvers/idl";
 import { logger } from "../observability/logger";
 
 export const inspectEntityInputSchema = z
@@ -64,7 +60,6 @@ type InspectEntityDependencies = {
   fetchSignatureStatus: typeof fetchSignatureStatus;
 };
 
-// Enrichment resolvers stubbed until Steps 5-6 port the real implementations.
 const defaultDependencies: InspectEntityDependencies = {
   fetchAccountInfo,
   fetchTransaction,
@@ -72,7 +67,7 @@ const defaultDependencies: InspectEntityDependencies = {
   resolveProgramVerification: async () => ({ status: "unverified" as const }),
   resolveProgramSecurityMetadata: async () => ({ status: "missing" as const }),
   resolveMultisigReference: async () => ({ status: "not_multisig" as const }),
-  resolveProgramIdl: async () => ({ status: "not_found" as const }),
+  resolveProgramIdl,
   resolveMetaplexMetadata,
   fetchSignatureStatus,
 };
@@ -91,6 +86,13 @@ function toNotFoundPayload(kind: "account" | "transaction"): Record<string, unkn
     entity: {
       kind,
     },
+  };
+}
+
+function safeCatch<T>(resolver: string, identifier: string, fallback: T) {
+  return (error: unknown): T => {
+    logger.warn({ event: "inspect_entity.safety_catch", resolver, identifier, error });
+    return fallback;
   };
 }
 
@@ -132,46 +134,29 @@ async function resolveAccount(
             enrichedAccount.programDataRawBase64 ?? null,
             cluster,
           )
-          .catch((error): VerificationResult => {
-            logger.warn({
-              event: "inspect_entity.safety_catch",
-              resolver: "verification",
-              identifier,
-              error,
-            });
-            return { status: "unknown", reason: "source_unavailable" };
-          }),
+          .catch(
+            safeCatch<VerificationResult>("verification", identifier, {
+              status: "unknown",
+              reason: "source_unavailable",
+            }),
+          ),
         dependencies
           .resolveProgramSecurityMetadata(identifier, enrichedAccount.programDataRawBase64 ?? null, cluster)
-          .catch((error): SecurityMetadataResult => {
-            logger.warn({
-              event: "inspect_entity.safety_catch",
-              resolver: "security_metadata",
-              identifier,
-              error,
-            });
-            return { status: "unknown", reason: "source_unavailable" };
+          .catch(
+            safeCatch<SecurityMetadataResult>("security_metadata", identifier, {
+              status: "unknown",
+              reason: "source_unavailable",
+            }),
+          ),
+        dependencies.resolveMultisigReference(enrichedAccount.programData?.authority ?? null, cluster).catch(
+          safeCatch<MultisigReferenceResult>("multisig", identifier, {
+            status: "unknown",
+            reason: "source_unavailable",
           }),
+        ),
         dependencies
-          .resolveMultisigReference(enrichedAccount.programData?.authority ?? null, cluster)
-          .catch((error): MultisigReferenceResult => {
-            logger.warn({
-              event: "inspect_entity.safety_catch",
-              resolver: "multisig",
-              identifier,
-              error,
-            });
-            return { status: "unknown", reason: "source_unavailable" };
-          }),
-        dependencies.resolveProgramIdl(identifier, cluster).catch((error): IdlDiscoveryResult => {
-          logger.warn({
-            event: "inspect_entity.safety_catch",
-            resolver: "idl",
-            identifier,
-            error,
-          });
-          return { status: "unknown", reason: "source_unavailable" };
-        }),
+          .resolveProgramIdl(identifier, cluster)
+          .catch(safeCatch<IdlDiscoveryResult>("idl", identifier, { status: "unknown", reason: "source_unavailable" })),
       ]);
     }
 
@@ -182,12 +167,7 @@ async function resolveAccount(
         const rawAsset = await dependencies.fetchAsset(identifier, cluster);
         dasOutcome = normalizeDasOutcome(rawAsset);
       } catch (error) {
-        logger.warn({
-          event: "inspect_entity.safety_catch",
-          resolver: "das",
-          identifier,
-          error,
-        });
+        logger.warn({ event: "inspect_entity.safety_catch", resolver: "das", identifier, error });
         dasOutcome = null;
       }
     }
@@ -197,17 +177,12 @@ async function resolveAccount(
     let metaplexMetadataResult: MetaplexMetadataResult | undefined;
 
     if (finalKind === "spl-token:mint" || finalKind === "spl-token-2022:mint") {
-      metaplexMetadataResult = await dependencies
-        .resolveMetaplexMetadata(identifier, cluster)
-        .catch((error): MetaplexMetadataResult => {
-          logger.warn({
-            event: "inspect_entity.safety_catch",
-            resolver: "metaplex_metadata",
-            identifier,
-            error,
-          });
-          return { status: "unknown", reason: "source_unavailable" };
-        });
+      metaplexMetadataResult = await dependencies.resolveMetaplexMetadata(identifier, cluster).catch(
+        safeCatch<MetaplexMetadataResult>("metaplex_metadata", identifier, {
+          status: "unknown",
+          reason: "source_unavailable",
+        }),
+      );
     }
 
     const payload = buildAccountPayload({
@@ -246,16 +221,62 @@ async function resolveAccount(
   }
 }
 
-// Transaction resolution — stub until Step 4 ports the real normalizer/builder.
 async function resolveTransaction(
-  _identifier: string,
-  _cluster: SupportedCluster,
-  _dependencies: InspectEntityDependencies,
+  identifier: string,
+  cluster: SupportedCluster,
+  dependencies: InspectEntityDependencies,
 ): Promise<CallToolResult> {
-  return toToolResult({
-    payload: {},
-    errors: [currentlyUnsupported("Transaction inspection is not yet available.")],
-  });
+  try {
+    const [transactionProbe, signatureStatus] = await Promise.all([
+      dependencies.fetchTransaction(identifier, cluster),
+      dependencies.fetchSignatureStatus(identifier, cluster).catch(error => {
+        logger.warn({
+          event: "inspect_entity.safety_catch",
+          resolver: "signature_status",
+          identifier,
+          error,
+        });
+        return null;
+      }),
+    ]);
+    const transactionContext = normalizeTransactionProbe(identifier, transactionProbe, signatureStatus);
+
+    if (transactionContext === null) {
+      return toToolResult({
+        payload: toNotFoundPayload("transaction"),
+        errors: [notFound()],
+      });
+    }
+
+    const errors: McpToolError[] = [];
+    if (signatureStatus === null) {
+      errors.push(internalError("Confirmation status temporarily unavailable."));
+    }
+
+    return toToolResult({
+      payload: buildTransactionPayload(transactionContext),
+      errors,
+      isError: false,
+    });
+  } catch (error) {
+    logger.error({
+      event: "inspect_entity.resolve_transaction_failed",
+      identifier,
+      error,
+    });
+
+    if (isSourceUnavailableError(error)) {
+      return toToolResult({
+        payload: toSourceUnavailablePayload("transaction"),
+        errors: [internalError()],
+      });
+    }
+
+    return toToolResult({
+      payload: {},
+      errors: [internalError()],
+    });
+  }
 }
 
 export async function handleInspectEntity(
