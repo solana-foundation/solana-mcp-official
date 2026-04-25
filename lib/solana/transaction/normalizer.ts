@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import type {
   CompiledInnerInstruction,
   CompiledInstruction,
@@ -10,6 +12,8 @@ import type {
 import { asSafeNumeric } from "../parse-helpers";
 import { logger } from "../../observability/logger";
 import { selectAccountResolver } from "./account-resolver";
+
+const transactionVersionSchema = z.union([z.literal("legacy"), z.literal(0), z.literal(1), z.null()]);
 
 function toAccountKeyString(accountKey: string | { pubkey: string }): string {
   if (typeof accountKey === "string") {
@@ -169,7 +173,12 @@ export function normalizeTransactionProbe(
   validateHeaderIntegrity(header, staticKeys.length);
 
   const rawVersion = envelope.version ?? null;
-  const version = (typeof rawVersion === "bigint" ? Number(rawVersion) : rawVersion) as TransactionVersion;
+  const coerced = typeof rawVersion === "bigint" ? Number(rawVersion) : rawVersion;
+  const parsed = transactionVersionSchema.safeParse(coerced);
+  if (!parsed.success) {
+    throw new Error(`Unexpected transaction probe: unsupported version ${String(coerced)}.`);
+  }
+  const version: TransactionVersion = parsed.data;
   const resolver = selectAccountResolver(version);
   const { accountKeys: allKeys, resolvedAccounts } = resolver({
     staticKeys,

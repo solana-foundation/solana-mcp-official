@@ -149,6 +149,54 @@ describe("transaction normalizer", () => {
     });
   });
 
+  it("coerces bigint version from @solana/kit to number", () => {
+    expect(normalizeTransactionProbe("sig", makeFullEnvelope({ version: BigInt(0) }) as never)).toMatchObject({
+      version: 0,
+    });
+
+    expect(normalizeTransactionProbe("sig", makeFullEnvelope({ version: BigInt(1) }) as never)).toMatchObject({
+      version: 1,
+    });
+  });
+
+  it("v0 resolution triggers correctly with bigint version", () => {
+    const normalized = normalizeTransactionProbe(
+      "sig",
+      makeFullEnvelope({
+        version: BigInt(0),
+        meta: {
+          err: null,
+          fee: 5000,
+          loadedAddresses: {
+            writable: ["alt-w1"],
+            readonly: ["alt-r1"],
+          },
+        },
+        transaction: {
+          message: {
+            header: {
+              numRequiredSignatures: 1,
+              numReadonlySignedAccounts: 0,
+              numReadonlyUnsignedAccounts: 1,
+            },
+            accountKeys: ["signer", "program"],
+            instructions: [{ programIdIndex: 1, accounts: [0], data: "3Bxs" }],
+          },
+        },
+      }) as never,
+    );
+
+    expect(normalized!.accountKeys).toEqual(["signer", "program", "alt-w1", "alt-r1"]);
+    expect(normalized!.resolvedAccounts).toHaveLength(4);
+    expect(normalized!.resolvedAccounts[2]!.source).toBe("lookupTable");
+  });
+
+  it("throws on unsupported bigint version", () => {
+    expect(() =>
+      normalizeTransactionProbe("sig", makeFullEnvelope({ version: BigInt(99) }) as never),
+    ).toThrow("unsupported version 99");
+  });
+
   it("normalizes computeUnitsConsumed from bigint", () => {
     const normalized = normalizeTransactionProbe(
       "sig",
