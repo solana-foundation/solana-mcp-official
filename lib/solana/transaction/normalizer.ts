@@ -5,6 +5,7 @@ import type {
   SignatureStatusEnvelope,
   TransactionPayloadContext,
   TransactionProbeEnvelope,
+  TransactionVersion,
 } from "../types";
 import { asSafeNumeric } from "../parse-helpers";
 import { logger } from "../../observability/logger";
@@ -167,7 +168,8 @@ export function normalizeTransactionProbe(
   const staticKeys = accountKeys.map(toAccountKeyString);
   validateHeaderIntegrity(header, staticKeys.length);
 
-  const version = envelope.version ?? null;
+  const rawVersion = envelope.version ?? null;
+  const version = (typeof rawVersion === "bigint" ? Number(rawVersion) : rawVersion) as TransactionVersion;
   const resolver = selectAccountResolver(version);
   const { accountKeys: allKeys, resolvedAccounts } = resolver({
     staticKeys,

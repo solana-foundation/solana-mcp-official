@@ -86,7 +86,8 @@ export type AddressTableLookup = {
 export type TransactionProbeEnvelope = {
   slot: number | bigint;
   blockTime: number | bigint | null;
-  version?: TransactionVersion;
+  /** @solana/kit returns version as bigint (0n) or "legacy". Normalized to TransactionVersion by the normalizer. */
+  version?: "legacy" | bigint | null;
   meta: {
     err: unknown;
     fee: number | bigint;

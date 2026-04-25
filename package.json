@@ -10,6 +10,7 @@
     "audit:security": "pnpm audit --audit-level=high",
     "build": "tsup",
     "dev:local": "vercel dev --local",
+    "dev:mcp": "tsx api/start.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "inspector": "npx -y @modelcontextprotocol/inspector npx mcp-remote http://localhost:3000/mcp",

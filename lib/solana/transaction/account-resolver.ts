@@ -46,9 +46,10 @@ function classifyStaticKeys(staticKeys: string[], header: MessageHeader): Resolv
  * correspond 1:1 with the flattened `loadedAddresses.writable` and
  * `loadedAddresses.readonly` arrays respectively.
  */
-function buildLookupTableMap(
-  addressTableLookups: readonly AddressTableLookup[] | undefined,
-): { writableMap: string[]; readonlyMap: string[] } {
+function buildLookupTableMap(addressTableLookups: readonly AddressTableLookup[] | undefined): {
+  writableMap: string[];
+  readonlyMap: string[];
+} {
   const writableMap: string[] = [];
   const readonlyMap: string[] = [];
 
@@ -102,16 +103,8 @@ export function resolveV0Accounts(params: AccountResolutionParams): AccountResol
   }));
 
   return {
-    accountKeys: [
-      ...staticKeys,
-      ...loadedWritable,
-      ...loadedReadonly,
-    ],
-    resolvedAccounts: [
-      ...staticAccounts,
-      ...loadedWritableAccounts,
-      ...loadedReadonlyAccounts,
-    ],
+    accountKeys: [...staticKeys, ...loadedWritable, ...loadedReadonly],
+    resolvedAccounts: [...staticAccounts, ...loadedWritableAccounts, ...loadedReadonlyAccounts],
   };
 }
 

@@ -1040,10 +1040,7 @@ describe("transaction normalizer", () => {
   });
 
   it("version 1 flows through to context", () => {
-    const normalized = normalizeTransactionProbe(
-      "sig",
-      makeFullEnvelope({ version: 1 }) as never,
-    );
+    const normalized = normalizeTransactionProbe("sig", makeFullEnvelope({ version: 1 }) as never);
 
     expect(normalized!.version).toBe(1);
     expect(normalized!.resolvedAccounts).toHaveLength(4);
