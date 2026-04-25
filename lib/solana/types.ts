@@ -72,10 +72,9 @@ export type AccountRole = {
   writable: boolean;
 };
 
-export type ResolvedAccount = AccountRole & {
-  source: "static" | "lookupTable";
-  lookupTableAddress?: string;
-};
+export type ResolvedAccount =
+  | (AccountRole & { source: "static" })
+  | (AccountRole & { source: "lookupTable"; lookupTableAddress?: string });
 
 export type AddressTableLookup = {
   accountKey: string;
@@ -248,7 +247,9 @@ type TransactionPayloadContextBase = {
   recentBlockhash: string | null;
   confirmationStatus: ConfirmationStatus | null;
   confirmations: number | "max" | null;
+  /** All account keys in instruction-index order (static + loaded for v0). */
   accountKeys: string[];
+  /** Parallel to accountKeys — resolvedAccounts[i].address === accountKeys[i]. */
   resolvedAccounts: ResolvedAccount[];
   numRequiredSignatures: number;
   numReadonlySignedAccounts: number;

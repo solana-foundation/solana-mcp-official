@@ -135,6 +135,7 @@ export function selectAccountResolver(version: TransactionVersion): TransactionA
   switch (version) {
     case "legacy":
     case null:
+    // SIMD-0385 v1 uses a flat address array with no ALTs — same resolution as legacy.
     case 1:
       return resolveStaticAccounts;
     case 0:

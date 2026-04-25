@@ -361,4 +361,41 @@ describe("transaction payload builder", () => {
 
     expect(result.entity.transaction_version).toBe(1);
   });
+
+  it("throws on out-of-bounds instruction account index", () => {
+    expect(() =>
+      buildTransactionPayload(
+        makeFullContext({
+          accountKeys: ["signer"],
+          resolvedAccounts: [staticAccount({ address: "signer", signer: true, writable: true })],
+          numRequiredSignatures: 1,
+          numReadonlySignedAccounts: 0,
+          numReadonlyUnsignedAccounts: 0,
+          instructions: [{ programIdIndex: 5, accounts: [0], data: "abc" }],
+          innerInstructions: null,
+        }),
+      ),
+    ).toThrow("account index 5 out of bounds for 1 keys");
+  });
+
+  it("throws on out-of-bounds inner instruction account index", () => {
+    expect(() =>
+      buildTransactionPayload(
+        makeFullContext({
+          accountKeys: ["signer", "program"],
+          resolvedAccounts: [
+            staticAccount({ address: "signer", signer: true, writable: true }),
+            staticAccount({ address: "program", signer: false, writable: false }),
+          ],
+          numRequiredSignatures: 1,
+          numReadonlySignedAccounts: 0,
+          numReadonlyUnsignedAccounts: 1,
+          instructions: [{ programIdIndex: 1, accounts: [0], data: "abc" }],
+          innerInstructions: [
+            { index: 0, instructions: [{ programIdIndex: 1, accounts: [99], data: "def" }] },
+          ],
+        }),
+      ),
+    ).toThrow("account index 99 out of bounds for 2 keys");
+  });
 });
