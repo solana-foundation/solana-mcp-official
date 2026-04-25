@@ -73,12 +73,13 @@ export async function resolveProgramIdl(
   programAddress: string,
   cluster: SupportedCluster,
 ): Promise<IdlDiscoveryResult> {
-  const pmp = await tryPmpIdlSource(programAddress, cluster);
+  const [pmp, anchor] = await Promise.all([
+    tryPmpIdlSource(programAddress, cluster),
+    tryAnchorIdlSource(programAddress, cluster),
+  ]);
+
   if (pmp.status === "found") return pmp;
-
-  const anchor = await tryAnchorIdlSource(programAddress, cluster);
   if (anchor.status === "found") return anchor;
-
   if (pmp.status === "unknown") return pmp;
   if (anchor.status === "unknown") return anchor;
   return { status: "not_found" };

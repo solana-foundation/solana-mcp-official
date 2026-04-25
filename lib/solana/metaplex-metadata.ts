@@ -1,5 +1,5 @@
 import { fetchMetadata, findMetadataPda, mplTokenMetadata, type Metadata, TokenStandard } from "@metaplex-foundation/mpl-token-metadata";
-import { publicKey, type Umi } from "@metaplex-foundation/umi";
+import { AccountNotFoundError, publicKey, type Umi } from "@metaplex-foundation/umi";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { raceWithTimeout } from "./timeout";
 import { logger } from "../observability/logger";
@@ -122,13 +122,18 @@ export async function resolveMetaplexMetadata(
 
     return normalizeMetadata(metadata);
   } catch (error) {
-    // UMI throws when the account doesn't exist (e.g., fungible tokens without metadata)
+    if (error instanceof AccountNotFoundError) {
+      return { status: "not_found" };
+    }
+
+    // Fallback: string match for UMI errors that don't use the typed class
     const message = error instanceof Error ? error.message : String(error);
     if (
       message.includes("could not find account") ||
       message.includes("Account does not exist") ||
       message.includes("The account of type")
     ) {
+      logger.warn({ event: "metaplex_metadata.string_match_not_found", mintAddress, message });
       return { status: "not_found" };
     }
 
