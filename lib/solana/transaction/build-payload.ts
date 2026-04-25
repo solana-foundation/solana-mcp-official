@@ -1,21 +1,5 @@
 import type { CompiledInstruction, TransactionPayloadContext, TransactionPayloadOutput } from "../types";
 
-// Solana message layout: [writable signers | readonly signers | writable non-signers | readonly non-signers]
-function buildAccounts(context: TransactionPayloadContext) {
-  const { accountKeys, numRequiredSignatures, numReadonlySignedAccounts, numReadonlyUnsignedAccounts } = context;
-
-  const readonlySignerStart = numRequiredSignatures - numReadonlySignedAccounts;
-  const readonlyUnsignedStart = accountKeys.length - numReadonlyUnsignedAccounts;
-
-  return accountKeys.map((address, i) => {
-    const signer = i < numRequiredSignatures;
-    const readonlySigned = signer && i >= readonlySignerStart;
-    const readonlyUnsigned = !signer && i >= readonlyUnsignedStart;
-    const writable = !readonlySigned && !readonlyUnsigned;
-    return { address, signer, writable };
-  });
-}
-
 function resolveAccountKey(index: number, accountKeys: string[]): string {
   const key = accountKeys[index];
   if (key === undefined) {
@@ -64,7 +48,7 @@ export function buildTransactionPayload(context: TransactionPayloadContext): Tra
     confirmation_status: context.confirmationStatus,
     confirmations: context.confirmations,
     log_messages: context.logMessages,
-    accounts: buildAccounts(context),
+    accounts: context.resolvedAccounts,
     instructions: buildInstructions(context),
   };
 

@@ -64,16 +64,28 @@ export type CompiledInnerInstruction = {
   instructions: readonly CompiledInstruction[];
 };
 
+export type TransactionVersion = "legacy" | 0 | 1 | null;
+
+export type ResolvedAccount = {
+  address: string;
+  signer: boolean;
+  writable: boolean;
+};
+
 export type TransactionProbeEnvelope = {
   slot: number | bigint;
   blockTime: number | bigint | null;
-  version?: "legacy" | 0 | null;
+  version?: TransactionVersion;
   meta: {
     err: unknown;
     fee: number | bigint;
     computeUnitsConsumed?: number | bigint | null;
     logMessages?: readonly string[] | null;
     innerInstructions?: readonly CompiledInnerInstruction[] | null;
+    loadedAddresses?: {
+      readonly writable: readonly string[];
+      readonly readonly: readonly string[];
+    } | null;
   } | null;
   transaction: {
     message: {
@@ -217,13 +229,14 @@ type TransactionPayloadContextBase = {
   slot: number;
   blockTime: SafeNumeric;
   feeLamports: SafeNumeric;
-  version: "legacy" | 0 | null;
+  version: TransactionVersion;
   computeUnitsConsumed: SafeNumeric;
   logMessages: readonly string[] | null;
   recentBlockhash: string | null;
   confirmationStatus: ConfirmationStatus | null;
   confirmations: number | "max" | null;
   accountKeys: string[];
+  resolvedAccounts: ResolvedAccount[];
   numRequiredSignatures: number;
   numReadonlySignedAccounts: number;
   numReadonlyUnsignedAccounts: number;
@@ -247,7 +260,7 @@ type TransactionPayloadEntityBase = {
   block_time: SafeNumeric;
   fee_lamports: SafeNumeric;
   signers: string[];
-  transaction_version: "legacy" | 0 | null;
+  transaction_version: TransactionVersion;
   recent_blockhash: string | null;
   compute_units_consumed: SafeNumeric;
   confirmation_status: ConfirmationStatus | null;

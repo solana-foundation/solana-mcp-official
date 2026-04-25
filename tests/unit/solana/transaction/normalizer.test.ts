@@ -853,4 +853,179 @@ describe("transaction normalizer", () => {
 
     expect(normalized!.feeLamports).toBe(String(unsafeNumber));
   });
+
+  it("includes resolvedAccounts in normalized output", () => {
+    const normalized = normalizeTransactionProbe("sig", makeFullEnvelope() as never);
+
+    expect(normalized!.resolvedAccounts).toEqual([
+      { address: "signer-1", signer: true, writable: true },
+      { address: "signer-2", signer: true, writable: false },
+      { address: "program-1", signer: false, writable: true },
+      { address: "readonly-1", signer: false, writable: false },
+    ]);
+  });
+
+  it("merges loadedAddresses for v0 transactions", () => {
+    const normalized = normalizeTransactionProbe(
+      "sig",
+      makeFullEnvelope({
+        version: 0,
+        meta: {
+          err: null,
+          fee: 5000,
+          loadedAddresses: {
+            writable: ["alt-w1"],
+            readonly: ["alt-r1"],
+          },
+        },
+        transaction: {
+          message: {
+            header: {
+              numRequiredSignatures: 1,
+              numReadonlySignedAccounts: 0,
+              numReadonlyUnsignedAccounts: 1,
+            },
+            accountKeys: ["signer", "program"],
+            instructions: [{ programIdIndex: 1, accounts: [0], data: "3Bxs" }],
+          },
+        },
+      }) as never,
+    );
+
+    expect(normalized!.accountKeys).toEqual(["signer", "program", "alt-w1", "alt-r1"]);
+    expect(normalized!.resolvedAccounts).toEqual([
+      { address: "signer", signer: true, writable: true },
+      { address: "program", signer: false, writable: false },
+      { address: "alt-w1", signer: false, writable: true },
+      { address: "alt-r1", signer: false, writable: false },
+    ]);
+  });
+
+  it("v0 instruction index into loaded address range passes validation", () => {
+    const normalized = normalizeTransactionProbe(
+      "sig",
+      makeFullEnvelope({
+        version: 0,
+        meta: {
+          err: null,
+          fee: 5000,
+          loadedAddresses: {
+            writable: ["alt-w1"],
+            readonly: ["alt-r1"],
+          },
+        },
+        transaction: {
+          message: {
+            header: {
+              numRequiredSignatures: 1,
+              numReadonlySignedAccounts: 0,
+              numReadonlyUnsignedAccounts: 0,
+            },
+            accountKeys: ["signer"],
+            instructions: [{ programIdIndex: 1, accounts: [0, 2], data: "3Bxs" }],
+          },
+        },
+      }) as never,
+    );
+
+    expect(normalized!.accountKeys).toHaveLength(3);
+  });
+
+  it("v0 instruction index beyond total range still throws", () => {
+    expect(() =>
+      normalizeTransactionProbe(
+        "sig",
+        makeFullEnvelope({
+          version: 0,
+          meta: {
+            err: null,
+            fee: 5000,
+            loadedAddresses: {
+              writable: ["alt-w1"],
+              readonly: [],
+            },
+          },
+          transaction: {
+            message: {
+              header: {
+                numRequiredSignatures: 1,
+                numReadonlySignedAccounts: 0,
+                numReadonlyUnsignedAccounts: 0,
+              },
+              accountKeys: ["signer"],
+              instructions: [{ programIdIndex: 5, accounts: [0], data: "3Bxs" }],
+            },
+          },
+        }) as never,
+      ),
+    ).toThrow("instruction index out of bounds");
+  });
+
+  it("v0 with null loadedAddresses behaves like legacy", () => {
+    const normalized = normalizeTransactionProbe(
+      "sig",
+      makeFullEnvelope({
+        version: 0,
+        meta: {
+          err: null,
+          fee: 5000,
+          loadedAddresses: null,
+        },
+        transaction: {
+          message: {
+            header: {
+              numRequiredSignatures: 1,
+              numReadonlySignedAccounts: 0,
+              numReadonlyUnsignedAccounts: 0,
+            },
+            accountKeys: ["signer"],
+            instructions: [{ programIdIndex: 0, accounts: [0], data: "3Bxs" }],
+          },
+        },
+      }) as never,
+    );
+
+    expect(normalized!.accountKeys).toEqual(["signer"]);
+  });
+
+  it("version 1 flows through to context", () => {
+    const normalized = normalizeTransactionProbe(
+      "sig",
+      makeFullEnvelope({ version: 1 }) as never,
+    );
+
+    expect(normalized!.version).toBe(1);
+    expect(normalized!.resolvedAccounts).toHaveLength(4);
+  });
+
+  it("header validation uses static key count not total", () => {
+    const normalized = normalizeTransactionProbe(
+      "sig",
+      makeFullEnvelope({
+        version: 0,
+        meta: {
+          err: null,
+          fee: 5000,
+          loadedAddresses: {
+            writable: ["alt-w1", "alt-w2", "alt-w3"],
+            readonly: [],
+          },
+        },
+        transaction: {
+          message: {
+            header: {
+              numRequiredSignatures: 2,
+              numReadonlySignedAccounts: 0,
+              numReadonlyUnsignedAccounts: 0,
+            },
+            accountKeys: ["signer-1", "signer-2"],
+            instructions: [{ programIdIndex: 0, accounts: [1], data: "3Bxs" }],
+          },
+        },
+      }) as never,
+    );
+
+    expect(normalized!.accountKeys).toHaveLength(5);
+    expect(normalized!.resolvedAccounts).toHaveLength(5);
+  });
 });

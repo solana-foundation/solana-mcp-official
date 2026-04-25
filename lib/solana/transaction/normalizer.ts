@@ -8,6 +8,7 @@ import type {
 } from "../types";
 import { asSafeNumeric } from "../parse-helpers";
 import { logger } from "../../observability/logger";
+import { selectAccountResolver } from "./account-resolver";
 
 function toAccountKeyString(accountKey: string | { pubkey: string }): string {
   if (typeof accountKey === "string") {
@@ -34,21 +35,19 @@ function validateInstructionIndices(
   }
 }
 
-function validateMessageIntegrity(
+function validateHeaderIntegrity(
   header: {
     numRequiredSignatures: number;
     numReadonlySignedAccounts: number;
     numReadonlyUnsignedAccounts: number;
   },
-  accountKeyCount: number,
-  instructions: readonly CompiledInstruction[],
-  innerInstructions: readonly CompiledInnerInstruction[] | null,
+  staticKeyCount: number,
 ): void {
   const { numRequiredSignatures, numReadonlySignedAccounts, numReadonlyUnsignedAccounts } = header;
 
-  if (numRequiredSignatures <= 0 || numRequiredSignatures > accountKeyCount) {
+  if (numRequiredSignatures <= 0 || numRequiredSignatures > staticKeyCount) {
     throw new Error(
-      `Unexpected transaction probe: numRequiredSignatures (${numRequiredSignatures}) out of range for ${accountKeyCount} account keys.`,
+      `Unexpected transaction probe: numRequiredSignatures (${numRequiredSignatures}) out of range for ${staticKeyCount} account keys.`,
     );
   }
 
@@ -60,14 +59,20 @@ function validateMessageIntegrity(
 
   if (
     numReadonlySignedAccounts >= numRequiredSignatures ||
-    numReadonlyUnsignedAccounts > accountKeyCount - numRequiredSignatures
+    numReadonlyUnsignedAccounts > staticKeyCount - numRequiredSignatures
   ) {
     throw new Error(
-      `Unexpected transaction probe: readonly counts (signed=${numReadonlySignedAccounts}, unsigned=${numReadonlyUnsignedAccounts}) exceed available accounts (signers=${numRequiredSignatures}, total=${accountKeyCount}).`,
+      `Unexpected transaction probe: readonly counts (signed=${numReadonlySignedAccounts}, unsigned=${numReadonlyUnsignedAccounts}) exceed available accounts (signers=${numRequiredSignatures}, total=${staticKeyCount}).`,
     );
   }
+}
 
-  validateInstructionIndices(instructions, accountKeyCount, "instruction");
+function validateInstructionIntegrity(
+  instructions: readonly CompiledInstruction[],
+  innerInstructions: readonly CompiledInnerInstruction[] | null,
+  totalKeyCount: number,
+): void {
+  validateInstructionIndices(instructions, totalKeyCount, "instruction");
 
   if (innerInstructions) {
     for (const group of innerInstructions) {
@@ -76,7 +81,7 @@ function validateMessageIntegrity(
           `Unexpected transaction probe: inner instruction group index (${group.index}) out of bounds for ${instructions.length} instructions.`,
         );
       }
-      validateInstructionIndices(group.instructions, accountKeyCount, "inner instruction");
+      validateInstructionIndices(group.instructions, totalKeyCount, "inner instruction");
     }
   }
 }
@@ -159,13 +164,23 @@ export function normalizeTransactionProbe(
   const meta = envelope.meta;
   const innerInstructions = meta?.innerInstructions ? Array.from(meta.innerInstructions) : null;
 
-  validateMessageIntegrity(header, accountKeys.length, instructions, innerInstructions);
+  const staticKeys = accountKeys.map(toAccountKeyString);
+  validateHeaderIntegrity(header, staticKeys.length);
+
+  const version = envelope.version ?? null;
+  const resolver = selectAccountResolver(version);
+  const { accountKeys: allKeys, resolvedAccounts } = resolver({
+    staticKeys,
+    header,
+    loadedAddresses: meta?.loadedAddresses,
+  });
+
+  validateInstructionIntegrity(instructions, innerInstructions, allKeys.length);
 
   const { numRequiredSignatures, numReadonlySignedAccounts, numReadonlyUnsignedAccounts } = header;
 
   const status = meta === null ? "unknown" : meta.err === null || meta.err === undefined ? "success" : "failed";
 
-  const version = envelope.version ?? null;
   const computeUnitsConsumed = meta ? asSafeNumeric(meta.computeUnitsConsumed ?? null) : null;
   const logMessages = meta?.logMessages ? Array.from(meta.logMessages) : null;
   const recentBlockhash = envelope.transaction.message.recentBlockhash ?? null;
@@ -177,7 +192,8 @@ export function normalizeTransactionProbe(
     slot,
     blockTime: asSafeNumeric(envelope.blockTime),
     feeLamports: meta ? asSafeNumeric(meta.fee) : null,
-    accountKeys: accountKeys.map(toAccountKeyString),
+    accountKeys: allKeys,
+    resolvedAccounts,
     numRequiredSignatures,
     version,
     computeUnitsConsumed,
