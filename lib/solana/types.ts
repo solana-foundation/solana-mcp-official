@@ -1,4 +1,4 @@
-import type { MetaplexMetadataResult } from "./metaplex-metadata";
+import type { MetaplexMetadataResult } from "./resolvers/metaplex-metadata";
 export type { MetaplexMetadataResult };
 
 // Inlined from resolvers/security-txt-parser.ts (ported in Step 5)
@@ -64,16 +64,39 @@ export type CompiledInnerInstruction = {
   instructions: readonly CompiledInstruction[];
 };
 
+export type TransactionVersion = "legacy" | 0 | 1 | null;
+
+export type AccountRole = {
+  address: string;
+  signer: boolean;
+  writable: boolean;
+};
+
+export type ResolvedAccount =
+  | (AccountRole & { source: "static" })
+  | (AccountRole & { source: "lookupTable"; lookupTableAddress?: string });
+
+export type AddressTableLookup = {
+  accountKey: string;
+  writableIndexes: readonly number[];
+  readonlyIndexes: readonly number[];
+};
+
 export type TransactionProbeEnvelope = {
   slot: number | bigint;
   blockTime: number | bigint | null;
-  version?: "legacy" | 0 | null;
+  /** @solana/kit returns version as bigint (0n) or "legacy". Normalized to TransactionVersion by the normalizer. */
+  version?: "legacy" | bigint | null;
   meta: {
     err: unknown;
     fee: number | bigint;
     computeUnitsConsumed?: number | bigint | null;
     logMessages?: readonly string[] | null;
     innerInstructions?: readonly CompiledInnerInstruction[] | null;
+    loadedAddresses?: {
+      readonly writable: readonly string[];
+      readonly readonly: readonly string[];
+    } | null;
   } | null;
   transaction: {
     message: {
@@ -85,6 +108,7 @@ export type TransactionProbeEnvelope = {
       accountKeys: readonly (string | { pubkey: string })[];
       recentBlockhash?: string;
       instructions: readonly CompiledInstruction[];
+      addressTableLookups?: readonly AddressTableLookup[];
     };
   };
 } | null;
@@ -217,13 +241,16 @@ type TransactionPayloadContextBase = {
   slot: number;
   blockTime: SafeNumeric;
   feeLamports: SafeNumeric;
-  version: "legacy" | 0 | null;
+  version: TransactionVersion;
   computeUnitsConsumed: SafeNumeric;
   logMessages: readonly string[] | null;
   recentBlockhash: string | null;
   confirmationStatus: ConfirmationStatus | null;
   confirmations: number | "max" | null;
+  /** All account keys in instruction-index order (static + loaded for v0). */
   accountKeys: string[];
+  /** Parallel to accountKeys — resolvedAccounts[i].address === accountKeys[i]. */
+  resolvedAccounts: ResolvedAccount[];
   numRequiredSignatures: number;
   numReadonlySignedAccounts: number;
   numReadonlyUnsignedAccounts: number;
@@ -247,17 +274,13 @@ type TransactionPayloadEntityBase = {
   block_time: SafeNumeric;
   fee_lamports: SafeNumeric;
   signers: string[];
-  transaction_version: "legacy" | 0 | null;
+  transaction_version: TransactionVersion;
   recent_blockhash: string | null;
   compute_units_consumed: SafeNumeric;
   confirmation_status: ConfirmationStatus | null;
   confirmations: number | "max" | null;
   log_messages: readonly string[] | null;
-  accounts: {
-    address: string;
-    signer: boolean;
-    writable: boolean;
-  }[];
+  accounts: ResolvedAccount[];
   instructions: {
     program_id: string;
     accounts: string[];

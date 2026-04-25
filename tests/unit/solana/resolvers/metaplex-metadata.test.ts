@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { buildMetaplexMetadataField } from "../../../lib/solana/account-kinds/shared";
-import type { MetaplexMetadataResult } from "../../../lib/solana/types";
+import { buildMetaplexMetadataField } from "../../../../lib/solana/account-kinds/shared";
+import type { MetaplexMetadataResult } from "../../../../lib/solana/types";
 
 describe("buildMetaplexMetadataField", () => {
   it("returns null when result is undefined", () => {

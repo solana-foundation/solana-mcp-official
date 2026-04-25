@@ -2,35 +2,33 @@
   "name": "solana-mcp",
   "version": "1.0.0",
   "description": "",
+  "keywords": [],
+  "license": "ISC",
+  "author": "",
   "main": "index.js",
   "scripts": {
-    "start": "vercel dev",
-    "dev:local": "vercel dev --local",
+    "audit:security": "pnpm audit --audit-level=high",
     "build": "tsup",
-    "start:app": "node dist/start.js",
-    "test": "pnpm test:integration",
-    "test:integration": "vitest run tests/integration.test.ts tests/unit/",
-    "test:e2e": "vitest run tests/e2e.test.ts",
-    "test:coverage": "vitest run --coverage",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "dev:local": "vercel dev --local",
+    "dev:mcp": "tsx api/start.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "inspector": "npx -y @modelcontextprotocol/inspector npx mcp-remote http://localhost:3000/mcp",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "start": "vercel dev",
+    "start:app": "node dist/start.js",
+    "test": "pnpm test:integration",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "vitest run tests/e2e.test.ts",
+    "test:integration": "vitest run tests/integration.test.ts tests/unit/",
     "typecheck": "pnpm typecheck:ts && pnpm typecheck:vitest",
     "typecheck:ts": "tsc --noEmit",
-    "typecheck:vitest": "vitest --run --typecheck.only",
-    "inspector": "npx -y @modelcontextprotocol/inspector npx mcp-remote http://localhost:3000/mcp",
-    "audit:security": "pnpm audit --audit-level=high"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.30.0",
-  "engines": {
-    "node": "24.x"
+    "typecheck:vitest": "vitest --run --typecheck.only"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.52",
+    "@coral-xyz/anchor": "^0.32.1",
     "@duneanalytics/client-sdk": "^0.3.5",
     "@inkeep/inkeep-analytics": "0.2.4-alpha.36",
     "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
@@ -41,6 +39,7 @@
     "@noble/hashes": "^2.0.1",
     "@solana-program/address-lookup-table": "^0.11.0",
     "@solana-program/loader-v3": "^0.3.0",
+    "@solana-program/program-metadata": "^0.5.1",
     "@solana-program/stake": "^0.6.0",
     "@solana-program/token": "^0.13.0",
     "@solana-program/token-2022": "^0.9.0",
@@ -72,5 +71,9 @@
     "typescript-eslint": "^8.57.2",
     "vercel": "^52.0.0",
     "vitest": "^4.1.3"
+  },
+  "packageManager": "pnpm@10.30.0",
+  "engines": {
+    "node": "24.x"
   }
 }
