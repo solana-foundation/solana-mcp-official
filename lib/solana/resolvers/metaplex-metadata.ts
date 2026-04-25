@@ -21,6 +21,8 @@ export async function resolveMetaplexMetadata(
     return normalizeMetadata(metadata);
   } catch (error) {
     // UMI throws when the account doesn't exist (e.g., fungible tokens without metadata)
+    // TODO(@rogaldh): tighten error-substring classifier — match specific UMI error
+    // types or codes instead of fragile substring checks.
     const message = error instanceof Error ? error.message : String(error);
     if (
       message.includes("could not find account") ||
