@@ -79,7 +79,8 @@ describe("resolveProgramIdl", () => {
       idl_type: "anchor",
       program_name: "test_program",
     });
-    expect(fetchAnchorIdl).not.toHaveBeenCalled();
+    expect(fetchPmpIdlMetadata).toHaveBeenCalled();
+    expect(fetchAnchorIdl).toHaveBeenCalled();
   });
 
   it("falls through to Anchor when PMP returns null", async () => {
