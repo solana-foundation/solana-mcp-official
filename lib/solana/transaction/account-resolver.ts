@@ -1,4 +1,5 @@
 import type { AddressTableLookup, ResolvedAccount, TransactionVersion } from "../types";
+import { logger } from "../../observability/logger";
 
 type MessageHeader = {
   numRequiredSignatures: number;
@@ -81,10 +82,32 @@ export function resolveV0Accounts(params: AccountResolutionParams): AccountResol
   const { staticKeys, header, loadedAddresses, addressTableLookups } = params;
   const staticAccounts = classifyStaticKeys(staticKeys, header);
 
+  if (addressTableLookups?.length && !loadedAddresses) {
+    logger.warn({
+      event: "account_resolver.v0_missing_loaded_addresses",
+      lookupCount: addressTableLookups.length,
+    });
+  }
+
   const loadedWritable = loadedAddresses?.writable ?? [];
   const loadedReadonly = loadedAddresses?.readonly ?? [];
 
   const { writableMap, readonlyMap } = buildLookupTableMap(addressTableLookups);
+
+  if (addressTableLookups && loadedWritable.length !== writableMap.length) {
+    logger.warn({
+      event: "account_resolver.writable_lookup_mismatch",
+      loadedCount: loadedWritable.length,
+      lookupCount: writableMap.length,
+    });
+  }
+  if (addressTableLookups && loadedReadonly.length !== readonlyMap.length) {
+    logger.warn({
+      event: "account_resolver.readonly_lookup_mismatch",
+      loadedCount: loadedReadonly.length,
+      lookupCount: readonlyMap.length,
+    });
+  }
 
   const loadedWritableAccounts: ResolvedAccount[] = loadedWritable.map((address, i) => ({
     address,
