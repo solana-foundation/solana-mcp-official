@@ -20,6 +20,8 @@ class ReadOnlyWallet {
   }
 }
 
+// TODO: cache providers per endpoint (Map<string, AnchorProvider>) to avoid
+// re-establishing connections on every call — parity with umiCache in metaplex-umi.ts
 export function createReadOnlyProvider(cluster: SupportedCluster): AnchorProvider {
   const endpoint = resolveRpcEndpoint(cluster);
   const connection = new Connection(endpoint, {
