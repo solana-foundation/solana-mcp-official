@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { resources } from "../lib/resources";
 import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
 import type { SolanaTool } from "../lib/tools/types";
 
@@ -17,7 +16,6 @@ import { createMcp } from "../lib";
 type InitializeServer = (server: {
   registerTool: (...args: unknown[]) => unknown;
   tool: (...args: unknown[]) => unknown;
-  resource: (...args: unknown[]) => unknown;
   prompt: (...args: unknown[]) => unknown;
 }) => Promise<void> | void;
 
@@ -120,18 +118,16 @@ describe("createMcp", () => {
     expect(config.redisUrl).toBeUndefined();
   });
 
-  it("registers tools, resources, and startup prompt", async () => {
+  it("registers tools and startup prompt", async () => {
     createMcp();
     const [initializeServer] = createMcpHandlerMock.mock.calls[0] as [InitializeServer];
 
     const registerToolMock = vi.fn();
     const toolMock = vi.fn();
-    const resourceMock = vi.fn();
     const promptMock = vi.fn();
     const server = {
       registerTool: registerToolMock,
       tool: toolMock,
-      resource: resourceMock,
       prompt: promptMock,
     };
 
@@ -184,11 +180,6 @@ describe("createMcp", () => {
       expect(description).toBe(tool.description ?? "");
       expect(inputSchema).toBeDefined();
       expect(typeof handler).toBe("function");
-    }
-
-    expect(resourceMock).toHaveBeenCalledTimes(resources.length);
-    for (const resource of resources) {
-      expect(resourceMock).toHaveBeenCalledWith(resource.name, resource.template, resource.func);
     }
 
     expect(promptMock).toHaveBeenCalledTimes(1);

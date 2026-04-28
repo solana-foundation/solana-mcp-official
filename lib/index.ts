@@ -2,7 +2,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
 
-import { resources } from "./resources";
 import { SolanaTool } from "./tools/types";
 import { createSolanaTools } from "./tools/generalSolanaTools";
 
@@ -24,10 +23,6 @@ export function createMcp() {
         } else {
           server.tool(tool.title, tool.description ?? "", tool.parameters as z.ZodRawShape, tool.func);
         }
-      });
-
-      resources.forEach(resource => {
-        server.resource(resource.name, resource.template, resource.func);
       });
 
       server.prompt(
