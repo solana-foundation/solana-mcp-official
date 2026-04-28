@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { resources } from "../lib/resources";
-import { solanaEcosystemTools } from "../lib/tools/ecosystemSolanaTools";
-import { inspectEntityTools } from "../lib/tools/inspectEntityTools";
 import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
 import type { SolanaTool } from "../lib/tools/types";
 
@@ -51,11 +49,7 @@ function resolveGeneralSolanaTools(): SolanaTool[] {
   return [];
 }
 
-const allTools: SolanaTool[] = ([] as SolanaTool[]).concat(
-  resolveGeneralSolanaTools(),
-  solanaEcosystemTools,
-  inspectEntityTools,
-);
+const allTools: SolanaTool[] = resolveGeneralSolanaTools();
 
 describe("createMcp", () => {
   beforeEach(() => {

@@ -6,7 +6,6 @@ import { AddressInfo } from "node:net";
 import { createMcp } from "../lib";
 import type { SolanaTool } from "../lib/tools/types";
 import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
-import { solanaEcosystemTools } from "../lib/tools/ecosystemSolanaTools";
 
 const hasRequiredEnv = !!process.env.REDIS_URL;
 const describeE2e = hasRequiredEnv ? describe : describe.skip;
@@ -33,9 +32,7 @@ function resolveGeneralSolanaTools(): SolanaTool[] {
   return [];
 }
 
-const registeredToolNames = ([] as SolanaTool[])
-  .concat(resolveGeneralSolanaTools(), solanaEcosystemTools)
-  .map(tool => tool.title);
+const registeredToolNames = resolveGeneralSolanaTools().map(tool => tool.title);
 
 describeE2e("e2e", () => {
   let server: Server;
