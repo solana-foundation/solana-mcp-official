@@ -436,8 +436,8 @@ sources:
     name: GitHub metaplex-foundation/mpl-bubblegum (compressed NFTs)
     kind: github
     enabled: true
-    sections: [nft, zk]
-    use_cases: "Bubblegum compressed NFTs, state compression, merkle trees for NFT collections, low-cost NFT mints"
+    sections: [nft]
+    use_cases: "Bubblegum compressed NFTs, SPL state compression, concurrent merkle trees for NFT collections, low-cost NFT mints"
     primary_url: https://github.com/metaplex-foundation/mpl-bubblegum
     github: { owner: metaplex-foundation, repo: mpl-bubblegum, include_readmes: true, include_source_code: true }
 
@@ -1528,7 +1528,7 @@ sources:
     name: Solana Stackexchange
     kind: web
     enabled: false  # huge corpus — enable when chunking + rate-limit strategy ready
-    sections: [examples, core]
+    sections: [core]
     use_cases: "Solana StackExchange Q&A, community-answered errors, edge case discussions, debugging"
     primary_url: https://solana.stackexchange.com
     start_urls: [https://solana.stackexchange.com]
