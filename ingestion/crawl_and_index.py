@@ -25,6 +25,7 @@ import re
 import subprocess
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -65,6 +66,7 @@ dbutils.widgets.text("vs_endpoint", "<vector-search-endpoint>")
 dbutils.widgets.text("vs_index", "<catalog>.<schema>.docs_chunks_idx")
 dbutils.widgets.text("only_sources", "", "comma-separated source ids to restrict run")
 dbutils.widgets.text("max_pages_per_source", "2000")
+dbutils.widgets.text("crawl_workers", "8", "thread pool size for parallel source crawls")
 
 TARGET_TABLE = dbutils.widgets.get("target_table")
 SOURCES_PATH = dbutils.widgets.get("sources_path")
@@ -72,6 +74,7 @@ VS_ENDPOINT = dbutils.widgets.get("vs_endpoint")
 VS_INDEX = dbutils.widgets.get("vs_index")
 ONLY_SOURCES = {s.strip() for s in dbutils.widgets.get("only_sources").split(",") if s.strip()}
 MAX_PAGES = int(dbutils.widgets.get("max_pages_per_source"))
+CRAWL_WORKERS = max(1, int(dbutils.widgets.get("crawl_workers") or "8"))
 
 for _name, _value in {
     "target_table": TARGET_TABLE,
@@ -479,23 +482,31 @@ def load_sources() -> list[dict]:
         items = [s for s in items if s["id"] in ONLY_SOURCES]
     return [s for s in items if s.get("enabled", True)]
 
+def _crawl_one(s: dict, client: httpx.Client, now: datetime) -> list[Chunk]:
+    kind = s["kind"]
+    log.info("=== crawling %s (%s) ===", s["id"], kind)
+    try:
+        if kind == "web":
+            return crawl_web(s, client, now)
+        if kind == "github":
+            return crawl_github(s, now)
+        if kind == "openapi":
+            return crawl_openapi(s, client, now)
+        log.warning("unknown kind %s for %s", kind, s["id"])
+        return []
+    except Exception as e:
+        log.exception("source %s crashed: %s", s["id"], e)
+        return []
+
 def crawl_all(now: datetime) -> list[Chunk]:
+    sources = load_sources()
+    log.info("crawling %d sources with %d workers", len(sources), CRAWL_WORKERS)
     all_chunks: list[Chunk] = []
     with http_client() as client:
-        for s in load_sources():
-            kind = s["kind"]
-            log.info("=== crawling %s (%s) ===", s["id"], kind)
-            try:
-                if kind == "web":
-                    all_chunks.extend(crawl_web(s, client, now))
-                elif kind == "github":
-                    all_chunks.extend(crawl_github(s, now))
-                elif kind == "openapi":
-                    all_chunks.extend(crawl_openapi(s, client, now))
-                else:
-                    log.warning("unknown kind %s for %s", kind, s["id"])
-            except Exception as e:
-                log.exception("source %s crashed: %s", s["id"], e)
+        with ThreadPoolExecutor(max_workers=CRAWL_WORKERS) as ex:
+            futs = {ex.submit(_crawl_one, s, client, now): s["id"] for s in sources}
+            for fut in as_completed(futs):
+                all_chunks.extend(fut.result())
     return all_chunks
 
 # COMMAND ----------
