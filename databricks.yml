@@ -75,6 +75,7 @@ resources:
               vs_index: ${var.vs_index}
               sources_path: ${var.notebook_sources_path}
               max_pages_per_source: "2000"
+              crawl_workers: "8"
       schedule:
         quartz_cron_expression: "0 0 9 * * ?"  # daily 09:00 UTC
         timezone_id: UTC
