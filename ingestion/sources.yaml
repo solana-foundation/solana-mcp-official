@@ -40,9 +40,9 @@ sources:
     name: Solana > Gill Docs
     kind: web
     enabled: true
-    primary_url: https://gill.site/docs
+    primary_url: https://www.gillsdk.com/docs
     start_urls:
-      - https://gill.site/docs
+      - https://www.gillsdk.com/docs
 
   - id: solana-program-site
     name: Solana Program (solana-program.com)
@@ -69,6 +69,13 @@ sources:
     start_urls:
       - https://docs.firedancer.io
 
+  - id: anza-docs
+    name: Anza Docs (validator client)
+    kind: web
+    enabled: true
+    primary_url: https://docs.anza.xyz
+    sitemaps: [https://docs.anza.xyz/sitemap.xml]
+
   - id: zk-compression-docs
     name: ZK Compression Docs
     kind: web
@@ -82,9 +89,9 @@ sources:
     name: solana_program - Rust Docs (docs.rs)
     kind: web
     enabled: true
-    primary_url: https://docs.rs/solana-program/2.1.18/solana_program
+    primary_url: https://docs.rs/solana-program/latest/solana_program
     ingest_urls:
-      - https://docs.rs/solana-program/2.1.18/solana_program
+      - https://docs.rs/solana-program/latest/solana_program
 
   - id: solders-docs
     name: Solders Docs
@@ -120,11 +127,11 @@ sources:
 
   # --- Core GitHub repos (READMEs + source) ---
   - id: gh-anchor
-    name: GitHub coral-xyz/anchor
+    name: GitHub solana-foundation/anchor
     kind: github
     enabled: true
-    primary_url: https://github.com/coral-xyz/anchor
-    github: { owner: coral-xyz, repo: anchor, include_readmes: true, include_source_code: true }
+    primary_url: https://github.com/solana-foundation/anchor
+    github: { owner: solana-foundation, repo: anchor, include_readmes: true, include_source_code: true }
 
   - id: gh-kit
     name: GitHub anza-xyz/kit (Solana JS SDK)
@@ -196,6 +203,55 @@ sources:
     primary_url: https://github.com/solana-developers/program-examples
     github: { owner: solana-developers, repo: program-examples, include_readmes: false, include_source_code: true }
 
+  - id: gh-gill
+    name: GitHub gillsdk/gill
+    kind: github
+    enabled: true
+    primary_url: https://github.com/gillsdk/gill
+    github: { owner: gillsdk, repo: gill, include_readmes: true, include_source_code: true }
+
+  - id: gh-wallet-adapter
+    name: GitHub anza-xyz/wallet-adapter
+    kind: github
+    enabled: true
+    primary_url: https://github.com/anza-xyz/wallet-adapter
+    github: { owner: anza-xyz, repo: wallet-adapter, include_readmes: true, include_source_code: true }
+
+  - id: gh-solana-pay
+    name: GitHub solana-foundation/pay (Solana Pay)
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-foundation/pay
+    github: { owner: solana-foundation, repo: pay, include_readmes: true, include_source_code: true }
+
+  - id: gh-helpers
+    name: GitHub solana-developers/helpers
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-developers/helpers
+    github: { owner: solana-developers, repo: helpers, include_readmes: true, include_source_code: true }
+
+  - id: gh-surfpool
+    name: GitHub solana-foundation/surfpool
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-foundation/surfpool
+    github: { owner: solana-foundation, repo: surfpool, include_readmes: true, include_source_code: true }
+
+  - id: gh-steel
+    name: GitHub regolith-labs/steel
+    kind: github
+    enabled: true
+    primary_url: https://github.com/regolith-labs/steel
+    github: { owner: regolith-labs, repo: steel, include_readmes: true, include_source_code: true }
+
+  - id: gh-squads-v4
+    name: GitHub Squads-Protocol/v4
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Squads-Protocol/v4
+    github: { owner: Squads-Protocol, repo: v4, include_readmes: true, include_source_code: true }
+
   # --- SPL programs ---
   - id: gh-spl-token
     name: SPL Token
@@ -231,6 +287,49 @@ sources:
     enabled: true
     primary_url: https://github.com/solana-program/loader-v4
     github: { owner: solana-program, repo: loader-v4, include_readmes: true, include_source_code: true }
+
+  - id: gh-spl-program-metadata
+    name: SPL Program Metadata
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-program/program-metadata
+    github: { owner: solana-program, repo: program-metadata, include_readmes: true, include_source_code: true }
+
+  # --- Metaplex programs (NFT / Token metadata standards) ---
+  - id: metaplex-docs
+    name: Metaplex Docs
+    kind: web
+    enabled: true
+    primary_url: https://www.metaplex.com/docs
+    sitemaps: [https://www.metaplex.com/docs/sitemap.xml]
+
+  - id: gh-mpl-token-metadata
+    name: GitHub metaplex-foundation/mpl-token-metadata
+    kind: github
+    enabled: true
+    primary_url: https://github.com/metaplex-foundation/mpl-token-metadata
+    github: { owner: metaplex-foundation, repo: mpl-token-metadata, include_readmes: true, include_source_code: true }
+
+  - id: gh-mpl-core
+    name: GitHub metaplex-foundation/mpl-core
+    kind: github
+    enabled: true
+    primary_url: https://github.com/metaplex-foundation/mpl-core
+    github: { owner: metaplex-foundation, repo: mpl-core, include_readmes: true, include_source_code: true }
+
+  - id: gh-mpl-bubblegum
+    name: GitHub metaplex-foundation/mpl-bubblegum (compressed NFTs)
+    kind: github
+    enabled: true
+    primary_url: https://github.com/metaplex-foundation/mpl-bubblegum
+    github: { owner: metaplex-foundation, repo: mpl-bubblegum, include_readmes: true, include_source_code: true }
+
+  - id: gh-mpl-program-library
+    name: GitHub metaplex-foundation/metaplex-program-library
+    kind: github
+    enabled: true
+    primary_url: https://github.com/metaplex-foundation/metaplex-program-library
+    github: { owner: metaplex-foundation, repo: metaplex-program-library, include_readmes: true, include_source_code: true }
 
   # --- Infra / RPC providers ---
   - id: helius-docs
@@ -295,7 +394,14 @@ sources:
     enabled: true
     primary_url: https://docs.magiceden.io
     sitemaps: [https://docs.magiceden.io/sitemap.xml]
-    url_include: [solana, /sol-, -sol-, /sol/, /mmm-sol-]
+    url_include: [solana, /sol-, -sol-, /sol/, /mmm-sol-, /reference/]
+
+  - id: tensor-docs
+    name: Tensor Docs (NFT marketplace)
+    kind: web
+    enabled: true
+    primary_url: https://docs.tensor.trade
+    sitemaps: [https://docs.tensor.trade/sitemap.xml]
 
   - id: birdeye-docs
     name: Birdeye Docs
@@ -303,7 +409,6 @@ sources:
     enabled: true
     primary_url: https://docs.birdeye.so
     sitemaps: [https://docs.birdeye.so/sitemap.xml]
-    url_include: [solana]
 
   - id: dexscreener-docs
     name: DEX Screener Docs
@@ -358,7 +463,7 @@ sources:
     enabled: true
     primary_url: https://docs.phantom.com/solana
     sitemaps: [https://docs.phantom.com/sitemap.xml]
-    url_include: [solana]
+    url_include: [solana, best-practices]
 
   - id: solflare-docs
     name: Solflare Docs
@@ -373,6 +478,21 @@ sources:
     enabled: true
     primary_url: https://docs.squads.so/main
     sitemaps: [https://docs.squads.so/main/sitemap-pages.xml]
+
+  # --- Aggregator / Routing ---
+  - id: jupiter-docs
+    name: Jupiter Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.jup.ag
+    sitemaps: [https://docs.jup.ag/sitemap.xml]
+
+  - id: jupiter-dev-docs
+    name: Jupiter Developers (API)
+    kind: web
+    enabled: true
+    primary_url: https://developers.jup.ag
+    start_urls: [https://developers.jup.ag]
 
   # --- DEX / AMM / Perps / Lending ---
   - id: raydium-docs
@@ -396,14 +516,6 @@ sources:
     primary_url: https://docs.meteora.ag
     sitemaps: [https://docs.meteora.ag/sitemap.xml]
 
-  - id: phoenix-docs
-    name: Phoenix Docs
-    kind: web
-    enabled: true
-    primary_url: https://ellipsis-labs.gitbook.io/phoenix-dex/tRIkEFlLUzWK9uKO3W2V
-    start_urls:
-      - https://ellipsis-labs.gitbook.io/phoenix-dex/tRIkEFlLUzWK9uKO3W2V
-
   - id: goosefx-docs
     name: GooseFX Docs
     kind: web
@@ -424,13 +536,6 @@ sources:
     enabled: true
     primary_url: https://docs.lifinity.io
     sitemaps: [https://docs.lifinity.io/sitemap.xml]
-
-  - id: hxro-docs
-    name: Hxro Network Docs
-    kind: web
-    enabled: true
-    primary_url: https://docs.hxro.network
-    sitemaps: [https://docs.hxro.network/sitemap-pages.xml]
 
   - id: flash-trade-docs
     name: Flash.Trade Docs
@@ -478,17 +583,10 @@ sources:
     name: Kamino Docs
     kind: web
     enabled: true
-    primary_url: https://docs.kamino.finance
-    sitemaps: [https://docs.kamino.finance/sitemap.xml]
-
-  - id: solend-docs
-    name: Solend Docs
-    kind: web
-    enabled: true
-    primary_url: https://dev.solend.fi
+    primary_url: https://kamino.com/docs
     start_urls:
-      - https://dev.solend.fi
-      - https://dev.solend.fi/docs/intro/
+      - https://kamino.com/docs
+    url_include: [docs]
 
   - id: marginfi-docs
     name: marginfi Docs
@@ -517,6 +615,562 @@ sources:
     enabled: true
     primary_url: https://learn.sanctum.so/docs
     sitemaps: [https://learn.sanctum.so/docs/sitemap-pages.xml]
+
+  # --- Oracles ---
+  - id: pyth-docs
+    name: Pyth Network Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.pyth.network
+    sitemaps: [https://docs.pyth.network/sitemap.xml]
+
+  - id: switchboard-docs
+    name: Switchboard Docs
+    kind: web
+    enabled: true
+    primary_url: https://docs.switchboard.xyz
+    sitemaps: [https://docs.switchboard.xyz/sitemap.xml]
+
+  # --- Bridges ---
+  - id: wormhole-docs
+    name: Wormhole Docs
+    kind: web
+    enabled: true
+    primary_url: https://wormhole.com/docs
+    sitemaps: [https://wormhole.com/docs/sitemap.xml]
+    url_include: [solana]
+
+  # --- Educational / tutorial programs ---
+  - id: gh-anchor-memo
+    name: GitHub deanmlittle/anchor-memo
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/anchor-memo
+    github: { owner: deanmlittle, repo: anchor-memo, include_readmes: true, include_source_code: true }
+
+  - id: gh-anchor-memo-optimized
+    name: GitHub deanmlittle/anchor-memo-optimized
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/anchor-memo-optimized
+    github: { owner: deanmlittle, repo: anchor-memo-optimized, include_readmes: true, include_source_code: true }
+
+  - id: gh-sbpf-asm-memo
+    name: GitHub deanmlittle/sbpf-asm-memo
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/sbpf-asm-memo
+    github: { owner: deanmlittle, repo: sbpf-asm-memo, include_readmes: true, include_source_code: true }
+
+  - id: gh-pinocchio-memo
+    name: GitHub deanmlittle/pinocchio-memo
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/pinocchio-memo
+    github: { owner: deanmlittle, repo: pinocchio-memo, include_readmes: true, include_source_code: true }
+
+  - id: gh-sbpf-asm-abort
+    name: GitHub deanmlittle/sbpf-asm-abort
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/sbpf-asm-abort
+    github: { owner: deanmlittle, repo: sbpf-asm-abort, include_readmes: true, include_source_code: true }
+
+  - id: gh-anchor-escrow-2024
+    name: GitHub deanmlittle/anchor-escrow-2024
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/anchor-escrow-2024
+    github: { owner: deanmlittle, repo: anchor-escrow-2024, include_readmes: true, include_source_code: true }
+
+  - id: gh-solana-winternitz
+    name: GitHub deanmlittle/solana-winternitz
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/solana-winternitz
+    github: { owner: deanmlittle, repo: solana-winternitz, include_readmes: true, include_source_code: true }
+
+  - id: gh-deanmlittle-p-token
+    name: GitHub deanmlittle/p-token
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/p-token
+    github: { owner: deanmlittle, repo: p-token, include_readmes: true, include_source_code: true }
+
+  - id: gh-solana-nodep-vault-2025
+    name: GitHub deanmlittle/solana-nodep-vault-2025
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/solana-nodep-vault-2025
+    github: { owner: deanmlittle, repo: solana-nodep-vault-2025, include_readmes: true, include_source_code: true }
+
+  - id: gh-native-escrow-2024
+    name: GitHub deanmlittle/native-escrow-2024
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/native-escrow-2024
+    github: { owner: deanmlittle, repo: native-escrow-2024, include_readmes: true, include_source_code: true }
+
+  - id: gh-native-vault-2024
+    name: GitHub deanmlittle/native-vault-2024
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/native-vault-2024
+    github: { owner: deanmlittle, repo: native-vault-2024, include_readmes: true, include_source_code: true }
+
+  - id: gh-solana-transaction-introspection
+    name: GitHub deanmlittle/solana-transaction-introspection
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/solana-transaction-introspection
+    github: { owner: deanmlittle, repo: solana-transaction-introspection, include_readmes: true, include_source_code: true }
+
+  - id: gh-solana-ed25519-instruction
+    name: GitHub deanmlittle/solana-ed25519-instruction
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/solana-ed25519-instruction
+    github: { owner: deanmlittle, repo: solana-ed25519-instruction, include_readmes: true, include_source_code: true }
+
+  - id: gh-anchor-instruction-sysvar
+    name: GitHub deanmlittle/anchor-instruction-sysvar
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/anchor-instruction-sysvar
+    github: { owner: deanmlittle, repo: anchor-instruction-sysvar, include_readmes: true, include_source_code: true }
+
+  - id: gh-anchor-amm-2023
+    name: GitHub deanmlittle/anchor-amm-2023
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/anchor-amm-2023
+    github: { owner: deanmlittle, repo: anchor-amm-2023, include_readmes: true, include_source_code: true }
+
+  - id: gh-anchor-vault-2024
+    name: GitHub deanmlittle/anchor-vault-2024
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/anchor-vault-2024
+    github: { owner: deanmlittle, repo: anchor-vault-2024, include_readmes: true, include_source_code: true }
+
+  - id: gh-solana-fibonacci-asm
+    name: GitHub deanmlittle/solana-fibonacci-asm
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/solana-fibonacci-asm
+    github: { owner: deanmlittle, repo: solana-fibonacci-asm, include_readmes: true, include_source_code: true }
+
+  - id: gh-hello-solana-asm
+    name: GitHub deanmlittle/hello-solana-asm
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/hello-solana-asm
+    github: { owner: deanmlittle, repo: hello-solana-asm, include_readmes: true, include_source_code: true }
+
+  - id: gh-anchor-vesting-2024
+    name: GitHub deanmlittle/anchor-vesting-2024
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/anchor-vesting-2024
+    github: { owner: deanmlittle, repo: anchor-vesting-2024, include_readmes: true, include_source_code: true }
+
+  - id: gh-anchor-example-contracts
+    name: GitHub deanmlittle/AnchorExampleContracts
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/AnchorExampleContracts
+    github: { owner: deanmlittle, repo: AnchorExampleContracts, include_readmes: true, include_source_code: true }
+
+  - id: gh-anchor-escrow-introspection
+    name: GitHub deanmlittle/anchor-escrow-introspection
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/anchor-escrow-introspection
+    github: { owner: deanmlittle, repo: anchor-escrow-introspection, include_readmes: true, include_source_code: true }
+
+  - id: gh-solana-rsa-program
+    name: GitHub deanmlittle/solana-rsa-program
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/solana-rsa-program
+    github: { owner: deanmlittle, repo: solana-rsa-program, include_readmes: true, include_source_code: true }
+
+  - id: gh-anchor-dice-2023
+    name: GitHub deanmlittle/anchor-dice-2023
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/anchor-dice-2023
+    github: { owner: deanmlittle, repo: anchor-dice-2023, include_readmes: true, include_source_code: true }
+
+  - id: gh-anchor-marketplace-2023
+    name: GitHub deanmlittle/anchor-marketplace-2023
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/anchor-marketplace-2023
+    github: { owner: deanmlittle, repo: anchor-marketplace-2023, include_readmes: true, include_source_code: true }
+
+  - id: gh-anchor-dao-2023
+    name: GitHub deanmlittle/anchor-dao-2023
+    kind: github
+    enabled: true
+    primary_url: https://github.com/deanmlittle/anchor-dao-2023
+    github: { owner: deanmlittle, repo: anchor-dao-2023, include_readmes: true, include_source_code: true }
+
+  - id: gh-idl-program
+    name: GitHub solana-developers/idl-program
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-developers/idl-program
+    github: { owner: solana-developers, repo: idl-program, include_readmes: true, include_source_code: true }
+
+  - id: gh-developer-bootcamp-2024
+    name: GitHub solana-developers/developer-bootcamp-2024
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-developers/developer-bootcamp-2024
+    github: { owner: solana-developers, repo: developer-bootcamp-2024, include_readmes: true, include_source_code: true }
+
+  - id: gh-anchor-web3js-nextjs
+    name: GitHub solana-developers/anchor-web3js-nextjs
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-developers/anchor-web3js-nextjs
+    github: { owner: solana-developers, repo: anchor-web3js-nextjs, include_readmes: true, include_source_code: true }
+
+  - id: gh-verify-squads
+    name: GitHub solana-developers/verify-squads
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-developers/verify-squads
+    github: { owner: solana-developers, repo: verify-squads, include_readmes: true, include_source_code: true }
+
+  - id: gh-arb-program
+    name: GitHub buffalojoec/arb-program
+    kind: github
+    enabled: true
+    primary_url: https://github.com/buffalojoec/arb-program
+    github: { owner: buffalojoec, repo: arb-program, include_readmes: true, include_source_code: true }
+
+  - id: gh-sealevel-attacks
+    name: GitHub coral-xyz/sealevel-attacks
+    kind: github
+    enabled: true
+    primary_url: https://github.com/coral-xyz/sealevel-attacks
+    github: { owner: coral-xyz, repo: sealevel-attacks, include_readmes: true, include_source_code: true }
+
+  # --- Additional DEX / AMM / Perps program repos ---
+  - id: gh-orca-whirlpools
+    name: GitHub orca-so/whirlpools
+    kind: github
+    enabled: true
+    primary_url: https://github.com/orca-so/whirlpools
+    github: { owner: orca-so, repo: whirlpools, include_readmes: true, include_source_code: true }
+
+  - id: gh-raydium-clmm
+    name: GitHub raydium-io/raydium-clmm
+    kind: github
+    enabled: true
+    primary_url: https://github.com/raydium-io/raydium-clmm
+    github: { owner: raydium-io, repo: raydium-clmm, include_readmes: true, include_source_code: true }
+
+  - id: gh-saber-stable-swap
+    name: GitHub saber-hq/stable-swap
+    kind: github
+    enabled: true
+    primary_url: https://github.com/saber-hq/stable-swap
+    github: { owner: saber-hq, repo: stable-swap, include_readmes: true, include_source_code: true }
+
+  - id: gh-openbook-v2
+    name: GitHub openbook-dex/openbook-v2
+    kind: github
+    enabled: true
+    primary_url: https://github.com/openbook-dex/openbook-v2
+    github: { owner: openbook-dex, repo: openbook-v2, include_readmes: true, include_source_code: true }
+
+  - id: gh-openbook
+    name: GitHub openbook-dex/program
+    kind: github
+    enabled: true
+    primary_url: https://github.com/openbook-dex/program
+    github: { owner: openbook-dex, repo: program, include_readmes: true, include_source_code: true }
+
+  - id: gh-serum-dex
+    name: GitHub project-serum/serum-dex
+    kind: github
+    enabled: true
+    primary_url: https://github.com/project-serum/serum-dex
+    github: { owner: project-serum, repo: serum-dex, include_readmes: true, include_source_code: true }
+
+  - id: gh-jupiter-plasma
+    name: GitHub Ellipsis-Labs/jupiter-plasma
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Ellipsis-Labs/jupiter-plasma
+    github: { owner: Ellipsis-Labs, repo: jupiter-plasma, include_readmes: true, include_source_code: true }
+
+  - id: gh-plasma
+    name: GitHub Ellipsis-Labs/plasma
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Ellipsis-Labs/plasma
+    github: { owner: Ellipsis-Labs, repo: plasma, include_readmes: true, include_source_code: true }
+
+  - id: gh-phoenix-sdk
+    name: GitHub Ellipsis-Labs/phoenix-sdk
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Ellipsis-Labs/phoenix-sdk
+    github: { owner: Ellipsis-Labs, repo: phoenix-sdk, include_readmes: true, include_source_code: true }
+
+  - id: gh-phoenix-v1
+    name: GitHub Ellipsis-Labs/phoenix-v1
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Ellipsis-Labs/phoenix-v1
+    github: { owner: Ellipsis-Labs, repo: phoenix-v1, include_readmes: true, include_source_code: true }
+
+  - id: gh-ellipsis-spl
+    name: GitHub Ellipsis-Labs/solana-program-library
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Ellipsis-Labs/solana-program-library
+    github: { owner: Ellipsis-Labs, repo: solana-program-library, include_readmes: true, include_source_code: true }
+
+  - id: gh-jup-distributor
+    name: GitHub jup-ag/distributor
+    kind: github
+    enabled: true
+    primary_url: https://github.com/jup-ag/distributor
+    github: { owner: jup-ag, repo: distributor, include_readmes: true, include_source_code: true }
+
+  - id: gh-jup-raydium-cp-swap
+    name: GitHub jup-ag/raydium-cp-swap
+    kind: github
+    enabled: true
+    primary_url: https://github.com/jup-ag/raydium-cp-swap
+    github: { owner: jup-ag, repo: raydium-cp-swap, include_readmes: true, include_source_code: true }
+
+  - id: gh-jup-damm-v2
+    name: GitHub jup-ag/damm-v2
+    kind: github
+    enabled: true
+    primary_url: https://github.com/jup-ag/damm-v2
+    github: { owner: jup-ag, repo: damm-v2, include_readmes: true, include_source_code: true }
+
+  - id: gh-meteora-dynamic-fee-sharing
+    name: GitHub MeteoraAg/dynamic-fee-sharing
+    kind: github
+    enabled: true
+    primary_url: https://github.com/MeteoraAg/dynamic-fee-sharing
+    github: { owner: MeteoraAg, repo: dynamic-fee-sharing, include_readmes: true, include_source_code: true }
+
+  - id: gh-meteora-cpi-examples
+    name: GitHub MeteoraAg/cpi-examples
+    kind: github
+    enabled: true
+    primary_url: https://github.com/MeteoraAg/cpi-examples
+    github: { owner: MeteoraAg, repo: cpi-examples, include_readmes: true, include_source_code: true }
+
+  - id: gh-mango-v3
+    name: GitHub blockworks-foundation/mango-v3
+    kind: github
+    enabled: true
+    primary_url: https://github.com/blockworks-foundation/mango-v3
+    github: { owner: blockworks-foundation, repo: mango-v3, include_readmes: true, include_source_code: true }
+
+  - id: gh-mango-v4
+    name: GitHub blockworks-foundation/mango-v4
+    kind: github
+    enabled: true
+    primary_url: https://github.com/blockworks-foundation/mango-v4
+    github: { owner: blockworks-foundation, repo: mango-v4, include_readmes: true, include_source_code: true }
+
+  # --- Additional Lending / Money markets ---
+  - id: gh-klend
+    name: GitHub Kamino-Finance/klend
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Kamino-Finance/klend
+    github: { owner: Kamino-Finance, repo: klend, include_readmes: true, include_source_code: true }
+
+  - id: gh-kamino-scope
+    name: GitHub Kamino-Finance/scope
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Kamino-Finance/scope
+    github: { owner: Kamino-Finance, repo: scope, include_readmes: true, include_source_code: true }
+
+  - id: gh-solend-spl
+    name: GitHub solendprotocol/solana-program-library
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solendprotocol/solana-program-library
+    github: { owner: solendprotocol, repo: solana-program-library, include_readmes: true, include_source_code: true }
+
+  - id: gh-marginfi-v2
+    name: GitHub 0dotxyz/marginfi-v2
+    kind: github
+    enabled: true
+    primary_url: https://github.com/0dotxyz/marginfi-v2
+    github: { owner: 0dotxyz, repo: marginfi-v2, include_readmes: true, include_source_code: true }
+
+  - id: gh-light-protocol
+    name: GitHub Lightprotocol/light-protocol (ZK Compression)
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Lightprotocol/light-protocol
+    github: { owner: Lightprotocol, repo: light-protocol, include_readmes: true, include_source_code: true }
+
+  # --- Additional Liquid staking / Stake pools ---
+  - id: gh-marinade-liquid-staking
+    name: GitHub marinade-finance/liquid-staking-program
+    kind: github
+    enabled: true
+    primary_url: https://github.com/marinade-finance/liquid-staking-program
+    github: { owner: marinade-finance, repo: liquid-staking-program, include_readmes: true, include_source_code: true }
+
+  - id: gh-sanctum-spl-stake-pool
+    name: GitHub igneous-labs/sanctum-spl-stake-pool
+    kind: github
+    enabled: true
+    primary_url: https://github.com/igneous-labs/sanctum-spl-stake-pool
+    github: { owner: igneous-labs, repo: sanctum-spl-stake-pool, include_readmes: true, include_source_code: true }
+
+  - id: gh-sanctum-s
+    name: GitHub igneous-labs/S (Sanctum LST router)
+    kind: github
+    enabled: true
+    primary_url: https://github.com/igneous-labs/S
+    github: { owner: igneous-labs, repo: S, include_readmes: true, include_source_code: true }
+
+  - id: gh-jito-restaking
+    name: GitHub jito-foundation/restaking
+    kind: github
+    enabled: true
+    primary_url: https://github.com/jito-foundation/restaking
+    github: { owner: jito-foundation, repo: restaking, include_readmes: true, include_source_code: true }
+
+  # --- Identity / Attestation / Auth ---
+  - id: gh-solana-attestation-service
+    name: GitHub solana-foundation/solana-attestation-service
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-foundation/solana-attestation-service
+    github: { owner: solana-foundation, repo: solana-attestation-service, include_readmes: true, include_source_code: true }
+
+  - id: gh-solana-record-service
+    name: GitHub solana-foundation/solana-record-service
+    kind: github
+    enabled: true
+    primary_url: https://github.com/solana-foundation/solana-record-service
+    github: { owner: solana-foundation, repo: solana-record-service, include_readmes: true, include_source_code: true }
+
+  - id: gh-proof-of-identity
+    name: GitHub Nagaprasadvr/Proof-of-Identity
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Nagaprasadvr/Proof-of-Identity
+    github: { owner: Nagaprasadvr, repo: Proof-of-Identity, include_readmes: true, include_source_code: true }
+
+  - id: gh-lighthouse
+    name: GitHub Jac0xb/lighthouse (transaction assertion)
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Jac0xb/lighthouse
+    github: { owner: Jac0xb, repo: lighthouse, include_readmes: true, include_source_code: true }
+
+  # --- Additional Squads programs ---
+  - id: gh-squads-smart-account
+    name: GitHub Squads-Protocol/smart-account-program
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Squads-Protocol/smart-account-program
+    github: { owner: Squads-Protocol, repo: smart-account-program, include_readmes: true, include_source_code: true }
+
+  - id: gh-squads-mesh
+    name: GitHub Squads-Protocol/mesh
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Squads-Protocol/mesh
+    github: { owner: Squads-Protocol, repo: mesh, include_readmes: true, include_source_code: true }
+
+  - id: gh-squads-grid-external-signature
+    name: GitHub 0xRigel-squads/external-signature-program
+    kind: github
+    enabled: true
+    primary_url: https://github.com/0xRigel-squads/external-signature-program
+    github: { owner: 0xRigel-squads, repo: external-signature-program, include_readmes: true, include_source_code: true }
+
+  # --- Misc community / ecosystem programs ---
+  - id: gh-ore
+    name: GitHub regolith-labs/ore
+    kind: github
+    enabled: true
+    primary_url: https://github.com/regolith-labs/ore
+    github: { owner: regolith-labs, repo: ore, include_readmes: true, include_source_code: true }
+
+  - id: gh-helium-program-library
+    name: GitHub helium/helium-program-library
+    kind: github
+    enabled: true
+    primary_url: https://github.com/helium/helium-program-library
+    github: { owner: helium, repo: helium-program-library, include_readmes: true, include_source_code: true }
+
+  - id: gh-helium-tuktuk-fanout
+    name: GitHub helium/tuktuk-fanout
+    kind: github
+    enabled: true
+    primary_url: https://github.com/helium/tuktuk-fanout
+    github: { owner: helium, repo: tuktuk-fanout, include_readmes: true, include_source_code: true }
+
+  - id: gh-helium-squads-program-upgrade
+    name: GitHub helium/squads-program-upgrade
+    kind: github
+    enabled: true
+    primary_url: https://github.com/helium/squads-program-upgrade
+    github: { owner: helium, repo: squads-program-upgrade, include_readmes: true, include_source_code: true }
+
+  - id: gh-zai-oft
+    name: GitHub ZaiXBT/zai-oft
+    kind: github
+    enabled: true
+    primary_url: https://github.com/ZaiXBT/zai-oft
+    github: { owner: ZaiXBT, repo: zai-oft, include_readmes: true, include_source_code: true }
+
+  - id: gh-metadao-programs
+    name: GitHub metaDAOproject/programs
+    kind: github
+    enabled: true
+    primary_url: https://github.com/metaDAOproject/programs
+    github: { owner: metaDAOproject, repo: programs, include_readmes: true, include_source_code: true }
+
+  - id: gh-bonfida-token-vesting
+    name: GitHub Bonfida/token-vesting
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Bonfida/token-vesting
+    github: { owner: Bonfida, repo: token-vesting, include_readmes: true, include_source_code: true }
+
+  - id: gh-naga-state-ext
+    name: GitHub Nagaprasadvr/solana-state-ext-program
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Nagaprasadvr/solana-state-ext-program
+    github: { owner: Nagaprasadvr, repo: solana-state-ext-program, include_readmes: true, include_source_code: true }
+
+  - id: gh-naga-p-ata
+    name: GitHub Nagaprasadvr/p-ata
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Nagaprasadvr/p-ata
+    github: { owner: Nagaprasadvr, repo: p-ata, include_readmes: true, include_source_code: true }
+
+  - id: gh-naga-pinocchio-vault
+    name: GitHub Nagaprasadvr/pinocchio-vault
+    kind: github
+    enabled: true
+    primary_url: https://github.com/Nagaprasadvr/pinocchio-vault
+    github: { owner: Nagaprasadvr, repo: pinocchio-vault, include_readmes: true, include_source_code: true }
 
   # --- Community Q&A (LARGE, gated off by default) ---
   - id: solana-stackexchange
