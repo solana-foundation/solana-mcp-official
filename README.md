@@ -8,7 +8,7 @@ The official Solana Developer MCP. Purpose: serve up-to-date documentation acros
 
 - **Ingestion** ([`ingestion/`](ingestion/)): Databricks notebook crawls the sources listed in [`ingestion/sources.yaml`](ingestion/sources.yaml), chunks markdown, and writes embeddings into a Delta-backed Vector Search index.
 - **Retrieval** ([`lib/services/databricks/`](lib/services/databricks/)): MCP tools query the index via Databricks Vector Search; an optional cross-encoder Model Serving endpoint reranks results.
-- **Server** ([`lib/index.ts`](lib/index.ts), [`api/start.ts`](api/start.ts)): Exposes two tools (`Solana_Expert__Ask_For_Help`, `Solana_Documentation_Search`) and two resources (`solana://clusters`, `solana://installation`) over MCP, deployed as a Databricks App.
+- **Server** ([`lib/index.ts`](lib/index.ts), [`api/start.ts`](api/start.ts)): Exposes two tools (`Solana_Expert__Ask_For_Help`, `Solana_Documentation_Search`) over MCP, deployed as a Databricks App.
 - **Analytics** ([`lib/services/databricks/analytics.ts`](lib/services/databricks/analytics.ts)): Tool calls + initializations land in the Databricks SQL warehouse for dashboards.
 
 ## Local Development
