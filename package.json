@@ -30,9 +30,7 @@
     "node": "24.x"
   },
   "dependencies": {
-    "@duneanalytics/client-sdk": "^0.3.5",
     "@modelcontextprotocol/sdk": "1.29.0",
-    "content-type": "^1.0.5",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "mcp-handler": "1.1.0",

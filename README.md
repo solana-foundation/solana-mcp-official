@@ -2,17 +2,32 @@
 
 Try it out at https://mcp.solana.com !
 
-This is the official Solana Developer MCP. It's purpose is to serve up to date documentation across the ecosystem to vibe coders & AI agents.
+The official Solana Developer MCP. Purpose: serve up-to-date documentation across the Solana ecosystem to AI agents and developer tooling.
 
-This repo contains both the landing page for mcp.solana.com & the MCP server implementation for mcp.solana.com/mcp and mcp.solana.com/sse (thanks to Vercel's `mcp-handler` it's just one server for both endpoints).
+## Architecture
 
-## Development
+- **Ingestion** ([`ingestion/`](ingestion/)): Databricks notebook crawls the sources listed in [`ingestion/sources.yaml`](ingestion/sources.yaml), chunks markdown, and writes embeddings into a Delta-backed Vector Search index.
+- **Retrieval** ([`lib/services/databricks/`](lib/services/databricks/)): MCP tools query the index via Databricks Vector Search; an optional cross-encoder Model Serving endpoint reranks results.
+- **Server** ([`lib/index.ts`](lib/index.ts), [`api/start.ts`](api/start.ts)): Exposes two tools (`Solana_Expert__Ask_For_Help`, `Solana_Documentation_Search`) and two resources (`solana://clusters`, `solana://installation`) over MCP, deployed as a Databricks App.
+- **Analytics** ([`lib/services/databricks/analytics.ts`](lib/services/databricks/analytics.ts)): Tool calls + initializations land in the Databricks SQL warehouse for dashboards.
 
-In one window, run `pnpm vercel dev`. And in another run `npx -y @modelcontextprotocol/inspector npx mcp-remote http://localhost:3000/mcp` to play around with the server locally. URL is usually `http://127.0.0.1:6274`.
+## Local Development
 
-## Notes for running on Vercel
+```bash
+pnpm install
+cp .env.example .env  # set DATABRICKS_HOST + DATABRICKS_TOKEN + DATABRICKS_VS_INDEX
+pnpm dev:local
+pnpm inspector  # connects MCP Inspector at http://127.0.0.1:6274
+```
 
-- Requires a Redis attached to the project under `process.env.REDIS_URL`
-- Make sure you have [Fluid compute](https://vercel.com/docs/functions/fluid-compute) enabled for efficient execution
-- After enabling Fluid compute, open `vercel.json` and adjust max duration to 800 if you using a Vercel Pro or Enterprise account
-- [Deploy the MCP template](https://vercel.com/templates/other/model-context-protocol-mcp-with-vercel-functions)
+## Deploy
+
+Production runs as a Databricks App. The bundle config is in [`databricks.yml`](databricks.yml); per-environment values (catalog, warehouse, index) live in the gitignored `prod.yml` (see template inline in `databricks.yml`).
+
+```bash
+just deploy   # builds, pushes the bundle, and deploys the app to prod
+```
+
+## Evals
+
+A/B harness comparing the deployed Databricks MCP against the legacy hosted MCP lives in [`eval/`](eval/). See [`eval/run.ts`](eval/run.ts) and [`eval/questions.jsonl`](eval/questions.jsonl).
