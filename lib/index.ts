@@ -5,12 +5,11 @@ import { z } from "zod";
 import { resources } from "./resources";
 import { SolanaTool } from "./tools/types";
 import { createSolanaTools } from "./tools/generalSolanaTools";
-import { inkeepRagModel } from "./services/inkeep";
 
 export function createMcp() {
   return createMcpHandler(
     (server: McpServer) => {
-      createSolanaTools(inkeepRagModel).forEach((tool: SolanaTool) => {
+      createSolanaTools().forEach((tool: SolanaTool) => {
         if (tool.outputSchema || tool.annotations) {
           server.registerTool(
             tool.title,

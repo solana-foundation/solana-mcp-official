@@ -1,7 +1,5 @@
 import { z } from "zod";
-import { generateText, LanguageModel } from "ai";
 import { logAnalytics } from "../analytics";
-import { useDatabricks } from "../flags";
 import { searchDocs } from "../services/databricks/vectorSearch.js";
 import { formatChunksAsMarkdown } from "./formatChunks.js";
 import type { SolanaTool } from "./types";
@@ -18,25 +16,7 @@ async function answerViaDatabricks(tool: "Solana_Expert__Ask_For_Help" | "Solana
   return { content: [{ type: "text", text }] };
 }
 
-async function answerViaModel(
-  model: LanguageModel,
-  tool: "Solana_Expert__Ask_For_Help" | "Solana_Documentation_Search",
-  query: string,
-) {
-  const { text } = await generateText({
-    model,
-    messages: [{ role: "user", content: query }],
-  });
-
-  await logAnalytics({
-    event_type: "message_response",
-    details: { tool, req: query, res: text },
-  });
-
-  return { content: [{ type: "text", text }] };
-}
-
-export function createSolanaTools(model: LanguageModel | null): SolanaTool[] {
+export function createSolanaTools(): SolanaTool[] {
   return [
     {
       title: "Solana_Expert__Ask_For_Help",
@@ -49,20 +29,7 @@ export function createSolanaTools(model: LanguageModel | null): SolanaTool[] {
           ),
       },
 
-      func: async ({ question }: { question: string }) => {
-        if (useDatabricks()) {
-          return answerViaDatabricks("Solana_Expert__Ask_For_Help", question);
-        }
-
-        if (!model) {
-          return {
-            content: [{ type: "text", text: "Error: No AI provider is configured for this tool." }],
-            isError: true,
-          };
-        }
-
-        return answerViaModel(model, "Solana_Expert__Ask_For_Help", question);
-      },
+      func: async ({ question }: { question: string }) => answerViaDatabricks("Solana_Expert__Ask_For_Help", question),
     },
 
     {
@@ -74,20 +41,7 @@ export function createSolanaTools(model: LanguageModel | null): SolanaTool[] {
           .describe("A search query that will be matched against a corpus of Solana documentation using RAG"),
       },
 
-      func: async ({ query }: { query: string }) => {
-        if (useDatabricks()) {
-          return answerViaDatabricks("Solana_Documentation_Search", query);
-        }
-
-        if (!model) {
-          return {
-            content: [{ type: "text", text: "Error: No AI provider is configured for this tool." }],
-            isError: true,
-          };
-        }
-
-        return answerViaModel(model, "Solana_Documentation_Search", query);
-      },
+      func: async ({ query }: { query: string }) => answerViaDatabricks("Solana_Documentation_Search", query),
     },
   ];
 }
