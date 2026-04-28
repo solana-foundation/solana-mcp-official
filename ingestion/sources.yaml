@@ -1,5 +1,6 @@
 # Solana MCP ingestion corpus
-# Schema consumed by ingestion/crawl_and_index.py.
+# Schema consumed by ingestion/crawl_and_index.py and (for `sections` /
+# `use_cases`) the MCP server's `list_sections` + `get_documentation` tools.
 #
 # kind: github | web | openapi
 #   github: clones repo shallow, ingests .md/.mdx (+ source code if include_source_code)
@@ -9,6 +10,38 @@
 # url_include: optional list of case-insensitive substrings. Applied after URL
 #   collection (sitemap/BFS/ingest_urls) — URL is kept only if it contains at
 #   least one substring. Use for multi-chain doc sites to filter to Solana-only.
+#
+# sections: list of taxonomy tags. Surfaces the source in `list_sections`
+#   under each tag. Multi-tag is first-class (e.g. anchor → [frameworks,
+#   programs]). Aim for ≤3 tags per source; tag only when the source is
+#   materially useful for that section, not tangentially.
+#
+# Defined section ids (keep this list closed — add new tags via PR review):
+#   core            — Solana protocol fundamentals (accounts, txs, fees, rent, sysvars)
+#   programs        — writing on-chain programs (any framework)
+#   frameworks      — Anchor, Pinocchio, Steel, native program patterns
+#   clients         — RPC, signers, tx building, off-chain SDKs
+#   tokens          — SPL token, token-2022, ATA, token metadata
+#   nft             — NFT standards, marketplaces, compressed NFTs
+#   defi            — AMMs, perps, lending, aggregators, yield
+#   liquid-staking  — stake pools, LST routers, restaking
+#   oracles         — price feeds, randomness, off-chain data
+#   infra           — RPC providers, validators, block engines
+#   data            — explorers, indexers, on-chain analytics
+#   wallets         — wallet adapters, MWA, multisig signers
+#   mobile          — Solana Mobile, MWA, dApp store
+#   governance      — DAOs, multisig, voting, treasury
+#   testing         — local validators, simulation harnesses
+#   tooling         — CLI, IDL gen, codama, helpers, dev utilities
+#   zk              — ZK compression, light protocol, ZK programs
+#   bridges         — cross-chain bridges, token portals
+#   identity        — attestation, proof-of-identity, on-chain records
+#   examples        — tutorial repos, reference programs
+#   vm              — sealevel, sBPF asm, firedancer internals
+#
+# use_cases: comma-separated keywords describing WHEN this source is useful.
+#   Read by `list_sections` so the agent can route queries. Lead with the
+#   strongest hooks (frameworks, primitives, problem domains).
 
 sources:
   # --- Core Solana docs / SDKs ---
@@ -16,6 +49,8 @@ sources:
     name: Solana Docs (solana.com/docs)
     kind: web
     enabled: true
+    sections: [core, clients, programs]
+    use_cases: "Solana fundamentals, accounts model, transactions, fees, rent, PDAs, sysvars, RPC API, web3.js basics, intro tutorials"
     primary_url: https://solana.com/docs
     start_urls:
       - https://solana.com/docs
@@ -24,6 +59,8 @@ sources:
     name: Solana > Anchor Docs
     kind: web
     enabled: true
+    sections: [frameworks, programs]
+    use_cases: "Anchor framework, accounts macro, IDL generation, derive macros, program builder, anchor test, anchor build"
     primary_url: https://www.anchor-lang.com/docs
     start_urls:
       - https://www.anchor-lang.com/docs
@@ -32,6 +69,8 @@ sources:
     name: Solana Kit Docs
     kind: web
     enabled: true
+    sections: [clients]
+    use_cases: "@solana/kit client SDK, RPC plugins, signers, transaction building, codama-generated clients, modern TypeScript Solana"
     primary_url: https://www.solanakit.com
     start_urls:
       - https://www.solanakit.com
@@ -40,6 +79,8 @@ sources:
     name: Solana > Gill Docs
     kind: web
     enabled: true
+    sections: [clients]
+    use_cases: "Gill SDK, ergonomic Solana client wrapper around kit, transaction helpers, simplified RPC"
     primary_url: https://www.gillsdk.com/docs
     start_urls:
       - https://www.gillsdk.com/docs
@@ -48,6 +89,8 @@ sources:
     name: Solana Program (solana-program.com)
     kind: web
     enabled: true
+    sections: [programs, frameworks]
+    use_cases: "Solana program development reference, native program patterns, account validation, instruction handling"
     primary_url: https://www.solana-program.com
     start_urls:
       - https://www.solana-program.com
@@ -57,6 +100,8 @@ sources:
     name: Solana Mobile Docs
     kind: web
     enabled: true
+    sections: [mobile, wallets]
+    use_cases: "Solana Mobile Stack, MWA mobile wallet adapter, dApp store, Saga/Seeker, mobile dapp development"
     primary_url: https://docs.solanamobile.com
     sitemaps:
       - https://docs.solanamobile.com/sitemap.xml
@@ -65,6 +110,8 @@ sources:
     name: Firedancer Docs
     kind: web
     enabled: true
+    sections: [infra, vm]
+    use_cases: "Firedancer validator client, Frankendancer, performance tuning, validator operator, networking layer"
     primary_url: https://docs.firedancer.io
     start_urls:
       - https://docs.firedancer.io
@@ -73,6 +120,8 @@ sources:
     name: Anza Docs (validator client)
     kind: web
     enabled: true
+    sections: [infra]
+    use_cases: "Anza Agave validator client, validator setup, RPC node, snapshots, gossip, leader schedule"
     primary_url: https://docs.anza.xyz
     sitemaps: [https://docs.anza.xyz/sitemap.xml]
 
@@ -80,6 +129,8 @@ sources:
     name: ZK Compression Docs
     kind: web
     enabled: true
+    sections: [zk]
+    use_cases: "ZK compression, compressed accounts, photon indexer, light protocol, state compression, merkle trees"
     primary_url: https://www.zkcompression.com
     sitemaps:
       - https://www.zkcompression.com/sitemap.xml
@@ -89,6 +140,8 @@ sources:
     name: solana_program - Rust Docs (docs.rs)
     kind: web
     enabled: true
+    sections: [programs, clients]
+    use_cases: "solana-program Rust crate API reference, on-chain program primitives, AccountInfo, Pubkey, ProgramError, sysvar access"
     primary_url: https://docs.rs/solana-program/latest/solana_program
     ingest_urls:
       - https://docs.rs/solana-program/latest/solana_program
@@ -97,6 +150,8 @@ sources:
     name: Solders Docs
     kind: web
     enabled: true
+    sections: [clients]
+    use_cases: "Solders Python SDK, fast Rust-backed Solana primitives for Python, Pubkey, Keypair, Transaction"
     primary_url: https://kevinheavey.github.io/solders/
     start_urls:
       - https://kevinheavey.github.io/solders/
@@ -105,6 +160,8 @@ sources:
     name: AnchorPy Docs
     kind: web
     enabled: true
+    sections: [clients, frameworks]
+    use_cases: "AnchorPy Python client for Anchor programs, IDL parsing, instruction builder, account fetching from Python"
     primary_url: https://kevinheavey.github.io/anchorpy/
     start_urls:
       - https://kevinheavey.github.io/anchorpy/
@@ -113,6 +170,8 @@ sources:
     name: Solana.py > Solana Python SDK Docs
     kind: web
     enabled: true
+    sections: [clients]
+    use_cases: "solana-py Python SDK, RPC client, transaction signing, account fetching from Python"
     primary_url: https://michaelhly.com/solana-py/
     start_urls:
       - https://michaelhly.com/solana-py/
@@ -121,6 +180,8 @@ sources:
     name: Sava > Solana Java SDK Docs
     kind: web
     enabled: true
+    sections: [clients]
+    use_cases: "Sava Java/Kotlin Solana SDK, RPC client, transaction building from JVM"
     primary_url: https://sava.software
     sitemaps:
       - https://sava.software/sitemap.xml
@@ -130,6 +191,8 @@ sources:
     name: GitHub solana-foundation/anchor
     kind: github
     enabled: true
+    sections: [frameworks, programs]
+    use_cases: "Anchor framework source, accounts macro internals, IDL generation, anchor-lang crate, anchor-cli"
     primary_url: https://github.com/solana-foundation/anchor
     github: { owner: solana-foundation, repo: anchor, include_readmes: true, include_source_code: true }
 
@@ -137,6 +200,8 @@ sources:
     name: GitHub anza-xyz/kit (Solana JS SDK)
     kind: github
     enabled: true
+    sections: [clients]
+    use_cases: "@solana/kit source, modern TypeScript SDK, RPC plugins, signer abstractions, transaction builder"
     primary_url: https://github.com/anza-xyz/kit
     github: { owner: anza-xyz, repo: kit, include_readmes: true, include_source_code: true }
 
@@ -144,6 +209,8 @@ sources:
     name: GitHub anza-xyz/solana-sdk (Rust SDK)
     kind: github
     enabled: true
+    sections: [clients, core, programs]
+    use_cases: "solana-sdk Rust crate, off-chain client primitives, transaction signing, RPC types, sysvars"
     primary_url: https://github.com/anza-xyz/solana-sdk
     github: { owner: anza-xyz, repo: solana-sdk, include_readmes: true, include_source_code: true }
 
@@ -151,6 +218,8 @@ sources:
     name: GitHub solana-foundation/solana-web3.js (v1.x)
     kind: github
     enabled: true
+    sections: [clients]
+    use_cases: "Legacy @solana/web3.js v1.x SDK, Connection class, Transaction, PublicKey, prefer kit for new code"
     primary_url: https://github.com/solana-foundation/solana-web3.js
     github: { owner: solana-foundation, repo: solana-web3.js, include_readmes: true, include_source_code: true }
 
@@ -158,6 +227,8 @@ sources:
     name: GitHub anza-xyz/pinocchio
     kind: github
     enabled: true
+    sections: [frameworks, programs]
+    use_cases: "Pinocchio framework, zero-copy no-dependency Solana programs, manual account parsing, minimal CU usage"
     primary_url: https://github.com/anza-xyz/pinocchio
     github: { owner: anza-xyz, repo: pinocchio, include_readmes: true, include_source_code: true }
 
@@ -165,6 +236,8 @@ sources:
     name: GitHub anza-xyz/mollusk
     kind: github
     enabled: true
+    sections: [testing, programs]
+    use_cases: "Mollusk SVM test harness, instruction-level testing, fast unit tests for Solana programs"
     primary_url: https://github.com/anza-xyz/mollusk
     github: { owner: anza-xyz, repo: mollusk, include_readmes: true, include_source_code: true }
 
@@ -172,6 +245,8 @@ sources:
     name: GitHub LiteSVM/litesvm
     kind: github
     enabled: true
+    sections: [testing, programs]
+    use_cases: "LiteSVM lightweight Solana VM for tests, fast in-process program testing, no validator needed"
     primary_url: https://github.com/LiteSVM/litesvm
     github: { owner: LiteSVM, repo: litesvm, include_readmes: true, include_source_code: true }
 
@@ -179,6 +254,8 @@ sources:
     name: GitHub codama-idl/codama
     kind: github
     enabled: true
+    sections: [tooling, clients]
+    use_cases: "Codama IDL toolchain, generate TypeScript clients from IDL, kit-compatible client codegen"
     primary_url: https://github.com/codama-idl/codama
     github: { owner: codama-idl, repo: codama, include_readmes: true, include_source_code: false }
 
@@ -186,6 +263,8 @@ sources:
     name: GitHub codama-idl/codama-rs
     kind: github
     enabled: true
+    sections: [tooling, clients]
+    use_cases: "Codama Rust client codegen from IDL, generate Rust off-chain clients for Anchor/Shank programs"
     primary_url: https://github.com/codama-idl/codama-rs
     github: { owner: codama-idl, repo: codama-rs, include_readmes: true, include_source_code: false }
 
@@ -193,6 +272,8 @@ sources:
     name: GitHub solana-foundation/solana-improvement-documents
     kind: github
     enabled: true
+    sections: [core]
+    use_cases: "SIMD Solana Improvement Documents, protocol changes, runtime upgrades, validator protocol specs"
     primary_url: https://github.com/solana-foundation/solana-improvement-documents
     github: { owner: solana-foundation, repo: solana-improvement-documents, include_readmes: false, include_source_code: true }
 
@@ -200,6 +281,8 @@ sources:
     name: GitHub solana-developers/program-examples
     kind: github
     enabled: true
+    sections: [examples, programs, frameworks]
+    use_cases: "Solana program examples, Anchor + native + Pinocchio reference programs, common patterns, tutorial code"
     primary_url: https://github.com/solana-developers/program-examples
     github: { owner: solana-developers, repo: program-examples, include_readmes: false, include_source_code: true }
 
@@ -207,6 +290,8 @@ sources:
     name: GitHub gillsdk/gill
     kind: github
     enabled: true
+    sections: [clients]
+    use_cases: "Gill SDK source, ergonomic wrapper around @solana/kit, transaction helpers"
     primary_url: https://github.com/gillsdk/gill
     github: { owner: gillsdk, repo: gill, include_readmes: true, include_source_code: true }
 
@@ -214,6 +299,8 @@ sources:
     name: GitHub anza-xyz/wallet-adapter
     kind: github
     enabled: true
+    sections: [wallets]
+    use_cases: "Solana wallet-adapter, React/Vue/Svelte wallet integration, connect Phantom/Solflare/Backpack, browser wallet UX"
     primary_url: https://github.com/anza-xyz/wallet-adapter
     github: { owner: anza-xyz, repo: wallet-adapter, include_readmes: true, include_source_code: true }
 
@@ -221,6 +308,8 @@ sources:
     name: GitHub solana-foundation/pay (Solana Pay)
     kind: github
     enabled: true
+    sections: [clients, tokens]
+    use_cases: "Solana Pay protocol, payment URLs, transaction request QR codes, merchant integration"
     primary_url: https://github.com/solana-foundation/pay
     github: { owner: solana-foundation, repo: pay, include_readmes: true, include_source_code: true }
 
@@ -228,6 +317,8 @@ sources:
     name: GitHub solana-developers/helpers
     kind: github
     enabled: true
+    sections: [clients, tooling]
+    use_cases: "@solana-developers/helpers, common boilerplate for tutorials, airdrop helpers, keypair file IO, log parsing"
     primary_url: https://github.com/solana-developers/helpers
     github: { owner: solana-developers, repo: helpers, include_readmes: true, include_source_code: true }
 
@@ -235,6 +326,8 @@ sources:
     name: GitHub solana-foundation/surfpool
     kind: github
     enabled: true
+    sections: [testing, tooling]
+    use_cases: "Surfpool local Solana test surf, test runner, lightweight validator alternative, dev workflow"
     primary_url: https://github.com/solana-foundation/surfpool
     github: { owner: solana-foundation, repo: surfpool, include_readmes: true, include_source_code: true }
 
@@ -242,6 +335,8 @@ sources:
     name: GitHub regolith-labs/steel
     kind: github
     enabled: true
+    sections: [frameworks, programs]
+    use_cases: "Steel framework, lightweight alternative to Anchor, instruction discriminators, manual account parsing helpers"
     primary_url: https://github.com/regolith-labs/steel
     github: { owner: regolith-labs, repo: steel, include_readmes: true, include_source_code: true }
 
@@ -249,6 +344,8 @@ sources:
     name: GitHub Squads-Protocol/v4
     kind: github
     enabled: true
+    sections: [governance, wallets]
+    use_cases: "Squads v4 multisig program, treasury management, multi-sig wallet, on-chain governance approvals"
     primary_url: https://github.com/Squads-Protocol/v4
     github: { owner: Squads-Protocol, repo: v4, include_readmes: true, include_source_code: true }
 
@@ -257,6 +354,8 @@ sources:
     name: SPL Token
     kind: github
     enabled: true
+    sections: [tokens, programs]
+    use_cases: "SPL Token program, fungible tokens, mint/burn/transfer instructions, token accounts, classic token standard"
     primary_url: https://github.com/solana-program/token
     github: { owner: solana-program, repo: token, include_readmes: true, include_source_code: true }
 
@@ -264,6 +363,8 @@ sources:
     name: SPL Token 2022
     kind: github
     enabled: true
+    sections: [tokens, programs]
+    use_cases: "SPL Token-2022 (Token Extensions), transfer hooks, confidential transfers, interest-bearing, metadata pointer, modern token standard"
     primary_url: https://github.com/solana-program/token-2022
     github: { owner: solana-program, repo: token-2022, include_readmes: true, include_source_code: true }
 
@@ -271,6 +372,8 @@ sources:
     name: SPL Associated Token Account
     kind: github
     enabled: true
+    sections: [tokens, programs]
+    use_cases: "Associated Token Account program, deterministic ATA addresses, create_associated_token_account instruction"
     primary_url: https://github.com/solana-program/associated-token-account
     github: { owner: solana-program, repo: associated-token-account, include_readmes: true, include_source_code: true }
 
@@ -278,6 +381,8 @@ sources:
     name: Address Lookup Table
     kind: github
     enabled: true
+    sections: [core, programs]
+    use_cases: "Address Lookup Tables (ALT), versioned transactions, fitting more accounts per tx, lookup table extension"
     primary_url: https://github.com/solana-program/address-lookup-table
     github: { owner: solana-program, repo: address-lookup-table, include_readmes: true, include_source_code: true }
 
@@ -285,6 +390,8 @@ sources:
     name: Loader V4
     kind: github
     enabled: true
+    sections: [core, programs]
+    use_cases: "Loader v4 program, program deployment, BPF loader internals, program upgrades"
     primary_url: https://github.com/solana-program/loader-v4
     github: { owner: solana-program, repo: loader-v4, include_readmes: true, include_source_code: true }
 
@@ -292,6 +399,8 @@ sources:
     name: SPL Program Metadata
     kind: github
     enabled: true
+    sections: [tokens, programs]
+    use_cases: "SPL program metadata standard, on-chain metadata for non-NFT use cases"
     primary_url: https://github.com/solana-program/program-metadata
     github: { owner: solana-program, repo: program-metadata, include_readmes: true, include_source_code: true }
 
@@ -300,6 +409,8 @@ sources:
     name: Metaplex Docs
     kind: web
     enabled: true
+    sections: [nft, tokens]
+    use_cases: "Metaplex protocol docs, NFT standards, mpl-core, mpl-token-metadata, Bubblegum compressed NFTs, Umi SDK"
     primary_url: https://www.metaplex.com/docs
     sitemaps: [https://www.metaplex.com/docs/sitemap.xml]
 
@@ -307,6 +418,8 @@ sources:
     name: GitHub metaplex-foundation/mpl-token-metadata
     kind: github
     enabled: true
+    sections: [nft, tokens]
+    use_cases: "Metaplex Token Metadata program, classic NFT standard, master editions, collections, creator royalties"
     primary_url: https://github.com/metaplex-foundation/mpl-token-metadata
     github: { owner: metaplex-foundation, repo: mpl-token-metadata, include_readmes: true, include_source_code: true }
 
@@ -314,6 +427,8 @@ sources:
     name: GitHub metaplex-foundation/mpl-core
     kind: github
     enabled: true
+    sections: [nft]
+    use_cases: "Metaplex Core, modern next-gen NFT standard, single account NFTs, plugins, oracle plugin, lower rent"
     primary_url: https://github.com/metaplex-foundation/mpl-core
     github: { owner: metaplex-foundation, repo: mpl-core, include_readmes: true, include_source_code: true }
 
@@ -321,6 +436,8 @@ sources:
     name: GitHub metaplex-foundation/mpl-bubblegum (compressed NFTs)
     kind: github
     enabled: true
+    sections: [nft]
+    use_cases: "Bubblegum compressed NFTs, SPL state compression, concurrent merkle trees for NFT collections, low-cost NFT mints"
     primary_url: https://github.com/metaplex-foundation/mpl-bubblegum
     github: { owner: metaplex-foundation, repo: mpl-bubblegum, include_readmes: true, include_source_code: true }
 
@@ -328,6 +445,8 @@ sources:
     name: GitHub metaplex-foundation/metaplex-program-library
     kind: github
     enabled: true
+    sections: [nft, tokens]
+    use_cases: "Legacy Metaplex program library, candy machine v2, auction house, token entangler, older NFT tooling"
     primary_url: https://github.com/metaplex-foundation/metaplex-program-library
     github: { owner: metaplex-foundation, repo: metaplex-program-library, include_readmes: true, include_source_code: true }
 
@@ -336,6 +455,8 @@ sources:
     name: Helius Docs
     kind: web
     enabled: true
+    sections: [infra, data]
+    use_cases: "Helius RPC, enhanced transactions API, DAS Digital Asset Standard API, webhooks, NFT indexing, photon ZK compression"
     primary_url: https://docs.helius.dev
     sitemaps: [https://docs.helius.dev/sitemap.xml]
 
@@ -343,6 +464,8 @@ sources:
     name: QuickNode Docs
     kind: web
     enabled: true
+    sections: [infra]
+    use_cases: "QuickNode Solana RPC, dedicated nodes, marketplace add-ons, priority fees API"
     primary_url: https://www.quicknode.com/docs/solana
     sitemaps: [https://www.quicknode.com/docs/sitemap.xml]
     url_include: [solana]
@@ -351,6 +474,8 @@ sources:
     name: Alchemy Docs
     kind: web
     enabled: true
+    sections: [infra]
+    use_cases: "Alchemy Solana RPC, enhanced APIs, getAssetsByOwner, NFT API"
     primary_url: https://www.alchemy.com/docs
     sitemaps:
       - https://www.alchemy.com/docs/sitemap-0.xml
@@ -361,6 +486,8 @@ sources:
     name: Chainstack Docs
     kind: web
     enabled: true
+    sections: [infra]
+    use_cases: "Chainstack Solana RPC nodes, archive nodes, trader node, geographic regions"
     primary_url: https://docs.chainstack.com/reference/solana-getting-started
     sitemaps: [https://docs.chainstack.com/sitemap.xml]
     url_include: [solana]
@@ -369,6 +496,8 @@ sources:
     name: Tatum Docs
     kind: web
     enabled: true
+    sections: [infra]
+    use_cases: "Tatum Solana RPC, blockchain APIs, NFT helpers, multi-chain abstraction"
     primary_url: https://docs.tatum.io
     sitemaps: [https://docs.tatum.io/sitemap.xml]
     url_include: [solana]
@@ -377,6 +506,8 @@ sources:
     name: Jito Docs
     kind: web
     enabled: true
+    sections: [infra, defi, liquid-staking]
+    use_cases: "Jito block engine, MEV bundles, tips, JitoSOL liquid staking, Jito-Solana validator client, restaking"
     primary_url: https://docs.jito.wtf
     start_urls: [https://docs.jito.wtf]
 
@@ -385,6 +516,8 @@ sources:
     name: Solscan Docs
     kind: web
     enabled: true
+    sections: [data]
+    use_cases: "Solscan explorer, transaction lookup, account history, public APIs, token transfer history"
     primary_url: https://docs.solscan.io
     sitemaps: [https://docs.solscan.io/sitemap-pages.xml]
 
@@ -392,6 +525,8 @@ sources:
     name: Magic Eden Docs
     kind: web
     enabled: true
+    sections: [nft, data]
+    use_cases: "Magic Eden NFT marketplace API, listings, collection stats, MMM pool integration"
     primary_url: https://docs.magiceden.io
     sitemaps: [https://docs.magiceden.io/sitemap.xml]
     url_include: [solana, /sol-, -sol-, /sol/, /mmm-sol-, /reference/]
@@ -400,6 +535,8 @@ sources:
     name: Tensor Docs (NFT marketplace)
     kind: web
     enabled: true
+    sections: [nft, data]
+    use_cases: "Tensor NFT marketplace API, swap floor sweeps, advanced NFT trading, TensorSwap pools"
     primary_url: https://docs.tensor.trade
     sitemaps: [https://docs.tensor.trade/sitemap.xml]
 
@@ -407,6 +544,8 @@ sources:
     name: Birdeye Docs
     kind: web
     enabled: true
+    sections: [data, defi]
+    use_cases: "Birdeye token analytics API, OHLCV, token security info, DeFi data feeds"
     primary_url: https://docs.birdeye.so
     sitemaps: [https://docs.birdeye.so/sitemap.xml]
 
@@ -414,6 +553,8 @@ sources:
     name: DEX Screener Docs
     kind: web
     enabled: true
+    sections: [data, defi]
+    use_cases: "DEX Screener API, token price charts, pair stats, trending tokens, liquidity tracking"
     primary_url: https://docs.dexscreener.com
     sitemaps: [https://docs.dexscreener.com/sitemap.xml]
 
@@ -421,6 +562,8 @@ sources:
     name: GeckoTerminal API Docs
     kind: web
     enabled: true
+    sections: [data, defi]
+    use_cases: "GeckoTerminal API, DEX prices, pool stats, on-chain trading data"
     primary_url: https://apiguide.geckoterminal.com
     sitemaps: [https://apiguide.geckoterminal.com/sitemap-pages.xml]
 
@@ -428,6 +571,8 @@ sources:
     name: CoinGecko Public API Docs
     kind: web
     enabled: true
+    sections: [data]
+    use_cases: "CoinGecko public API, token prices, market caps, historical data"
     primary_url: https://docs.coingecko.com/v3.0.1/reference/introduction
     start_urls:
       - https://docs.coingecko.com/v3.0.1/reference/introduction
@@ -437,6 +582,8 @@ sources:
     name: Bitquery Docs
     kind: web
     enabled: true
+    sections: [data]
+    use_cases: "Bitquery GraphQL Solana indexer, custom queries, DEX trades, transfers, advanced analytics"
     primary_url: https://docs.bitquery.io
     sitemaps: [https://docs.bitquery.io/sitemap.xml]
     url_include: [solana]
@@ -445,6 +592,8 @@ sources:
     name: Dune Docs
     kind: web
     enabled: true
+    sections: [data]
+    use_cases: "Dune SQL Solana datasets, blockchain analytics, dashboards, custom SQL queries"
     primary_url: https://docs.dune.com/data-catalog/solana
     sitemaps: [https://docs.dune.com/sitemap.xml]
     url_include: [solana]
@@ -453,6 +602,8 @@ sources:
     name: PumpPortal Docs
     kind: web
     enabled: true
+    sections: [data, defi]
+    use_cases: "PumpPortal API, pump.fun token data, real-time launches, trading API"
     primary_url: https://pumpportal.fun
     sitemaps: [https://pumpportal.fun/sitemap.xml]
 
@@ -461,6 +612,8 @@ sources:
     name: Phantom Docs
     kind: web
     enabled: true
+    sections: [wallets]
+    use_cases: "Phantom wallet integration, deeplinks, mobile dapp browser, embedded wallets, signing best practices"
     primary_url: https://docs.phantom.com/solana
     sitemaps: [https://docs.phantom.com/sitemap.xml]
     url_include: [solana, best-practices]
@@ -469,6 +622,8 @@ sources:
     name: Solflare Docs
     kind: web
     enabled: true
+    sections: [wallets]
+    use_cases: "Solflare wallet integration, browser extension, mobile, hardware wallet support"
     primary_url: https://docs.solflare.com/solflare
     sitemaps: [https://docs.solflare.com/solflare/sitemap-pages.xml]
 
@@ -476,6 +631,8 @@ sources:
     name: Squads Docs
     kind: web
     enabled: true
+    sections: [governance, wallets]
+    use_cases: "Squads multisig wallet, treasury management, smart account, transaction approvals, team wallets"
     primary_url: https://docs.squads.so/main
     sitemaps: [https://docs.squads.so/main/sitemap-pages.xml]
 
@@ -484,6 +641,8 @@ sources:
     name: Jupiter Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "Jupiter swap aggregator, swap API, limit orders, DCA, Jupiter Terminal integration"
     primary_url: https://docs.jup.ag
     sitemaps: [https://docs.jup.ag/sitemap.xml]
 
@@ -491,6 +650,8 @@ sources:
     name: Jupiter Developers (API)
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "Jupiter developer APIs, swap quote, swap transaction, price API, trigger orders"
     primary_url: https://developers.jup.ag
     start_urls: [https://developers.jup.ag]
 
@@ -499,6 +660,8 @@ sources:
     name: Raydium Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "Raydium AMM, CLMM concentrated liquidity, liquidity pools, farming, swap integration"
     primary_url: https://docs.raydium.io/raydium
     sitemaps: [https://docs.raydium.io/raydium/sitemap-pages.xml]
 
@@ -506,6 +669,8 @@ sources:
     name: Orca Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "Orca DEX, Whirlpools concentrated liquidity, liquidity provision, swap routing"
     primary_url: https://docs.orca.so
     sitemaps: [https://docs.orca.so/sitemap.xml]
 
@@ -513,6 +678,8 @@ sources:
     name: Meteora Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "Meteora Dynamic AMM, DLMM, dynamic vaults, fee sharing, yield strategies"
     primary_url: https://docs.meteora.ag
     sitemaps: [https://docs.meteora.ag/sitemap.xml]
 
@@ -520,6 +687,8 @@ sources:
     name: GooseFX Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "GooseFX SSL pools, perps, single-sided liquidity, GOFX token"
     primary_url: https://docs.goosefx.io
     sitemaps: [https://docs.goosefx.io/sitemap.xml]
 
@@ -527,6 +696,8 @@ sources:
     name: FluxBeam Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "FluxBeam DEX, token-2022 swaps, DEX aggregator, transfer hook support"
     primary_url: https://docs.fluxbeam.xyz/
     sitemaps: [https://docs.fluxbeam.xyz/sitemap.xml]
 
@@ -534,6 +705,8 @@ sources:
     name: Lifinity Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "Lifinity proactive market maker, oracle-based AMM, low impermanent loss strategy"
     primary_url: https://docs.lifinity.io
     sitemaps: [https://docs.lifinity.io/sitemap.xml]
 
@@ -541,6 +714,8 @@ sources:
     name: Flash.Trade Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "Flash.Trade perpetuals exchange, leverage trading, liquidity providing for perps"
     primary_url: https://docs.flash.trade
     sitemaps: [https://docs.flash.trade/flash-trade/sitemap.xml]
 
@@ -548,6 +723,8 @@ sources:
     name: Zeta Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "Zeta options and perps, derivatives trading, options chain, perp futures"
     primary_url: https://docs.zeta.markets/
     sitemaps: [https://docs.zeta.markets/sitemap.xml]
 
@@ -555,6 +732,8 @@ sources:
     name: Drift Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "Drift Protocol perpetuals, spot, lending, JIT auctions, cross-margin"
     primary_url: https://docs.drift.trade
     start_urls: [https://docs.drift.trade]
 
@@ -562,6 +741,8 @@ sources:
     name: Drift v2 API Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "Drift v2 SDK reference, perp/spot order placement, account management, order book interaction"
     primary_url: https://drift-labs.github.io/v2-teacher
     ingest_urls: [https://drift-labs.github.io/v2-teacher]
 
@@ -569,6 +750,8 @@ sources:
     name: Drift Data API (OpenAPI)
     kind: openapi
     enabled: true
+    sections: [defi, data]
+    use_cases: "Drift Data API OpenAPI spec, historical trade data, market stats, funding rates"
     primary_url: https://data.api.drift.trade/playground
     spec_url: https://data.api.drift.trade/playground/json
 
@@ -576,6 +759,8 @@ sources:
     name: GitHub drift-labs/protocol-v2
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Drift v2 on-chain program source, perp engine, AMM logic, liquidation engine"
     primary_url: https://github.com/drift-labs/protocol-v2
     github: { owner: drift-labs, repo: protocol-v2, include_readmes: true, include_source_code: true }
 
@@ -583,6 +768,8 @@ sources:
     name: Kamino Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "Kamino lending and liquidity vaults, klend, leverage, automated liquidity strategies"
     primary_url: https://kamino.com/docs
     start_urls:
       - https://kamino.com/docs
@@ -592,6 +779,8 @@ sources:
     name: marginfi Docs
     kind: web
     enabled: true
+    sections: [defi]
+    use_cases: "marginfi lending, mrgnlend, isolated vs cross-margin, points program"
     primary_url: https://docs.marginfi.com
     start_urls: [https://docs.marginfi.com]
 
@@ -599,6 +788,8 @@ sources:
     name: Marinade Docs
     kind: web
     enabled: true
+    sections: [liquid-staking, defi]
+    use_cases: "Marinade liquid staking, mSOL, native staking, validator delegation strategy"
     primary_url: https://docs.marinade.finance
     sitemaps: [https://docs.marinade.finance/sitemap.xml]
 
@@ -606,6 +797,8 @@ sources:
     name: BlazeStake Docs
     kind: web
     enabled: true
+    sections: [liquid-staking, defi]
+    use_cases: "BlazeStake liquid staking, bSOL, SolBlaze validator pool"
     primary_url: https://stake-docs.solblaze.org
     sitemaps: [https://stake-docs.solblaze.org/sitemap.xml]
 
@@ -613,6 +806,8 @@ sources:
     name: Sanctum > Infinity Docs
     kind: web
     enabled: true
+    sections: [liquid-staking, defi]
+    use_cases: "Sanctum Infinity LST router, multi-LST liquidity pool, INF token, LST-to-LST swaps"
     primary_url: https://learn.sanctum.so/docs
     sitemaps: [https://learn.sanctum.so/docs/sitemap-pages.xml]
 
@@ -621,6 +816,8 @@ sources:
     name: Pyth Network Docs
     kind: web
     enabled: true
+    sections: [oracles]
+    use_cases: "Pyth price oracle, pull oracle pattern, sponsored feeds, price account format, confidence intervals"
     primary_url: https://docs.pyth.network
     sitemaps: [https://docs.pyth.network/sitemap.xml]
 
@@ -628,6 +825,8 @@ sources:
     name: Switchboard Docs
     kind: web
     enabled: true
+    sections: [oracles]
+    use_cases: "Switchboard oracle network, on-demand feeds, randomness VRF, custom oracle functions"
     primary_url: https://docs.switchboard.xyz
     sitemaps: [https://docs.switchboard.xyz/sitemap.xml]
 
@@ -636,6 +835,8 @@ sources:
     name: Wormhole Docs
     kind: web
     enabled: true
+    sections: [bridges]
+    use_cases: "Wormhole cross-chain messaging, token bridge, NTT native token transfers, Solana ↔ EVM bridging"
     primary_url: https://wormhole.com/docs
     sitemaps: [https://wormhole.com/docs/sitemap.xml]
     url_include: [solana]
@@ -645,6 +846,8 @@ sources:
     name: GitHub deanmlittle/anchor-memo
     kind: github
     enabled: true
+    sections: [examples, frameworks]
+    use_cases: "Minimal Anchor memo program example, learn Anchor basics, simple instruction handler"
     primary_url: https://github.com/deanmlittle/anchor-memo
     github: { owner: deanmlittle, repo: anchor-memo, include_readmes: true, include_source_code: true }
 
@@ -652,6 +855,8 @@ sources:
     name: GitHub deanmlittle/anchor-memo-optimized
     kind: github
     enabled: true
+    sections: [examples, frameworks]
+    use_cases: "CU-optimized Anchor memo, compute unit optimization techniques, low-CU patterns"
     primary_url: https://github.com/deanmlittle/anchor-memo-optimized
     github: { owner: deanmlittle, repo: anchor-memo-optimized, include_readmes: true, include_source_code: true }
 
@@ -659,6 +864,8 @@ sources:
     name: GitHub deanmlittle/sbpf-asm-memo
     kind: github
     enabled: true
+    sections: [examples, vm, programs]
+    use_cases: "sBPF assembly memo program, hand-written sBPF assembly, lowest-level Solana program example"
     primary_url: https://github.com/deanmlittle/sbpf-asm-memo
     github: { owner: deanmlittle, repo: sbpf-asm-memo, include_readmes: true, include_source_code: true }
 
@@ -666,6 +873,8 @@ sources:
     name: GitHub deanmlittle/pinocchio-memo
     kind: github
     enabled: true
+    sections: [examples, frameworks, programs]
+    use_cases: "Pinocchio memo program, Pinocchio framework example, no-dependency program pattern"
     primary_url: https://github.com/deanmlittle/pinocchio-memo
     github: { owner: deanmlittle, repo: pinocchio-memo, include_readmes: true, include_source_code: true }
 
@@ -673,6 +882,8 @@ sources:
     name: GitHub deanmlittle/sbpf-asm-abort
     kind: github
     enabled: true
+    sections: [examples, vm, programs]
+    use_cases: "sBPF assembly abort program, minimal abort handler in raw sBPF"
     primary_url: https://github.com/deanmlittle/sbpf-asm-abort
     github: { owner: deanmlittle, repo: sbpf-asm-abort, include_readmes: true, include_source_code: true }
 
@@ -680,6 +891,8 @@ sources:
     name: GitHub deanmlittle/anchor-escrow-2024
     kind: github
     enabled: true
+    sections: [examples, frameworks, programs]
+    use_cases: "Anchor escrow program 2024 patterns, PDA-owned token accounts, classic escrow tutorial"
     primary_url: https://github.com/deanmlittle/anchor-escrow-2024
     github: { owner: deanmlittle, repo: anchor-escrow-2024, include_readmes: true, include_source_code: true }
 
@@ -687,6 +900,8 @@ sources:
     name: GitHub deanmlittle/solana-winternitz
     kind: github
     enabled: true
+    sections: [examples, programs]
+    use_cases: "Winternitz one-time signatures on Solana, post-quantum signature scheme example"
     primary_url: https://github.com/deanmlittle/solana-winternitz
     github: { owner: deanmlittle, repo: solana-winternitz, include_readmes: true, include_source_code: true }
 
@@ -694,6 +909,8 @@ sources:
     name: GitHub deanmlittle/p-token
     kind: github
     enabled: true
+    sections: [examples, programs, tokens]
+    use_cases: "p-token program, Pinocchio-based reimplementation of SPL Token, performance comparison"
     primary_url: https://github.com/deanmlittle/p-token
     github: { owner: deanmlittle, repo: p-token, include_readmes: true, include_source_code: true }
 
@@ -701,6 +918,8 @@ sources:
     name: GitHub deanmlittle/solana-nodep-vault-2025
     kind: github
     enabled: true
+    sections: [examples, programs]
+    use_cases: "No-dependency Solana vault 2025 patterns, native program without solana-program crate, ultra-light vault"
     primary_url: https://github.com/deanmlittle/solana-nodep-vault-2025
     github: { owner: deanmlittle, repo: solana-nodep-vault-2025, include_readmes: true, include_source_code: true }
 
@@ -708,6 +927,8 @@ sources:
     name: GitHub deanmlittle/native-escrow-2024
     kind: github
     enabled: true
+    sections: [examples, programs]
+    use_cases: "Native (no-Anchor) escrow program 2024, raw account parsing, manual instruction dispatch"
     primary_url: https://github.com/deanmlittle/native-escrow-2024
     github: { owner: deanmlittle, repo: native-escrow-2024, include_readmes: true, include_source_code: true }
 
@@ -715,6 +936,8 @@ sources:
     name: GitHub deanmlittle/native-vault-2024
     kind: github
     enabled: true
+    sections: [examples, programs]
+    use_cases: "Native vault program 2024, raw Solana program patterns, deposit/withdraw without framework"
     primary_url: https://github.com/deanmlittle/native-vault-2024
     github: { owner: deanmlittle, repo: native-vault-2024, include_readmes: true, include_source_code: true }
 
@@ -722,6 +945,8 @@ sources:
     name: GitHub deanmlittle/solana-transaction-introspection
     kind: github
     enabled: true
+    sections: [examples, programs]
+    use_cases: "Transaction introspection on Solana, instructions sysvar usage, inspect sibling instructions"
     primary_url: https://github.com/deanmlittle/solana-transaction-introspection
     github: { owner: deanmlittle, repo: solana-transaction-introspection, include_readmes: true, include_source_code: true }
 
@@ -729,6 +954,8 @@ sources:
     name: GitHub deanmlittle/solana-ed25519-instruction
     kind: github
     enabled: true
+    sections: [examples, programs]
+    use_cases: "Ed25519 signature verification via precompile, ed25519 instruction sysvar pattern"
     primary_url: https://github.com/deanmlittle/solana-ed25519-instruction
     github: { owner: deanmlittle, repo: solana-ed25519-instruction, include_readmes: true, include_source_code: true }
 
@@ -736,6 +963,8 @@ sources:
     name: GitHub deanmlittle/anchor-instruction-sysvar
     kind: github
     enabled: true
+    sections: [examples, frameworks, programs]
+    use_cases: "Anchor instruction sysvar pattern, validating sibling instructions in Anchor"
     primary_url: https://github.com/deanmlittle/anchor-instruction-sysvar
     github: { owner: deanmlittle, repo: anchor-instruction-sysvar, include_readmes: true, include_source_code: true }
 
@@ -743,6 +972,8 @@ sources:
     name: GitHub deanmlittle/anchor-amm-2023
     kind: github
     enabled: true
+    sections: [examples, frameworks, defi]
+    use_cases: "Anchor AMM tutorial program, constant product AMM, swap/deposit/withdraw instructions"
     primary_url: https://github.com/deanmlittle/anchor-amm-2023
     github: { owner: deanmlittle, repo: anchor-amm-2023, include_readmes: true, include_source_code: true }
 
@@ -750,6 +981,8 @@ sources:
     name: GitHub deanmlittle/anchor-vault-2024
     kind: github
     enabled: true
+    sections: [examples, frameworks, programs]
+    use_cases: "Anchor vault 2024 tutorial, deposit/withdraw, PDA seeds, signer privileges"
     primary_url: https://github.com/deanmlittle/anchor-vault-2024
     github: { owner: deanmlittle, repo: anchor-vault-2024, include_readmes: true, include_source_code: true }
 
@@ -757,6 +990,8 @@ sources:
     name: GitHub deanmlittle/solana-fibonacci-asm
     kind: github
     enabled: true
+    sections: [examples, vm, programs]
+    use_cases: "Fibonacci in raw sBPF assembly, performance benchmark, hand-tuned VM code"
     primary_url: https://github.com/deanmlittle/solana-fibonacci-asm
     github: { owner: deanmlittle, repo: solana-fibonacci-asm, include_readmes: true, include_source_code: true }
 
@@ -764,6 +999,8 @@ sources:
     name: GitHub deanmlittle/hello-solana-asm
     kind: github
     enabled: true
+    sections: [examples, vm, programs]
+    use_cases: "Hello world in raw sBPF assembly, smallest possible Solana program"
     primary_url: https://github.com/deanmlittle/hello-solana-asm
     github: { owner: deanmlittle, repo: hello-solana-asm, include_readmes: true, include_source_code: true }
 
@@ -771,6 +1008,8 @@ sources:
     name: GitHub deanmlittle/anchor-vesting-2024
     kind: github
     enabled: true
+    sections: [examples, frameworks, programs]
+    use_cases: "Anchor token vesting program 2024, time-based unlock schedules, treasury vesting"
     primary_url: https://github.com/deanmlittle/anchor-vesting-2024
     github: { owner: deanmlittle, repo: anchor-vesting-2024, include_readmes: true, include_source_code: true }
 
@@ -778,6 +1017,8 @@ sources:
     name: GitHub deanmlittle/AnchorExampleContracts
     kind: github
     enabled: true
+    sections: [examples, frameworks, programs]
+    use_cases: "Collection of Anchor example contracts, common patterns, reference programs"
     primary_url: https://github.com/deanmlittle/AnchorExampleContracts
     github: { owner: deanmlittle, repo: AnchorExampleContracts, include_readmes: true, include_source_code: true }
 
@@ -785,6 +1026,8 @@ sources:
     name: GitHub deanmlittle/anchor-escrow-introspection
     kind: github
     enabled: true
+    sections: [examples, frameworks, programs]
+    use_cases: "Anchor escrow with instruction introspection, advanced security pattern"
     primary_url: https://github.com/deanmlittle/anchor-escrow-introspection
     github: { owner: deanmlittle, repo: anchor-escrow-introspection, include_readmes: true, include_source_code: true }
 
@@ -792,6 +1035,8 @@ sources:
     name: GitHub deanmlittle/solana-rsa-program
     kind: github
     enabled: true
+    sections: [examples, programs]
+    use_cases: "RSA signature verification on Solana, big-int arithmetic in programs"
     primary_url: https://github.com/deanmlittle/solana-rsa-program
     github: { owner: deanmlittle, repo: solana-rsa-program, include_readmes: true, include_source_code: true }
 
@@ -799,6 +1044,8 @@ sources:
     name: GitHub deanmlittle/anchor-dice-2023
     kind: github
     enabled: true
+    sections: [examples, frameworks, programs]
+    use_cases: "Anchor dice game tutorial, on-chain randomness, simple gambling primitive"
     primary_url: https://github.com/deanmlittle/anchor-dice-2023
     github: { owner: deanmlittle, repo: anchor-dice-2023, include_readmes: true, include_source_code: true }
 
@@ -806,6 +1053,8 @@ sources:
     name: GitHub deanmlittle/anchor-marketplace-2023
     kind: github
     enabled: true
+    sections: [examples, frameworks, nft]
+    use_cases: "Anchor NFT marketplace tutorial, listing, buy, delist, escrow-based trading"
     primary_url: https://github.com/deanmlittle/anchor-marketplace-2023
     github: { owner: deanmlittle, repo: anchor-marketplace-2023, include_readmes: true, include_source_code: true }
 
@@ -813,6 +1062,8 @@ sources:
     name: GitHub deanmlittle/anchor-dao-2023
     kind: github
     enabled: true
+    sections: [examples, frameworks, governance]
+    use_cases: "Anchor DAO tutorial, proposal/vote/execute pattern, simple on-chain governance"
     primary_url: https://github.com/deanmlittle/anchor-dao-2023
     github: { owner: deanmlittle, repo: anchor-dao-2023, include_readmes: true, include_source_code: true }
 
@@ -820,6 +1071,8 @@ sources:
     name: GitHub solana-developers/idl-program
     kind: github
     enabled: true
+    sections: [tooling, programs]
+    use_cases: "IDL program for storing Anchor IDLs on-chain, IDL retrieval, metadata for non-Anchor programs"
     primary_url: https://github.com/solana-developers/idl-program
     github: { owner: solana-developers, repo: idl-program, include_readmes: true, include_source_code: true }
 
@@ -827,6 +1080,8 @@ sources:
     name: GitHub solana-developers/developer-bootcamp-2024
     kind: github
     enabled: true
+    sections: [examples, programs, frameworks]
+    use_cases: "Solana Developer Bootcamp 2024, structured learning path, Anchor + native exercises"
     primary_url: https://github.com/solana-developers/developer-bootcamp-2024
     github: { owner: solana-developers, repo: developer-bootcamp-2024, include_readmes: true, include_source_code: true }
 
@@ -834,6 +1089,8 @@ sources:
     name: GitHub solana-developers/anchor-web3js-nextjs
     kind: github
     enabled: true
+    sections: [examples, frameworks, clients]
+    use_cases: "Next.js + Anchor + web3.js full-stack template, wallet connection, frontend integration"
     primary_url: https://github.com/solana-developers/anchor-web3js-nextjs
     github: { owner: solana-developers, repo: anchor-web3js-nextjs, include_readmes: true, include_source_code: true }
 
@@ -841,6 +1098,8 @@ sources:
     name: GitHub solana-developers/verify-squads
     kind: github
     enabled: true
+    sections: [examples, governance]
+    use_cases: "Squads multisig program verification example, attestation tooling"
     primary_url: https://github.com/solana-developers/verify-squads
     github: { owner: solana-developers, repo: verify-squads, include_readmes: true, include_source_code: true }
 
@@ -848,6 +1107,8 @@ sources:
     name: GitHub buffalojoec/arb-program
     kind: github
     enabled: true
+    sections: [examples, defi, programs]
+    use_cases: "On-chain arbitrage program example, atomic multi-DEX swap pattern"
     primary_url: https://github.com/buffalojoec/arb-program
     github: { owner: buffalojoec, repo: arb-program, include_readmes: true, include_source_code: true }
 
@@ -855,6 +1116,8 @@ sources:
     name: GitHub coral-xyz/sealevel-attacks
     kind: github
     enabled: true
+    sections: [examples, programs, testing]
+    use_cases: "Sealevel attacks reference, common Anchor security pitfalls, missing signer/owner checks, account confusion"
     primary_url: https://github.com/coral-xyz/sealevel-attacks
     github: { owner: coral-xyz, repo: sealevel-attacks, include_readmes: true, include_source_code: true }
 
@@ -863,6 +1126,8 @@ sources:
     name: GitHub orca-so/whirlpools
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Orca Whirlpools concentrated liquidity program source, tick math, position management"
     primary_url: https://github.com/orca-so/whirlpools
     github: { owner: orca-so, repo: whirlpools, include_readmes: true, include_source_code: true }
 
@@ -870,6 +1135,8 @@ sources:
     name: GitHub raydium-io/raydium-clmm
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Raydium CLMM concentrated liquidity program source, tick-based AMM"
     primary_url: https://github.com/raydium-io/raydium-clmm
     github: { owner: raydium-io, repo: raydium-clmm, include_readmes: true, include_source_code: true }
 
@@ -877,6 +1144,8 @@ sources:
     name: GitHub saber-hq/stable-swap
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Saber stable-swap AMM, Curve-style stableswap on Solana"
     primary_url: https://github.com/saber-hq/stable-swap
     github: { owner: saber-hq, repo: stable-swap, include_readmes: true, include_source_code: true }
 
@@ -884,6 +1153,8 @@ sources:
     name: GitHub openbook-dex/openbook-v2
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "OpenBook v2 central limit order book, on-chain order matching, market making"
     primary_url: https://github.com/openbook-dex/openbook-v2
     github: { owner: openbook-dex, repo: openbook-v2, include_readmes: true, include_source_code: true }
 
@@ -891,6 +1162,8 @@ sources:
     name: GitHub openbook-dex/program
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "OpenBook v1 (Serum fork) order book program source"
     primary_url: https://github.com/openbook-dex/program
     github: { owner: openbook-dex, repo: program, include_readmes: true, include_source_code: true }
 
@@ -898,6 +1171,8 @@ sources:
     name: GitHub project-serum/serum-dex
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Original Serum DEX order book program, historical reference for CLOB-on-Solana"
     primary_url: https://github.com/project-serum/serum-dex
     github: { owner: project-serum, repo: serum-dex, include_readmes: true, include_source_code: true }
 
@@ -905,6 +1180,8 @@ sources:
     name: GitHub Ellipsis-Labs/jupiter-plasma
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Jupiter Plasma integration, AMM-style routing for Phoenix"
     primary_url: https://github.com/Ellipsis-Labs/jupiter-plasma
     github: { owner: Ellipsis-Labs, repo: jupiter-plasma, include_readmes: true, include_source_code: true }
 
@@ -912,6 +1189,8 @@ sources:
     name: GitHub Ellipsis-Labs/plasma
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Plasma AMM by Ellipsis Labs, fully on-chain market maker"
     primary_url: https://github.com/Ellipsis-Labs/plasma
     github: { owner: Ellipsis-Labs, repo: plasma, include_readmes: true, include_source_code: true }
 
@@ -919,6 +1198,8 @@ sources:
     name: GitHub Ellipsis-Labs/phoenix-sdk
     kind: github
     enabled: true
+    sections: [defi, clients]
+    use_cases: "Phoenix DEX TypeScript/Rust SDK, order placement, market data fetching"
     primary_url: https://github.com/Ellipsis-Labs/phoenix-sdk
     github: { owner: Ellipsis-Labs, repo: phoenix-sdk, include_readmes: true, include_source_code: true }
 
@@ -926,6 +1207,8 @@ sources:
     name: GitHub Ellipsis-Labs/phoenix-v1
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Phoenix v1 on-chain CLOB program source, atomic settlement, no crank"
     primary_url: https://github.com/Ellipsis-Labs/phoenix-v1
     github: { owner: Ellipsis-Labs, repo: phoenix-v1, include_readmes: true, include_source_code: true }
 
@@ -933,6 +1216,8 @@ sources:
     name: GitHub Ellipsis-Labs/solana-program-library
     kind: github
     enabled: true
+    sections: [tokens, programs]
+    use_cases: "Ellipsis Labs SPL fork, custom token program patterns"
     primary_url: https://github.com/Ellipsis-Labs/solana-program-library
     github: { owner: Ellipsis-Labs, repo: solana-program-library, include_readmes: true, include_source_code: true }
 
@@ -940,6 +1225,8 @@ sources:
     name: GitHub jup-ag/distributor
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Jupiter merkle distributor, airdrop claiming, merkle proof verification"
     primary_url: https://github.com/jup-ag/distributor
     github: { owner: jup-ag, repo: distributor, include_readmes: true, include_source_code: true }
 
@@ -947,6 +1234,8 @@ sources:
     name: GitHub jup-ag/raydium-cp-swap
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Raydium constant-product swap program (Jupiter fork), AMM swap implementation"
     primary_url: https://github.com/jup-ag/raydium-cp-swap
     github: { owner: jup-ag, repo: raydium-cp-swap, include_readmes: true, include_source_code: true }
 
@@ -954,6 +1243,8 @@ sources:
     name: GitHub jup-ag/damm-v2
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Dynamic AMM v2 by Jupiter, advanced AMM design"
     primary_url: https://github.com/jup-ag/damm-v2
     github: { owner: jup-ag, repo: damm-v2, include_readmes: true, include_source_code: true }
 
@@ -961,6 +1252,8 @@ sources:
     name: GitHub MeteoraAg/dynamic-fee-sharing
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Meteora dynamic fee sharing program, fee distribution to LPs"
     primary_url: https://github.com/MeteoraAg/dynamic-fee-sharing
     github: { owner: MeteoraAg, repo: dynamic-fee-sharing, include_readmes: true, include_source_code: true }
 
@@ -968,6 +1261,8 @@ sources:
     name: GitHub MeteoraAg/cpi-examples
     kind: github
     enabled: true
+    sections: [examples, defi, programs]
+    use_cases: "Meteora CPI integration examples, calling Meteora pools from your program"
     primary_url: https://github.com/MeteoraAg/cpi-examples
     github: { owner: MeteoraAg, repo: cpi-examples, include_readmes: true, include_source_code: true }
 
@@ -975,6 +1270,8 @@ sources:
     name: GitHub blockworks-foundation/mango-v3
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Mango Markets v3 program source, perps and lending engine, historical reference"
     primary_url: https://github.com/blockworks-foundation/mango-v3
     github: { owner: blockworks-foundation, repo: mango-v3, include_readmes: true, include_source_code: true }
 
@@ -982,6 +1279,8 @@ sources:
     name: GitHub blockworks-foundation/mango-v4
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Mango v4 perps + spot + lending program source, advanced risk engine"
     primary_url: https://github.com/blockworks-foundation/mango-v4
     github: { owner: blockworks-foundation, repo: mango-v4, include_readmes: true, include_source_code: true }
 
@@ -990,6 +1289,8 @@ sources:
     name: GitHub Kamino-Finance/klend
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Kamino lending (klend) program source, lending market, interest accrual, liquidation"
     primary_url: https://github.com/Kamino-Finance/klend
     github: { owner: Kamino-Finance, repo: klend, include_readmes: true, include_source_code: true }
 
@@ -997,6 +1298,8 @@ sources:
     name: GitHub Kamino-Finance/scope
     kind: github
     enabled: true
+    sections: [oracles, defi, programs]
+    use_cases: "Kamino Scope oracle aggregator, multi-source price feeds, oracle resilience"
     primary_url: https://github.com/Kamino-Finance/scope
     github: { owner: Kamino-Finance, repo: scope, include_readmes: true, include_source_code: true }
 
@@ -1004,6 +1307,8 @@ sources:
     name: GitHub solendprotocol/solana-program-library
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "Solend lending program (SPL fork), token lending pools, reserve management"
     primary_url: https://github.com/solendprotocol/solana-program-library
     github: { owner: solendprotocol, repo: solana-program-library, include_readmes: true, include_source_code: true }
 
@@ -1011,6 +1316,8 @@ sources:
     name: GitHub 0dotxyz/marginfi-v2
     kind: github
     enabled: true
+    sections: [defi, programs]
+    use_cases: "marginfi v2 program source, isolated and cross-margin lending, banks/groups model"
     primary_url: https://github.com/0dotxyz/marginfi-v2
     github: { owner: 0dotxyz, repo: marginfi-v2, include_readmes: true, include_source_code: true }
 
@@ -1018,6 +1325,8 @@ sources:
     name: GitHub Lightprotocol/light-protocol (ZK Compression)
     kind: github
     enabled: true
+    sections: [zk, programs]
+    use_cases: "Light Protocol ZK compression source, compressed accounts, photon indexer, low-rent state"
     primary_url: https://github.com/Lightprotocol/light-protocol
     github: { owner: Lightprotocol, repo: light-protocol, include_readmes: true, include_source_code: true }
 
@@ -1026,6 +1335,8 @@ sources:
     name: GitHub marinade-finance/liquid-staking-program
     kind: github
     enabled: true
+    sections: [liquid-staking, programs]
+    use_cases: "Marinade liquid staking program source, mSOL minting, validator delegation logic"
     primary_url: https://github.com/marinade-finance/liquid-staking-program
     github: { owner: marinade-finance, repo: liquid-staking-program, include_readmes: true, include_source_code: true }
 
@@ -1033,6 +1344,8 @@ sources:
     name: GitHub igneous-labs/sanctum-spl-stake-pool
     kind: github
     enabled: true
+    sections: [liquid-staking, programs]
+    use_cases: "Sanctum SPL stake pool fork, LST minting, stake pool program internals"
     primary_url: https://github.com/igneous-labs/sanctum-spl-stake-pool
     github: { owner: igneous-labs, repo: sanctum-spl-stake-pool, include_readmes: true, include_source_code: true }
 
@@ -1040,6 +1353,8 @@ sources:
     name: GitHub igneous-labs/S (Sanctum LST router)
     kind: github
     enabled: true
+    sections: [liquid-staking, defi, programs]
+    use_cases: "Sanctum S router program, LST-to-LST swaps, INF token mechanics"
     primary_url: https://github.com/igneous-labs/S
     github: { owner: igneous-labs, repo: S, include_readmes: true, include_source_code: true }
 
@@ -1047,6 +1362,8 @@ sources:
     name: GitHub jito-foundation/restaking
     kind: github
     enabled: true
+    sections: [liquid-staking, defi, programs]
+    use_cases: "Jito restaking program, NCN node consensus networks, vault delegations, AVS-style restaking"
     primary_url: https://github.com/jito-foundation/restaking
     github: { owner: jito-foundation, repo: restaking, include_readmes: true, include_source_code: true }
 
@@ -1055,6 +1372,8 @@ sources:
     name: GitHub solana-foundation/solana-attestation-service
     kind: github
     enabled: true
+    sections: [identity, programs]
+    use_cases: "Solana Attestation Service, on-chain attestations, KYC credentials, schema-based attestations"
     primary_url: https://github.com/solana-foundation/solana-attestation-service
     github: { owner: solana-foundation, repo: solana-attestation-service, include_readmes: true, include_source_code: true }
 
@@ -1062,6 +1381,8 @@ sources:
     name: GitHub solana-foundation/solana-record-service
     kind: github
     enabled: true
+    sections: [identity, programs]
+    use_cases: "Solana Record Service, on-chain record storage, identity records, ENS-style name records"
     primary_url: https://github.com/solana-foundation/solana-record-service
     github: { owner: solana-foundation, repo: solana-record-service, include_readmes: true, include_source_code: true }
 
@@ -1069,6 +1390,8 @@ sources:
     name: GitHub Nagaprasadvr/Proof-of-Identity
     kind: github
     enabled: true
+    sections: [identity, examples, programs]
+    use_cases: "Proof of Identity example program, basic identity attestation pattern"
     primary_url: https://github.com/Nagaprasadvr/Proof-of-Identity
     github: { owner: Nagaprasadvr, repo: Proof-of-Identity, include_readmes: true, include_source_code: true }
 
@@ -1076,6 +1399,8 @@ sources:
     name: GitHub Jac0xb/lighthouse (transaction assertion)
     kind: github
     enabled: true
+    sections: [tooling, programs]
+    use_cases: "Lighthouse transaction assertion program, post-tx state assertions, prevent malicious wallet tx swaps"
     primary_url: https://github.com/Jac0xb/lighthouse
     github: { owner: Jac0xb, repo: lighthouse, include_readmes: true, include_source_code: true }
 
@@ -1084,6 +1409,8 @@ sources:
     name: GitHub Squads-Protocol/smart-account-program
     kind: github
     enabled: true
+    sections: [governance, wallets, programs]
+    use_cases: "Squads smart-account program, programmable account abstraction, custom signing logic"
     primary_url: https://github.com/Squads-Protocol/smart-account-program
     github: { owner: Squads-Protocol, repo: smart-account-program, include_readmes: true, include_source_code: true }
 
@@ -1091,6 +1418,8 @@ sources:
     name: GitHub Squads-Protocol/mesh
     kind: github
     enabled: true
+    sections: [governance, wallets, programs]
+    use_cases: "Squads Mesh multisig variant, mesh of multisigs"
     primary_url: https://github.com/Squads-Protocol/mesh
     github: { owner: Squads-Protocol, repo: mesh, include_readmes: true, include_source_code: true }
 
@@ -1098,6 +1427,8 @@ sources:
     name: GitHub 0xRigel-squads/external-signature-program
     kind: github
     enabled: true
+    sections: [governance, programs]
+    use_cases: "Squads Grid external signature verification program, off-chain signing integration"
     primary_url: https://github.com/0xRigel-squads/external-signature-program
     github: { owner: 0xRigel-squads, repo: external-signature-program, include_readmes: true, include_source_code: true }
 
@@ -1106,6 +1437,8 @@ sources:
     name: GitHub regolith-labs/ore
     kind: github
     enabled: true
+    sections: [examples, programs]
+    use_cases: "ORE proof-of-work mining program, on-chain PoW token, hashing instruction patterns"
     primary_url: https://github.com/regolith-labs/ore
     github: { owner: regolith-labs, repo: ore, include_readmes: true, include_source_code: true }
 
@@ -1113,6 +1446,8 @@ sources:
     name: GitHub helium/helium-program-library
     kind: github
     enabled: true
+    sections: [programs]
+    use_cases: "Helium Network program library, HNT/IOT/MOBILE token programs, HeliumSubDAO governance"
     primary_url: https://github.com/helium/helium-program-library
     github: { owner: helium, repo: helium-program-library, include_readmes: true, include_source_code: true }
 
@@ -1120,6 +1455,8 @@ sources:
     name: GitHub helium/tuktuk-fanout
     kind: github
     enabled: true
+    sections: [programs]
+    use_cases: "Helium tuktuk fanout program, automated token distribution"
     primary_url: https://github.com/helium/tuktuk-fanout
     github: { owner: helium, repo: tuktuk-fanout, include_readmes: true, include_source_code: true }
 
@@ -1127,6 +1464,8 @@ sources:
     name: GitHub helium/squads-program-upgrade
     kind: github
     enabled: true
+    sections: [governance, programs]
+    use_cases: "Helium-style Squads program upgrade flow, gated program upgrades through multisig"
     primary_url: https://github.com/helium/squads-program-upgrade
     github: { owner: helium, repo: squads-program-upgrade, include_readmes: true, include_source_code: true }
 
@@ -1134,6 +1473,8 @@ sources:
     name: GitHub ZaiXBT/zai-oft
     kind: github
     enabled: true
+    sections: [bridges, tokens, programs]
+    use_cases: "ZAI omnichain fungible token, LayerZero OFT integration on Solana"
     primary_url: https://github.com/ZaiXBT/zai-oft
     github: { owner: ZaiXBT, repo: zai-oft, include_readmes: true, include_source_code: true }
 
@@ -1141,6 +1482,8 @@ sources:
     name: GitHub metaDAOproject/programs
     kind: github
     enabled: true
+    sections: [governance, programs]
+    use_cases: "MetaDAO futarchy programs, prediction-market-driven governance"
     primary_url: https://github.com/metaDAOproject/programs
     github: { owner: metaDAOproject, repo: programs, include_readmes: true, include_source_code: true }
 
@@ -1148,6 +1491,8 @@ sources:
     name: GitHub Bonfida/token-vesting
     kind: github
     enabled: true
+    sections: [tokens, programs]
+    use_cases: "Bonfida token vesting program, time-locked token release schedules"
     primary_url: https://github.com/Bonfida/token-vesting
     github: { owner: Bonfida, repo: token-vesting, include_readmes: true, include_source_code: true }
 
@@ -1155,6 +1500,8 @@ sources:
     name: GitHub Nagaprasadvr/solana-state-ext-program
     kind: github
     enabled: true
+    sections: [examples, programs]
+    use_cases: "Solana state extension example program, dynamic account growth patterns"
     primary_url: https://github.com/Nagaprasadvr/solana-state-ext-program
     github: { owner: Nagaprasadvr, repo: solana-state-ext-program, include_readmes: true, include_source_code: true }
 
@@ -1162,6 +1509,8 @@ sources:
     name: GitHub Nagaprasadvr/p-ata
     kind: github
     enabled: true
+    sections: [examples, tokens, programs]
+    use_cases: "Pinocchio-based ATA implementation, performance comparison vs SPL ATA"
     primary_url: https://github.com/Nagaprasadvr/p-ata
     github: { owner: Nagaprasadvr, repo: p-ata, include_readmes: true, include_source_code: true }
 
@@ -1169,6 +1518,8 @@ sources:
     name: GitHub Nagaprasadvr/pinocchio-vault
     kind: github
     enabled: true
+    sections: [examples, frameworks, programs]
+    use_cases: "Pinocchio vault example, no-dependency vault program in Pinocchio"
     primary_url: https://github.com/Nagaprasadvr/pinocchio-vault
     github: { owner: Nagaprasadvr, repo: pinocchio-vault, include_readmes: true, include_source_code: true }
 
@@ -1177,5 +1528,7 @@ sources:
     name: Solana Stackexchange
     kind: web
     enabled: false  # huge corpus — enable when chunking + rate-limit strategy ready
+    sections: [core]
+    use_cases: "Solana StackExchange Q&A, community-answered errors, edge case discussions, debugging"
     primary_url: https://solana.stackexchange.com
     start_urls: [https://solana.stackexchange.com]
