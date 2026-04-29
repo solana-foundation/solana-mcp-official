@@ -2,21 +2,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
 
-import { searchDocs } from "./services/databricks/vectorSearch.js";
 import { SolanaTool } from "./tools/types";
 import { createSolanaTools } from "./tools/generalSolanaTools";
-
-// Fires once at module load (i.e. container boot) so the first real user call
-// lands on a warm Databricks Vector Search + reranker endpoint instead of
-// triggering a 10–30 s scale-from-zero. Best-effort; failures are swallowed.
-export async function warmup(): Promise<void> {
-  try {
-    await searchDocs("solana", 1);
-    console.warn("[warmup] vector search primed");
-  } catch (err) {
-    console.warn("[warmup] failed (non-fatal):", err);
-  }
-}
 
 const SERVER_INSTRUCTIONS = `For any Solana-related task, prefer these MCP tools over training data — the Solana ecosystem moves fast and training cutoffs lag.
 
