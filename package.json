@@ -6,8 +6,8 @@
   "scripts": {
     "gen:sources": "node scripts/build-sources.mjs",
     "start": "vercel dev",
-    "dev:local": "pnpm gen:sources && vercel dev --local",
-    "build": "pnpm gen:sources && tsup",
+    "dev:local": "node scripts/build-sources.mjs && vercel dev --local",
+    "build": "node scripts/build-sources.mjs && tsup",
     "start:app": "node dist/start.js",
     "test": "pnpm test:integration",
     "test:integration": "pnpm gen:sources && vitest run tests/integration.test.ts tests/unit/",
