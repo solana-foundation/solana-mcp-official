@@ -24,21 +24,18 @@ async function answerViaDatabricks(tool: "Solana_Expert__Ask_For_Help" | "Solana
   return { content: [{ type: "text", text }] };
 }
 
-const LIST_SECTIONS_DESCRIPTION = `Lists every Solana ecosystem documentation source available, grouped by section. Each entry includes a use_cases keyword string describing WHEN that source is relevant. Always call this FIRST for any non-trivial Solana question, then match the user's intent against the use_cases to pick the right source ids before calling get_documentation. Returns a closed taxonomy of section ids (e.g. core, programs, frameworks, clients, defi, oracles, infra, wallets) and a flat list of source entries shaped as "title, id, sections, use_cases". Use Solana_Documentation_Search instead when you need a targeted answer rather than full canonical docs.`;
+const LIST_SECTIONS_DESCRIPTION = `Lists Solana doc sources tagged by section + use_cases. Call before get_documentation to pick relevant ids.`;
 
-const GET_DOCUMENTATION_DESCRIPTION = `Retrieves full documentation for one or more Solana ecosystem sources. Each entry in \`section\` is either (a) a source id (e.g. "anchor-docs", "gh-pinocchio") or (b) a section taxonomy id (e.g. "frameworks", "defi") which expands to every source tagged with that section. Accepts a single string or an array. Always run list_sections first and analyze its use_cases output to pick relevant ids. Token-intensive — fetch only what you need, and prefer your existing knowledge or Solana_Documentation_Search for narrow questions. Per source the server tries (1) the source's published llms.txt, (2) a stitched markdown reconstruction from our doc index, (3) a pointer to the primary URL. Output is markdown with sources separated by '---'.`;
+const GET_DOCUMENTATION_DESCRIPTION = `Fetch full docs for source id(s) or section id(s). Token-intensive — pick from list_sections first; prefer Solana_Documentation_Search for narrow questions.`;
 
 export function createSolanaTools(): SolanaTool[] {
   return [
     {
       title: "Solana_Expert__Ask_For_Help",
-      description: "A Solana expert that can answer questions about Solana development.",
+      description:
+        "Ask a Solana expert (RAG over docs). Use for narrow how-to / debugging Qs; prefer get_documentation for full canonical docs.",
       parameters: {
-        question: z
-          .string()
-          .describe(
-            "A Solana related question. (how-to, concepts, APIs, SDKs, errors)\n Provide as much context about the problem as needed, to make the expert understand the problem. The expert will do a similarity search based on your question and provide you the results.",
-          ),
+        question: z.string().describe("Solana question with as much context as possible. Used for similarity search."),
       },
 
       func: async ({ question }: { question: string }) => answerViaDatabricks("Solana_Expert__Ask_For_Help", question),
@@ -46,11 +43,10 @@ export function createSolanaTools(): SolanaTool[] {
 
     {
       title: "Solana_Documentation_Search",
-      description: "Search documentation across the Solana ecosystem to get the most up to date information.",
+      description:
+        "Semantic search over the Solana docs corpus (RAG). Use for narrow queries; prefer get_documentation for full canonical docs.",
       parameters: {
-        query: z
-          .string()
-          .describe("A search query that will be matched against a corpus of Solana documentation using RAG"),
+        query: z.string().describe("Search query matched against the corpus."),
       },
 
       func: async ({ query }: { query: string }) => answerViaDatabricks("Solana_Documentation_Search", query),
@@ -82,9 +78,7 @@ export function createSolanaTools(): SolanaTool[] {
       parameters: {
         section: z
           .union([z.string(), z.array(z.string())])
-          .describe(
-            'Source id(s) to fetch — e.g. "anchor-docs" or ["anchor-docs", "gh-pinocchio"]. Pick ids by matching the user\'s intent against the use_cases output of list_sections.',
-          ),
+          .describe('Source id (e.g. "anchor-docs") or section id (e.g. "frameworks"). Single string or array.'),
       },
       annotations: {
         readOnlyHint: true,

@@ -198,6 +198,8 @@ describe("createMcp", () => {
       role: "user",
       content: { type: "text" },
     });
-    expect(promptResult.messages[0].content.text).toContain("Solana Documentation Search");
+    expect(promptResult.messages[0].content.text).toContain("Solana_Documentation_Search");
+    expect(promptResult.messages[0].content.text).toContain("list_sections");
+    expect(promptResult.messages[0].content.text).toContain("get_documentation");
   });
 });
