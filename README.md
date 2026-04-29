@@ -38,4 +38,4 @@ just deploy   # builds, pushes ingestion job + dashboard
 
 ## Evals
 
-Local-only A/B harness lives in [`eval/`](eval/) (gitignored). See `eval/run.ts` and `eval/questions.jsonl`. Defaults to probing `mcp.solana.com/mcp`; configure both endpoints via `eval/.env`.
+Per-environment values (catalog, warehouse, index) live in the gitignored `prod.yml`; supply each variable listed under `variables:` in [`databricks.yml`](databricks.yml).
