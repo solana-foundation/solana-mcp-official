@@ -8,30 +8,10 @@ const REPO_ROOT = resolve(fileURLToPath(import.meta.url), "..", "..");
 const YAML_PATH = resolve(REPO_ROOT, "ingestion/sources.yaml");
 const OUT_PATH = resolve(REPO_ROOT, "lib/sources.generated.ts");
 
-const SECTION_IDS = [
-  "core",
-  "programs",
-  "frameworks",
-  "clients",
-  "tokens",
-  "nft",
-  "defi",
-  "liquid-staking",
-  "oracles",
-  "infra",
-  "data",
-  "wallets",
-  "mobile",
-  "governance",
-  "testing",
-  "tooling",
-  "zk",
-  "bridges",
-  "identity",
-  "examples",
-  "vm",
-];
-const ALLOWED_SECTIONS = new Set(SECTION_IDS);
+// Section taxonomy is owned by lib/sources.types.ts. The TS-side
+// `freezeSources` runtime check in lib/sources.ts catches any unknown tag at
+// server boot (and during the test suite). Re-listing it here would just
+// invite drift, so we only validate structural shape below.
 const ALLOWED_KINDS = new Set(["github", "web", "openapi"]);
 
 function fail(msg) {
@@ -53,9 +33,7 @@ function validateEntry(entry, idx) {
     fail(`${where}: sections must be a non-empty array`);
   }
   for (const tag of entry.sections) {
-    if (!ALLOWED_SECTIONS.has(tag)) {
-      fail(`${where}: unknown section tag "${tag}" (allowed: ${SECTION_IDS.join(", ")})`);
-    }
+    if (typeof tag !== "string" || !tag) fail(`${where}: section tags must be non-empty strings`);
   }
   const dupes = entry.sections.filter((t, i) => entry.sections.indexOf(t) !== i);
   if (dupes.length > 0) fail(`${where}: duplicate section tags: ${dupes.join(", ")}`);

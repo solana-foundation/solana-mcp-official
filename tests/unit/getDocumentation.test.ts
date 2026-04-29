@@ -65,7 +65,25 @@ describe("fetchDocumentation", () => {
 
     const out = await fetchDocumentation("oracles");
     for (const s of expected) expect(out).toContain(s.name);
-    expect(fetchSpy).toHaveBeenCalledTimes(expected.length);
+    // tier-1 (llms.txt) is skipped for kind=github sources, so fetch only fires for the rest.
+    const expectedFetches = expected.filter(s => s.kind !== "github").length;
+    expect(fetchSpy).toHaveBeenCalledTimes(expectedFetches);
+  });
+
+  it("skips the llms.txt fetch entirely for kind=github sources (jumps straight to tier-2)", async () => {
+    getChunksForSourceMock.mockResolvedValue([
+      {
+        url: "https://github.com/anza-xyz/pinocchio",
+        title: "Pinocchio",
+        headingPath: ["README"],
+        content: "zero-copy",
+      },
+    ]);
+
+    const out = await fetchDocumentation("gh-pinocchio");
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(getChunksForSourceMock).toHaveBeenCalledWith("gh-pinocchio");
+    expect(out).toContain("zero-copy");
   });
 
   it("returns llms.txt content verbatim when fetch succeeds (tier 1)", async () => {

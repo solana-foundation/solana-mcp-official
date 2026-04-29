@@ -3,9 +3,10 @@ import { getChunksForSource, type SourceChunk } from "../services/databricks/doc
 
 const SECTION_ID_SET = new Set<string>(SECTION_IDS);
 
-const PER_SOURCE_BYTE_CAP = 50_000;
-const TOTAL_BYTE_CAP = 200_000;
+const PER_SOURCE_CHAR_CAP = 50_000;
+const TOTAL_CHAR_CAP = 200_000;
 const FETCH_TIMEOUT_MS = 10_000;
+const FETCH_CONCURRENCY = 8;
 
 interface SectionResult {
   source: RawSource;
@@ -60,7 +61,7 @@ function chunksToMarkdown(chunks: SourceChunk[]): string {
   return parts.join("\n\n");
 }
 
-function applyByteCap(text: string, cap: number): { text: string; truncated: boolean } {
+function applyCharCap(text: string, cap: number): { text: string; truncated: boolean } {
   if (text.length <= cap) return { text, truncated: false };
   return { text: text.slice(0, cap), truncated: true };
 }
@@ -76,10 +77,13 @@ function pointerBody(source: RawSource, reason: string): string {
 }
 
 async function fetchOne(source: RawSource): Promise<SectionResult> {
-  const llms = await tryFetchLlmsTxt(source);
+  // GitHub repos never publish llms.txt — skip the wasted HEAD request and
+  // jump straight to tier-2 chunks for the 100+ kind=github sources.
+  const llms: FetchResult =
+    source.kind === "github" ? { ok: false, reason: "kind=github (no llms.txt)" } : await tryFetchLlmsTxt(source);
   if (llms.ok) {
-    const { text, truncated } = applyByteCap(llms.text, PER_SOURCE_BYTE_CAP);
-    const note = truncated ? `\n\n_[truncated at ${PER_SOURCE_BYTE_CAP} chars]_` : "";
+    const { text, truncated } = applyCharCap(llms.text, PER_SOURCE_CHAR_CAP);
+    const note = truncated ? `\n\n_[truncated at ${PER_SOURCE_CHAR_CAP} chars]_` : "";
     return { source, body: text + note };
   }
 
@@ -95,11 +99,33 @@ async function fetchOne(source: RawSource): Promise<SectionResult> {
   }
 
   const stitched = chunksToMarkdown([...chunks]);
-  const { text, truncated } = applyByteCap(stitched, PER_SOURCE_BYTE_CAP);
+  const { text, truncated } = applyCharCap(stitched, PER_SOURCE_CHAR_CAP);
   const note = truncated
-    ? `\n\n_[truncated at ${PER_SOURCE_BYTE_CAP} chars; use Solana_Documentation_Search for specific topics]_`
+    ? `\n\n_[truncated at ${PER_SOURCE_CHAR_CAP} chars; use Solana_Documentation_Search for specific topics]_`
     : "";
   return { source, body: text + note };
+}
+
+async function runWithConcurrency<T>(
+  factories: Array<() => Promise<T>>,
+  limit: number,
+): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = new Array(factories.length);
+  let cursor = 0;
+  async function worker(): Promise<void> {
+    while (true) {
+      const i = cursor++;
+      if (i >= factories.length) return;
+      try {
+        results[i] = { status: "fulfilled", value: await factories[i]() };
+      } catch (reason) {
+        results[i] = { status: "rejected", reason };
+      }
+    }
+  }
+  const workers = Array.from({ length: Math.min(limit, factories.length) }, worker);
+  await Promise.all(workers);
+  return results;
 }
 
 function placeholder(id: string): RawSource {
@@ -146,13 +172,13 @@ export async function fetchDocumentation(
 
   const seenSources = new Set<string>();
   const orderedIds: string[] = [];
-  const tasks: Promise<SectionResult>[] = [];
+  const factories: Array<() => Promise<SectionResult>> = [];
 
   function enqueueSource(source: RawSource): void {
     if (seenSources.has(source.id)) return;
     seenSources.add(source.id);
     orderedIds.push(source.id);
-    tasks.push(fetchSource(source));
+    factories.push(() => fetchSource(source));
   }
 
   for (const id of requested) {
@@ -169,10 +195,10 @@ export async function fetchDocumentation(
     if (seenSources.has(id)) continue;
     seenSources.add(id);
     orderedIds.push(id);
-    tasks.push(Promise.resolve(notFoundResult(id)));
+    factories.push(() => Promise.resolve(notFoundResult(id)));
   }
 
-  const settled = await Promise.allSettled(tasks);
+  const settled = await runWithConcurrency(factories, FETCH_CONCURRENCY);
   const results: SectionResult[] = settled.map((r, i) => {
     if (r.status === "fulfilled") return r.value;
     const id = orderedIds[i] ?? "?";
@@ -187,8 +213,8 @@ export async function fetchDocumentation(
   for (const { source, body } of results) {
     const heading = `## ${source.name || source.id}`;
     const block = `${heading}\n\n${body}`;
-    if (total + block.length > TOTAL_BYTE_CAP) {
-      blocks.push(`_[remaining sections omitted; total response cap of ${TOTAL_BYTE_CAP} chars reached]_`);
+    if (total + block.length > TOTAL_CHAR_CAP) {
+      blocks.push(`_[remaining sections omitted; total response cap of ${TOTAL_CHAR_CAP} chars reached]_`);
       break;
     }
     blocks.push(block);

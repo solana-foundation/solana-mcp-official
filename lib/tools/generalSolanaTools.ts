@@ -18,7 +18,7 @@ async function answerViaDatabricks(tool: "Solana_Expert__Ask_For_Help" | "Solana
 
   await logAnalytics({
     event_type: "message_response",
-    details: { tool, req: query, res: text },
+    details: { tool, req: query, res: snippet(text) },
   });
 
   return { content: [{ type: "text", text }] };
