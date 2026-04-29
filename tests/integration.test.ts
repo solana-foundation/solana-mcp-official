@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { z } from "zod";
 import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
 import type { SolanaTool } from "../lib/tools/types";
 
@@ -16,18 +15,7 @@ import { createMcp } from "../lib";
 type InitializeServer = (server: {
   registerTool: (...args: unknown[]) => unknown;
   tool: (...args: unknown[]) => unknown;
-  prompt: (...args: unknown[]) => unknown;
 }) => Promise<void> | void;
-
-type PromptResult = {
-  messages: Array<{
-    role: string;
-    content: {
-      type: string;
-      text: string;
-    };
-  }>;
-};
 
 function resolveGeneralSolanaTools(): SolanaTool[] {
   const moduleExports = generalSolanaToolsModule as Record<string, unknown>;
@@ -77,6 +65,7 @@ describe("createMcp", () => {
       InitializeServer,
       {
         capabilities: Record<string, never>;
+        instructions?: string;
       },
       {
         basePath: string;
@@ -88,7 +77,10 @@ describe("createMcp", () => {
     ];
 
     expect(typeof initializeServer).toBe("function");
-    expect(serverOptions).toEqual({ capabilities: {} });
+    expect(serverOptions.capabilities).toEqual({});
+    expect(serverOptions.instructions).toContain("list_sections");
+    expect(serverOptions.instructions).toContain("get_documentation");
+    expect(serverOptions.instructions).toContain("Solana_Documentation_Search");
     expect(config).toEqual({
       basePath: "",
       redisUrl: "redis://127.0.0.1:6379",
@@ -118,17 +110,15 @@ describe("createMcp", () => {
     expect(config.redisUrl).toBeUndefined();
   });
 
-  it("registers tools and startup prompt", async () => {
+  it("registers every tool exactly once", async () => {
     createMcp();
     const [initializeServer] = createMcpHandlerMock.mock.calls[0] as [InitializeServer];
 
     const registerToolMock = vi.fn();
     const toolMock = vi.fn();
-    const promptMock = vi.fn();
     const server = {
       registerTool: registerToolMock,
       tool: toolMock,
-      prompt: promptMock,
     };
 
     await initializeServer(server);
@@ -181,25 +171,5 @@ describe("createMcp", () => {
       expect(inputSchema).toBeDefined();
       expect(typeof handler).toBe("function");
     }
-
-    expect(promptMock).toHaveBeenCalledTimes(1);
-    const [promptName, promptSchema, promptHandler] = promptMock.mock.calls[0] as [
-      string,
-      { code: z.ZodString },
-      (_args: { code: string }) => PromptResult,
-    ];
-
-    expect(promptName).toContain("IMPORTANT");
-    expect(promptSchema.code.safeParse("anchor init").success).toBe(true);
-
-    const promptResult = promptHandler({ code: "anchor init" });
-    expect(promptResult.messages).toHaveLength(1);
-    expect(promptResult.messages[0]).toMatchObject({
-      role: "user",
-      content: { type: "text" },
-    });
-    expect(promptResult.messages[0].content.text).toContain("Solana_Documentation_Search");
-    expect(promptResult.messages[0].content.text).toContain("list_sections");
-    expect(promptResult.messages[0].content.text).toContain("get_documentation");
   });
 });
