@@ -54,9 +54,6 @@ sources:
     primary_url: https://solana.com/docs
     start_urls:
       - https://solana.com/docs
-    # Without this, the BFS crawl picks up the solana.com homepage and
-    # locale-variant marketing pages (Russian/CN/etc.). Restrict to the
-    # /docs/ and /developers/ trees only.
     url_include: [/docs/, /developers/]
 
   - id: anchor-docs
