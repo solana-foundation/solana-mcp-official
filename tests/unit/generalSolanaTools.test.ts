@@ -32,11 +32,13 @@ describe("createSolanaTools", () => {
     logAnalyticsMock.mockResolvedValue(undefined);
   });
 
-  it("registers both tools", () => {
+  it("registers all tools", () => {
     const tools = createSolanaTools();
-    expect(tools).toHaveLength(2);
+    expect(tools).toHaveLength(4);
     expect(tools.find(t => t.title === "Solana_Expert__Ask_For_Help")).toBeDefined();
     expect(tools.find(t => t.title === "Solana_Documentation_Search")).toBeDefined();
+    expect(tools.find(t => t.title === "list_sections")).toBeDefined();
+    expect(tools.find(t => t.title === "get_documentation")).toBeDefined();
   });
 
   it("uses Databricks retrieval for ask tool and logs analytics", async () => {

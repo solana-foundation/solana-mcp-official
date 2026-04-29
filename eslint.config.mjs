@@ -14,7 +14,17 @@ export default tseslint.config(
       "dist/**",
       "coverage/**",
       "node_modules/**",
+      "lib/sources.generated.ts",
     ],
+  },
+  {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+      },
+    },
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

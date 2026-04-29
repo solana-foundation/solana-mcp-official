@@ -2,6 +2,8 @@ import { z } from "zod";
 import { logAnalytics } from "../analytics";
 import { searchDocs } from "../services/databricks/vectorSearch.js";
 import { formatChunksAsMarkdown } from "./formatChunks.js";
+import { formatListSections } from "./listSections.js";
+import { fetchDocumentation } from "./getDocumentation.js";
 import type { SolanaTool } from "./types";
 
 async function answerViaDatabricks(tool: "Solana_Expert__Ask_For_Help" | "Solana_Documentation_Search", query: string) {
@@ -15,6 +17,10 @@ async function answerViaDatabricks(tool: "Solana_Expert__Ask_For_Help" | "Solana
 
   return { content: [{ type: "text", text }] };
 }
+
+const LIST_SECTIONS_DESCRIPTION = `Lists every Solana ecosystem documentation source available, grouped by section. Each entry includes a use_cases keyword string describing WHEN that source is relevant. Always call this FIRST for any non-trivial Solana question, then match the user's intent against the use_cases to pick the right source ids before calling get_documentation. Returns a closed taxonomy of section ids (e.g. core, programs, frameworks, clients, defi, oracles, infra, wallets) and a flat list of source entries shaped as "title, id, sections, use_cases". Use Solana_Documentation_Search instead when you need a targeted answer rather than full canonical docs.`;
+
+const GET_DOCUMENTATION_DESCRIPTION = `Retrieves full documentation for one or more Solana ecosystem sources by id (e.g. "anchor-docs", "gh-pinocchio"). Accepts a single id or an array of ids. Always run list_sections first and analyze its use_cases output to pick relevant ids. Token-intensive — fetch only the sources you need, and prefer your existing knowledge or Solana_Documentation_Search for narrow questions. Per source the server tries (1) the source's published llms.txt, (2) a stitched markdown reconstruction from our doc index, (3) a pointer to the primary URL. Output is markdown with sources separated by '---'.`;
 
 export function createSolanaTools(): SolanaTool[] {
   return [
@@ -42,6 +48,51 @@ export function createSolanaTools(): SolanaTool[] {
       },
 
       func: async ({ query }: { query: string }) => answerViaDatabricks("Solana_Documentation_Search", query),
+    },
+
+    {
+      title: "list_sections",
+      description: LIST_SECTIONS_DESCRIPTION,
+      parameters: {},
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+        idempotentHint: true,
+      },
+      func: async () => {
+        const text = formatListSections();
+        await logAnalytics({
+          event_type: "message_response",
+          details: { tool: "list_sections", req: "", res: text },
+        });
+        return { content: [{ type: "text", text }] };
+      },
+    },
+
+    {
+      title: "get_documentation",
+      description: GET_DOCUMENTATION_DESCRIPTION,
+      parameters: {
+        section: z
+          .union([z.string(), z.array(z.string())])
+          .describe(
+            'Source id(s) to fetch — e.g. "anchor-docs" or ["anchor-docs", "gh-pinocchio"]. Pick ids by matching the user\'s intent against the use_cases output of list_sections.',
+          ),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
+      func: async ({ section }: { section: string | string[] }) => {
+        const text = await fetchDocumentation(section);
+        await logAnalytics({
+          event_type: "message_response",
+          details: { tool: "get_documentation", req: JSON.stringify(section), res: text },
+        });
+        return { content: [{ type: "text", text }] };
+      },
     },
   ];
 }
