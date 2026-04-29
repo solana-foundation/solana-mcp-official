@@ -120,4 +120,31 @@ describe("getChunksForSource", () => {
     const { getChunksForSource } = await importFresh();
     await expect(getChunksForSource("anchor-docs")).rejects.toThrow(/syntax error/);
   });
+
+  it("polls the statement endpoint while the query is PENDING/RUNNING and succeeds when ready", async () => {
+    vi.useFakeTimers();
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ status: { state: "PENDING" }, statement_id: "stmt-async" }))
+      .mockResolvedValueOnce(jsonResponse({ status: { state: "RUNNING" }, statement_id: "stmt-async" }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          status: { state: "SUCCEEDED" },
+          manifest: { schema: { columns: [{ name: "url", type_name: "STRING" }] } },
+          result: { data_array: [["https://docs.example.com/a"]] },
+          statement_id: "stmt-async",
+        }),
+      );
+    try {
+      const { getChunksForSource } = await importFresh();
+      const promise = getChunksForSource("anchor-docs");
+      await vi.runAllTimersAsync();
+      const chunks = await promise;
+      expect(chunks).toEqual([{ url: "https://docs.example.com/a", title: null, headingPath: null, content: null }]);
+      // Initial POST + 2 GET polls
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchMock.mock.calls[1][0]).toContain("/api/2.0/sql/statements/stmt-async");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

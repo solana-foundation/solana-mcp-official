@@ -19,6 +19,12 @@ interface SqlExecuteResponse {
 
 const COLUMNS = ["url", "title", "heading_path", "content"] as const;
 const STATEMENT_TIMEOUT = "30s";
+const POLL_MAX_ATTEMPTS = 6;
+const POLL_BACKOFF_MS = [500, 1000, 2000, 4000, 8000, 8000];
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 function resolveDocsTable(): string | null {
   const explicit = process.env.DATABRICKS_DOCS_TABLE;
@@ -46,7 +52,7 @@ export async function getChunksForSource(sourceId: string, limit = 200): Promise
     LIMIT ${Number(limit)}
   `;
 
-  const res = await dbxFetch<SqlExecuteResponse>("/api/2.0/sql/statements", {
+  let res = await dbxFetch<SqlExecuteResponse>("/api/2.0/sql/statements", {
     method: "POST",
     body: JSON.stringify({
       warehouse_id: warehouse,
@@ -55,6 +61,12 @@ export async function getChunksForSource(sourceId: string, limit = 200): Promise
       wait_timeout: STATEMENT_TIMEOUT,
     }),
   });
+
+  for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS && isPending(res.status?.state); attempt++) {
+    if (!res.statement_id) break;
+    await sleep(POLL_BACKOFF_MS[attempt] ?? POLL_BACKOFF_MS[POLL_BACKOFF_MS.length - 1]);
+    res = await dbxFetch<SqlExecuteResponse>(`/api/2.0/sql/statements/${encodeURIComponent(res.statement_id)}`);
+  }
 
   const state = res.status?.state;
   if (state !== "SUCCEEDED") {
@@ -65,6 +77,10 @@ export async function getChunksForSource(sourceId: string, limit = 200): Promise
   const cols = res.manifest?.schema?.columns?.map(c => c.name) ?? [];
   const rows = res.result?.data_array ?? [];
   return rows.map(row => rowToChunk(cols, row));
+}
+
+function isPending(state: string | undefined): boolean {
+  return state === "PENDING" || state === "RUNNING";
 }
 
 function rowToChunk(cols: string[], row: unknown[]): SourceChunk {

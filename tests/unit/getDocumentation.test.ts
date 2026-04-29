@@ -48,11 +48,24 @@ describe("fetchDocumentation", () => {
     expect(out).toContain("No sections requested");
   });
 
-  it("flags unknown source ids without calling fetch or chunk lookup", async () => {
+  it("flags unknown ids without calling fetch or chunk lookup", async () => {
     const out = await fetchDocumentation("definitely-not-real");
-    expect(out).toContain('Section id not found: "definitely-not-real"');
+    expect(out).toContain('Section or source id not found: "definitely-not-real"');
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(getChunksForSourceMock).not.toHaveBeenCalled();
+  });
+
+  it('expands a section taxonomy id (e.g. "oracles") into every source tagged with that section', async () => {
+    fetchSpy.mockResolvedValue(new Response("oracle docs body", { status: 200 }));
+    getChunksForSourceMock.mockResolvedValue([]);
+
+    const { sourcesForSection } = await import("../../lib/sources.js");
+    const expected = sourcesForSection("oracles");
+    expect(expected.length).toBeGreaterThan(1);
+
+    const out = await fetchDocumentation("oracles");
+    for (const s of expected) expect(out).toContain(s.name);
+    expect(fetchSpy).toHaveBeenCalledTimes(expected.length);
   });
 
   it("returns llms.txt content verbatim when fetch succeeds (tier 1)", async () => {

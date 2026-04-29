@@ -1,5 +1,7 @@
-import { getSourceById, type RawSource } from "../sources.js";
+import { SECTION_IDS, getSourceById, sourcesForSection, type RawSource, type SectionId } from "../sources.js";
 import { getChunksForSource, type SourceChunk } from "../services/databricks/docsLookup.js";
+
+const SECTION_ID_SET = new Set<string>(SECTION_IDS);
 
 const PER_SOURCE_BYTE_CAP = 50_000;
 const TOTAL_BYTE_CAP = 200_000;
@@ -100,20 +102,21 @@ async function fetchOne(source: RawSource): Promise<SectionResult> {
   return { source, body: text + note };
 }
 
+function placeholder(id: string): RawSource {
+  return { id, name: id, kind: "web", enabled: false, primary_url: "", sections: [], use_cases: "" };
+}
+
 function notFoundResult(requested: string): SectionResult {
-  const fakeSource: RawSource = {
-    id: requested,
-    name: requested,
-    kind: "web",
-    enabled: false,
-    primary_url: "",
-    sections: [],
-    use_cases: "",
-  };
   return {
-    source: fakeSource,
-    body: `Section id not found: "${requested}". Call \`list_sections\` to see available ids.`,
+    source: placeholder(requested),
+    body: `Section or source id not found: "${requested}". Call \`list_sections\` to see available ids.`,
   };
+}
+
+function expandSectionTaxonomyId(id: string): RawSource[] | null {
+  if (!SECTION_ID_SET.has(id)) return null;
+  const sources = sourcesForSection(id as SectionId);
+  return sources.length > 0 ? [...sources] : null;
 }
 
 export function normalizeSections(input: string | string[]): string[] {
@@ -138,23 +141,35 @@ export async function fetchDocumentation(
 ): Promise<string> {
   const requested = normalizeSections(input);
   if (requested.length === 0) {
-    return "No sections requested. Pass `section` as a string or array of source ids (call `list_sections` to see available ids).";
+    return 'No sections requested. Pass `section` as a source id (e.g. "anchor-docs") or section taxonomy id (e.g. "frameworks"); call `list_sections` first to see available ids.';
   }
 
-  const seen = new Set<string>();
+  const seenSources = new Set<string>();
   const orderedIds: string[] = [];
   const tasks: Promise<SectionResult>[] = [];
 
+  function enqueueSource(source: RawSource): void {
+    if (seenSources.has(source.id)) return;
+    seenSources.add(source.id);
+    orderedIds.push(source.id);
+    tasks.push(fetchSource(source));
+  }
+
   for (const id of requested) {
-    if (seen.has(id)) continue;
-    seen.add(id);
-    orderedIds.push(id);
     const source = getSourceById(id);
-    if (!source) {
-      tasks.push(Promise.resolve(notFoundResult(id)));
+    if (source) {
+      enqueueSource(source);
       continue;
     }
-    tasks.push(fetchSource(source));
+    const expanded = expandSectionTaxonomyId(id);
+    if (expanded) {
+      for (const s of expanded) enqueueSource(s);
+      continue;
+    }
+    if (seenSources.has(id)) continue;
+    seenSources.add(id);
+    orderedIds.push(id);
+    tasks.push(Promise.resolve(notFoundResult(id)));
   }
 
   const settled = await Promise.allSettled(tasks);
@@ -162,7 +177,7 @@ export async function fetchDocumentation(
     if (r.status === "fulfilled") return r.value;
     const id = orderedIds[i] ?? "?";
     return {
-      source: { id, name: id, kind: "web", enabled: false, primary_url: "", sections: [], use_cases: "" },
+      source: placeholder(id),
       body: `Failed to fetch documentation: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`,
     };
   });

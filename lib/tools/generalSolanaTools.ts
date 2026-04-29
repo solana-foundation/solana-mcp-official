@@ -6,6 +6,12 @@ import { formatListSections } from "./listSections.js";
 import { fetchDocumentation } from "./getDocumentation.js";
 import type { SolanaTool } from "./types";
 
+const ANALYTICS_RES_SNIPPET_CHARS = 500;
+
+function snippet(text: string): string {
+  return text.length <= ANALYTICS_RES_SNIPPET_CHARS ? text : `${text.slice(0, ANALYTICS_RES_SNIPPET_CHARS)}…`;
+}
+
 async function answerViaDatabricks(tool: "Solana_Expert__Ask_For_Help" | "Solana_Documentation_Search", query: string) {
   const chunks = await searchDocs(query);
   const text = formatChunksAsMarkdown(query, chunks);
@@ -20,7 +26,7 @@ async function answerViaDatabricks(tool: "Solana_Expert__Ask_For_Help" | "Solana
 
 const LIST_SECTIONS_DESCRIPTION = `Lists every Solana ecosystem documentation source available, grouped by section. Each entry includes a use_cases keyword string describing WHEN that source is relevant. Always call this FIRST for any non-trivial Solana question, then match the user's intent against the use_cases to pick the right source ids before calling get_documentation. Returns a closed taxonomy of section ids (e.g. core, programs, frameworks, clients, defi, oracles, infra, wallets) and a flat list of source entries shaped as "title, id, sections, use_cases". Use Solana_Documentation_Search instead when you need a targeted answer rather than full canonical docs.`;
 
-const GET_DOCUMENTATION_DESCRIPTION = `Retrieves full documentation for one or more Solana ecosystem sources by id (e.g. "anchor-docs", "gh-pinocchio"). Accepts a single id or an array of ids. Always run list_sections first and analyze its use_cases output to pick relevant ids. Token-intensive — fetch only the sources you need, and prefer your existing knowledge or Solana_Documentation_Search for narrow questions. Per source the server tries (1) the source's published llms.txt, (2) a stitched markdown reconstruction from our doc index, (3) a pointer to the primary URL. Output is markdown with sources separated by '---'.`;
+const GET_DOCUMENTATION_DESCRIPTION = `Retrieves full documentation for one or more Solana ecosystem sources. Each entry in \`section\` is either (a) a source id (e.g. "anchor-docs", "gh-pinocchio") or (b) a section taxonomy id (e.g. "frameworks", "defi") which expands to every source tagged with that section. Accepts a single string or an array. Always run list_sections first and analyze its use_cases output to pick relevant ids. Token-intensive — fetch only what you need, and prefer your existing knowledge or Solana_Documentation_Search for narrow questions. Per source the server tries (1) the source's published llms.txt, (2) a stitched markdown reconstruction from our doc index, (3) a pointer to the primary URL. Output is markdown with sources separated by '---'.`;
 
 export function createSolanaTools(): SolanaTool[] {
   return [
@@ -64,7 +70,7 @@ export function createSolanaTools(): SolanaTool[] {
         const text = formatListSections();
         await logAnalytics({
           event_type: "message_response",
-          details: { tool: "list_sections", req: "", res: text },
+          details: { tool: "list_sections", req: "", res: snippet(text) },
         });
         return { content: [{ type: "text", text }] };
       },
@@ -89,7 +95,7 @@ export function createSolanaTools(): SolanaTool[] {
         const text = await fetchDocumentation(section);
         await logAnalytics({
           event_type: "message_response",
-          details: { tool: "get_documentation", req: JSON.stringify(section), res: text },
+          details: { tool: "get_documentation", req: JSON.stringify(section), res: snippet(text) },
         });
         return { content: [{ type: "text", text }] };
       },

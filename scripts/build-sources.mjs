@@ -105,7 +105,7 @@ function main() {
 
   mkdirSync(dirname(OUT_PATH), { recursive: true });
   writeFileSync(OUT_PATH, buildExport(list), "utf8");
-  console.warn(`[build-sources] wrote ${list.length} sources → ${OUT_PATH}`);
+  console.log(`[build-sources] wrote ${list.length} sources → ${OUT_PATH}`);
 }
 
 main();
