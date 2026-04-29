@@ -84,10 +84,12 @@ const server = app.listen(port, () => {
 
 function shutdown(signal: NodeJS.Signals): void {
   console.warn(`[start] received ${signal}, draining in-flight requests…`);
-  // Hard cap so a stuck connection cannot hold the container forever.
+  // Hard cap so a stuck connection cannot hold the container forever. Exit 0
+  // even on timeout so Databricks Apps does not interpret a normal deploy
+  // cutover as a crash and trigger a restart.
   const force = setTimeout(() => {
     console.warn(`[start] drain exceeded ${SHUTDOWN_GRACE_MS}ms, forcing exit`);
-    process.exit(1);
+    process.exit(0);
   }, SHUTDOWN_GRACE_MS);
   force.unref();
 
@@ -100,6 +102,11 @@ function shutdown(signal: NodeJS.Signals): void {
     console.warn("[start] drained, exiting cleanly");
     process.exit(0);
   });
+  // `server.close()` only stops accepting new connections; HTTP/1.1 keep-alive
+  // sockets stay open and the close callback never fires until they idle out.
+  // Close idle sockets immediately so the callback can run promptly while
+  // in-flight requests still get to finish.
+  server.closeIdleConnections();
 }
 
 process.once("SIGTERM", shutdown);
