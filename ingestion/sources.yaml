@@ -54,6 +54,7 @@ sources:
     primary_url: https://solana.com/docs
     start_urls:
       - https://solana.com/docs
+    url_include: [/docs, /developers]
 
   - id: anchor-docs
     name: Solana > Anchor Docs
