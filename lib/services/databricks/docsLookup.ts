@@ -30,7 +30,11 @@ function resolveDocsTable(): string | null {
   const explicit = process.env.DATABRICKS_DOCS_TABLE;
   if (explicit) return explicit;
   const idx = process.env.DATABRICKS_VS_INDEX;
-  if (idx && idx.endsWith("_idx")) return idx.slice(0, -"_idx".length);
+  if (!idx) return null;
+  if (idx.endsWith("_idx")) return idx.slice(0, -"_idx".length);
+  console.warn(
+    `[docsLookup] DATABRICKS_VS_INDEX="${idx}" does not end with "_idx" — cannot derive docs table. Set DATABRICKS_DOCS_TABLE explicitly to enable get_documentation tier-2 fallback.`,
+  );
   return null;
 }
 
