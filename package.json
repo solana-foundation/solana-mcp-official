@@ -8,6 +8,7 @@
     "start": "vercel dev",
     "dev:local": "node scripts/build-sources.mjs && vercel dev --local",
     "build": "node scripts/build-sources.mjs",
+    "start:cloudrun": "node build/server/cloudrun.js",
     "test": "pnpm test:integration",
     "test:integration": "pnpm gen:sources && vitest run tests/integration.test.ts tests/unit/",
     "test:e2e": "pnpm gen:sources && vitest run tests/e2e.test.ts",
