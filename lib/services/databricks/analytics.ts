@@ -36,6 +36,14 @@ function resolveWarehouse(): string | null {
   return warehouseId;
 }
 
+const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+function assertIdent(kind: string, value: string): void {
+  if (!IDENT.test(value)) {
+    throw new Error(`[analytics] invalid ${kind} identifier: ${JSON.stringify(value)}`);
+  }
+}
+
 async function executeNamedInsert(table: string, columns: InsertColumn[]): Promise<void> {
   const schema = analyticsSchema();
   if (!schema) {
@@ -46,6 +54,12 @@ async function executeNamedInsert(table: string, columns: InsertColumn[]): Promi
   if (!warehouseId) {
     console.warn("[analytics] Databricks env not set — analytics disabled");
     return;
+  }
+
+  assertIdent("table", table);
+  for (const c of columns) {
+    assertIdent("column", c.col);
+    assertIdent("param", c.param);
   }
 
   const colList = ["timestamp", ...columns.map(c => c.col)].join(", ");
