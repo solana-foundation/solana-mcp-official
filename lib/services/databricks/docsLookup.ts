@@ -1,7 +1,5 @@
-import * as dotenv from "dotenv";
 import { dbxFetch, isDatabricksConfigured } from "./client.js";
-
-dotenv.config();
+import { asNullableString, getColumn, sleep } from "./utils.js";
 
 export interface SourceChunk {
   url: string | null;
@@ -21,10 +19,6 @@ const COLUMNS = ["url", "title", "heading_path", "content"] as const;
 const STATEMENT_TIMEOUT = "30s";
 const POLL_MAX_ATTEMPTS = 6;
 const POLL_BACKOFF_MS = [500, 1000, 2000, 4000, 8000, 8000];
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 function resolveDocsTable(): string | null {
   const explicit = process.env.DATABRICKS_DOCS_TABLE;
@@ -88,22 +82,12 @@ function isPending(state: string | undefined): boolean {
 }
 
 function rowToChunk(cols: string[], row: unknown[]): SourceChunk {
-  const get = (name: string): unknown => {
-    const idx = cols.indexOf(name);
-    return idx === -1 ? null : row[idx];
-  };
-
   return {
-    url: asNullableString(get("url")),
-    title: asNullableString(get("title")),
-    headingPath: parseHeadingPath(get("heading_path")),
-    content: asNullableString(get("content")),
+    url: asNullableString(getColumn(cols, row, "url")),
+    title: asNullableString(getColumn(cols, row, "title")),
+    headingPath: parseHeadingPath(getColumn(cols, row, "heading_path")),
+    content: asNullableString(getColumn(cols, row, "content")),
   };
-}
-
-function asNullableString(v: unknown): string | null {
-  if (v === null || v === undefined) return null;
-  return String(v);
 }
 
 function parseHeadingPath(v: unknown): string[] | null {

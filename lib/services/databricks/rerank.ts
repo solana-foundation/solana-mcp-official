@@ -1,7 +1,4 @@
-import * as dotenv from "dotenv";
 import { dbxFetch, isDatabricksConfigured } from "./client.js";
-
-dotenv.config();
 
 export interface RerankScore {
   index: number;

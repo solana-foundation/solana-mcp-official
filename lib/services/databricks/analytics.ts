@@ -1,7 +1,4 @@
-import * as dotenv from "dotenv";
 import { dbxFetch, isDatabricksConfigured } from "./client.js";
-
-dotenv.config();
 
 // Schema hosting the analytics tables. Table names themselves are generic
 // (`mcp_initializations`, `mcp_tool_calls`); only the catalog.schema prefix
@@ -26,6 +23,12 @@ interface SqlExecuteRequest {
   wait_timeout: string;
 }
 
+interface InsertColumn {
+  col: string;
+  param: string;
+  value: string | null;
+}
+
 function resolveWarehouse(): string | null {
   if (!isDatabricksConfigured()) return null;
   const warehouseId = process.env.DATABRICKS_WAREHOUSE_ID;
@@ -33,12 +36,31 @@ function resolveWarehouse(): string | null {
   return warehouseId;
 }
 
-async function executeInsert(statement: string, parameters: SqlParam[]): Promise<void> {
+async function executeNamedInsert(table: string, columns: InsertColumn[]): Promise<void> {
+  const schema = analyticsSchema();
+  if (!schema) {
+    console.warn("[analytics] DATABRICKS_ANALYTICS_SCHEMA not set — analytics disabled");
+    return;
+  }
   const warehouseId = resolveWarehouse();
   if (!warehouseId) {
     console.warn("[analytics] Databricks env not set — analytics disabled");
     return;
   }
+
+  const colList = ["timestamp", ...columns.map(c => c.col)].join(", ");
+  const placeholders = ["CAST(:timestamp AS TIMESTAMP)", ...columns.map(c => `:${c.param}`)].join(", ");
+  const statement = `
+    INSERT INTO ${schema}.${table}
+      (${colList})
+    VALUES
+      (${placeholders})
+  `;
+
+  const parameters: SqlParam[] = [
+    { name: "timestamp", value: new Date().toISOString(), type: "STRING" },
+    ...columns.map(c => ({ name: c.param, value: c.value, type: "STRING" as const })),
+  ];
 
   const body: SqlExecuteRequest = {
     warehouse_id: warehouseId,
@@ -73,32 +95,14 @@ export async function logInitialization(params: {
   clientVersion: string;
   rawBody: unknown;
 }): Promise<void> {
-  const schema = analyticsSchema();
-  if (!schema) {
-    console.warn("[analytics] DATABRICKS_ANALYTICS_SCHEMA not set — analytics disabled");
-    return;
-  }
-
-  const { protocolVersion, capabilities, clientName, clientVersion, rawBody } = params;
-
-  const statement = `
-    INSERT INTO ${schema}.mcp_initializations
-      (timestamp, method, protocol_version, capabilities, client_name, client_version, raw_body)
-    VALUES
-      (CAST(:timestamp AS TIMESTAMP), :method, :protocolVersion, :capabilities, :clientName, :clientVersion, :rawBody)
-  `;
-
-  const parameters: SqlParam[] = [
-    { name: "timestamp", value: new Date().toISOString(), type: "STRING" },
-    { name: "method", value: "initialize", type: "STRING" },
-    { name: "protocolVersion", value: protocolVersion, type: "STRING" },
-    { name: "capabilities", value: stringify(capabilities), type: "STRING" },
-    { name: "clientName", value: clientName, type: "STRING" },
-    { name: "clientVersion", value: clientVersion, type: "STRING" },
-    { name: "rawBody", value: stringify(rawBody), type: "STRING" },
-  ];
-
-  await executeInsert(statement, parameters);
+  await executeNamedInsert("mcp_initializations", [
+    { col: "method", param: "method", value: "initialize" },
+    { col: "protocol_version", param: "protocolVersion", value: params.protocolVersion },
+    { col: "capabilities", param: "capabilities", value: stringify(params.capabilities) },
+    { col: "client_name", param: "clientName", value: params.clientName },
+    { col: "client_version", param: "clientVersion", value: params.clientVersion },
+    { col: "raw_body", param: "rawBody", value: stringify(params.rawBody) },
+  ]);
 }
 
 export async function logToolCallRequest(params: {
@@ -108,60 +112,24 @@ export async function logToolCallRequest(params: {
   toolArgs: unknown;
   rawBody: unknown;
 }): Promise<void> {
-  const schema = analyticsSchema();
-  if (!schema) {
-    console.warn("[analytics] DATABRICKS_ANALYTICS_SCHEMA not set — analytics disabled");
-    return;
-  }
-
-  const { toolName, requestId, sessionId, toolArgs, rawBody } = params;
-
-  const statement = `
-    INSERT INTO ${schema}.mcp_tool_calls
-      (timestamp, row_type, tool_name, request_id, session_id, arguments, raw_body)
-    VALUES
-      (CAST(:timestamp AS TIMESTAMP), :rowType, :toolName, :requestId, :sessionId, :arguments, :rawBody)
-  `;
-
-  const parameters: SqlParam[] = [
-    { name: "timestamp", value: new Date().toISOString(), type: "STRING" },
-    { name: "rowType", value: "request", type: "STRING" },
-    { name: "toolName", value: toolName, type: "STRING" },
-    { name: "requestId", value: requestId, type: "STRING" },
-    { name: "sessionId", value: sessionId, type: "STRING" },
-    { name: "arguments", value: stringify(toolArgs), type: "STRING" },
-    { name: "rawBody", value: stringify(rawBody), type: "STRING" },
-  ];
-
-  await executeInsert(statement, parameters);
+  await executeNamedInsert("mcp_tool_calls", [
+    { col: "row_type", param: "rowType", value: "request" },
+    { col: "tool_name", param: "toolName", value: params.toolName },
+    { col: "request_id", param: "requestId", value: params.requestId },
+    { col: "session_id", param: "sessionId", value: params.sessionId },
+    { col: "arguments", param: "arguments", value: stringify(params.toolArgs) },
+    { col: "raw_body", param: "rawBody", value: stringify(params.rawBody) },
+  ]);
 }
 
 export function logToolCallResponse(params: { tool: string; req: string; res: string; rawBody: unknown }): void {
-  const schema = analyticsSchema();
-  if (!schema) {
-    console.warn("[analytics] DATABRICKS_ANALYTICS_SCHEMA not set — analytics disabled");
-    return;
-  }
-
-  const { tool, req, res, rawBody } = params;
-
-  const statement = `
-    INSERT INTO ${schema}.mcp_tool_calls
-      (timestamp, row_type, tool_name, arguments, response_text, raw_body)
-    VALUES
-      (CAST(:timestamp AS TIMESTAMP), :rowType, :toolName, :arguments, :responseText, :rawBody)
-  `;
-
-  const parameters: SqlParam[] = [
-    { name: "timestamp", value: new Date().toISOString(), type: "STRING" },
-    { name: "rowType", value: "response", type: "STRING" },
-    { name: "toolName", value: tool, type: "STRING" },
-    { name: "arguments", value: stringify(req), type: "STRING" },
-    { name: "responseText", value: res, type: "STRING" },
-    { name: "rawBody", value: stringify(rawBody), type: "STRING" },
-  ];
-
-  executeInsert(statement, parameters).catch((err: unknown) => {
+  executeNamedInsert("mcp_tool_calls", [
+    { col: "row_type", param: "rowType", value: "response" },
+    { col: "tool_name", param: "toolName", value: params.tool },
+    { col: "arguments", param: "arguments", value: stringify(params.req) },
+    { col: "response_text", param: "responseText", value: params.res },
+    { col: "raw_body", param: "rawBody", value: stringify(params.rawBody) },
+  ]).catch((err: unknown) => {
     console.error("[logToolCallResponse] Error inserting tool response:", err);
   });
 }

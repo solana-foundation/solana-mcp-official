@@ -1,6 +1,4 @@
-import * as dotenv from "dotenv";
-
-dotenv.config();
+import { sleep } from "./utils.js";
 
 export class DatabricksError extends Error {
   constructor(
@@ -129,8 +127,4 @@ export async function dbxFetch<T>(path: string, init: RequestInit = {}): Promise
   throw lastError instanceof Error
     ? lastError
     : new Error(`Databricks request to ${path} failed after ${MAX_ATTEMPTS} attempts`);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
