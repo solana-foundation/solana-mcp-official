@@ -1,8 +1,6 @@
-import * as dotenv from "dotenv";
 import { dbxFetch, isDatabricksConfigured } from "./client.js";
 import { rerank } from "./rerank.js";
-
-dotenv.config();
+import { asNullableString, getColumn } from "./utils.js";
 
 export interface DocChunk {
   id: string;
@@ -112,22 +110,12 @@ function dedupeByUrl(chunks: DocChunk[]): DocChunk[] {
 }
 
 function rowToChunk(columns: string[], row: unknown[]): DocChunk {
-  const get = (name: string): unknown => {
-    const idx = columns.indexOf(name);
-    return idx === -1 ? null : row[idx];
-  };
-
   return {
-    id: String(get("id") ?? ""),
-    url: asNullableString(get("url")),
-    title: asNullableString(get("title")),
-    sourceId: asNullableString(get("source_id")),
-    content: asNullableString(get("content")),
-    score: Number(get("score") ?? 0),
+    id: String(getColumn(columns, row, "id") ?? ""),
+    url: asNullableString(getColumn(columns, row, "url")),
+    title: asNullableString(getColumn(columns, row, "title")),
+    sourceId: asNullableString(getColumn(columns, row, "source_id")),
+    content: asNullableString(getColumn(columns, row, "content")),
+    score: Number(getColumn(columns, row, "score") ?? 0),
   };
-}
-
-function asNullableString(v: unknown): string | null {
-  if (v === null || v === undefined) return null;
-  return String(v);
 }
