@@ -1,3 +1,5 @@
+import "./env";
+
 import { createMcp } from "./index";
 import { logAnalytics } from "./analytics";
 

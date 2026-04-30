@@ -1,9 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import * as dotenv from "dotenv";
 
 import { handleMcpRequest } from "../lib/handler";
-
-dotenv.config();
 
 const PORT = Number(process.env.PORT ?? 8080);
 const SHUTDOWN_GRACE_MS = 10_000;
@@ -34,7 +31,12 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
 
 async function toWebRequest(req: IncomingMessage): Promise<Request> {
   const host = req.headers.host ?? `localhost:${PORT}`;
-  const url = new URL(req.url ?? "/", `http://${host}`);
+  // Cloud Run / GFE terminates TLS at the front door and forwards via plain
+  // HTTP w/ `x-forwarded-proto: https`. Honor it so any downstream that
+  // inspects request.url scheme sees the public-facing protocol.
+  const fwdProto = req.headers["x-forwarded-proto"];
+  const proto = (Array.isArray(fwdProto) ? fwdProto[0] : fwdProto) ?? "http";
+  const url = new URL(req.url ?? "/", `${proto}://${host}`);
   const headers = new Headers();
   for (const [name, value] of Object.entries(req.headers)) {
     if (value === undefined) continue;
@@ -93,9 +95,12 @@ server.listen(PORT, () => {
 
 function shutdown(signal: NodeJS.Signals): void {
   console.warn(`[cloudrun] received ${signal}, draining…`);
+  // Force-exit on timeout uses a non-zero code so Cloud Run / monitoring can
+  // alert on unclean shutdowns. Cloud Run does not gate restarts on exit
+  // code, so this does not introduce a deploy-time crash loop.
   const force = setTimeout(() => {
     console.warn(`[cloudrun] drain exceeded ${SHUTDOWN_GRACE_MS}ms, forcing exit`);
-    process.exit(0);
+    process.exit(1);
   }, SHUTDOWN_GRACE_MS);
   force.unref();
 
