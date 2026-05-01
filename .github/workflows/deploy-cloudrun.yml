@@ -4,11 +4,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      ref:
-        description: "Git ref to deploy"
-        required: false
-        default: main
 
 permissions:
   contents: read
@@ -17,18 +12,16 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     concurrency:
       group: cloud-run-deploy-prod
       cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ inputs.ref || github.sha }}
 
       - name: Load deploy config from Doppler
-        uses: dopplerhq/secrets-fetch-action@v2.0.0
+        uses: dopplerhq/secrets-fetch-action@451892f16195f9ac360e1a5bcbf0b5fd0e957534 # v2.0.0
         with:
           auth-method: oidc
           doppler-identity-id: ${{ vars.DOPPLER_SERVICE_IDENTITY_ID }}
@@ -37,12 +30,12 @@ jobs:
           inject-env-vars: true
 
       - id: auth
-        uses: google-github-actions/auth@v3
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
           service_account: ${{ env.GCP_DEPLOYER_SERVICE_ACCOUNT }}
 
-      - uses: google-github-actions/setup-gcloud@v2
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
       - id: build
         env:
@@ -64,10 +57,12 @@ jobs:
           echo "Submitted $BUILD_ID"
           echo "Logs: https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=$PROJECT"
 
+          # Poll for up to ~20 min — kept under the 30 min job timeout so the
+          # GH runner does not get killed mid-poll, leaving an orphan build.
           STATUS=
-          for i in $(seq 1 80); do
+          for i in $(seq 1 40); do
             STATUS=$(gcloud builds describe "$BUILD_ID" --project="$PROJECT" --format='value(status)')
-            echo "  $i/80: $STATUS"
+            echo "  $i/40: $STATUS"
             case "$STATUS" in
               SUCCESS) break ;;
               FAILURE|TIMEOUT|CANCELLED|EXPIRED|INTERNAL_ERROR) exit 1 ;;
@@ -79,7 +74,7 @@ jobs:
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
 
       - id: deploy
-        uses: google-github-actions/deploy-cloudrun@v3
+        uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3.0.1
         with:
           service: ${{ env.CLOUD_RUN_SERVICE }}
           region: ${{ env.GCP_REGION }}
