@@ -18,7 +18,7 @@ const server = createServer((req, res) => {
 });
 
 async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (req.method === "GET" && req.url === "/healthz") {
+  if (req.method === "GET" && req.url === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
     return;
