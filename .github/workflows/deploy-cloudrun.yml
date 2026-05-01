@@ -77,7 +77,6 @@ jobs:
           region: ${{ env.GCP_REGION }}
           project_id: ${{ env.GCP_PROJECT_ID }}
           image: ${{ steps.build.outputs.image }}
-          service_account: ${{ env.GCP_RUNTIME_SERVICE_ACCOUNT }}
           env_vars: |-
             DATABRICKS_HOST=${{ env.DATABRICKS_HOST }}
             DATABRICKS_TOKEN=${{ env.DATABRICKS_TOKEN }}
@@ -88,6 +87,7 @@ jobs:
             REDIS_URL=${{ env.REDIS_URL }}
           env_vars_update_strategy: overwrite
           flags: >-
+            --service-account=${{ env.GCP_RUNTIME_SERVICE_ACCOUNT }}
             --allow-unauthenticated
             --port=8080
             --cpu=1
