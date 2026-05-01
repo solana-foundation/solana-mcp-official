@@ -56,9 +56,6 @@ jobs:
           echo "Submitted $BUILD_ID"
           echo "Logs: https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=$PROJECT"
 
-          # Poll for up to 40 min — matches kora's deploy workflow. The job
-          # has no explicit timeout-minutes, so it falls back to GHA's 360 min
-          # default; the 40 min poll fits inside that easily.
           STATUS=
           for i in $(seq 1 80); do
             STATUS=$(gcloud builds describe "$BUILD_ID" --project="$PROJECT" --format='value(status)')
