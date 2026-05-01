@@ -1,0 +1,111 @@
+name: Deploy Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to deploy"
+        required: false
+        default: main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: cloud-run-deploy-prod
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Load deploy config from Doppler
+        uses: dopplerhq/secrets-fetch-action@v2.0.0
+        with:
+          auth-method: oidc
+          doppler-identity-id: ${{ vars.DOPPLER_SERVICE_IDENTITY_ID }}
+          doppler-project: ${{ vars.DOPPLER_PROJECT || 'solana-developer-mcp' }}
+          doppler-config: ${{ vars.DOPPLER_CONFIG_CI || 'prd_github' }}
+          inject-env-vars: true
+
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - id: build
+        env:
+          REGION: ${{ env.GCP_REGION }}
+          PROJECT: ${{ env.GCP_PROJECT_ID }}
+          SERVICE: ${{ env.CLOUD_RUN_SERVICE }}
+        run: |
+          set -euo pipefail
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${SERVICE}/${SERVICE}:${GITHUB_SHA::12}"
+
+          # --async + poll: log streaming requires Project Viewer/Owner;
+          # the scoped deployer SA does not have it.
+          BUILD_ID=$(gcloud builds submit . \
+            --tag "$IMAGE" \
+            --project="$PROJECT" \
+            --gcs-source-staging-dir="gs://${PROJECT}_cloudbuild/source" \
+            --async --format='value(id)')
+          [ -n "$BUILD_ID" ] || { echo "empty build id"; exit 1; }
+          echo "Submitted $BUILD_ID"
+          echo "Logs: https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=$PROJECT"
+
+          STATUS=
+          for i in $(seq 1 80); do
+            STATUS=$(gcloud builds describe "$BUILD_ID" --project="$PROJECT" --format='value(status)')
+            echo "  $i/80: $STATUS"
+            case "$STATUS" in
+              SUCCESS) break ;;
+              FAILURE|TIMEOUT|CANCELLED|EXPIRED|INTERNAL_ERROR) exit 1 ;;
+            esac
+            sleep 30
+          done
+          [ "$STATUS" = "SUCCESS" ] || { echo "timed out polling $BUILD_ID"; exit 1; }
+
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ env.CLOUD_RUN_SERVICE }}
+          region: ${{ env.GCP_REGION }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          image: ${{ steps.build.outputs.image }}
+          service_account: ${{ env.GCP_RUNTIME_SERVICE_ACCOUNT }}
+          env_vars: |-
+            DATABRICKS_HOST=${{ env.DATABRICKS_HOST }}
+            DATABRICKS_TOKEN=${{ env.DATABRICKS_TOKEN }}
+            DATABRICKS_VS_INDEX=${{ env.DATABRICKS_VS_INDEX }}
+            DATABRICKS_WAREHOUSE_ID=${{ env.DATABRICKS_WAREHOUSE_ID }}
+            DATABRICKS_ANALYTICS_SCHEMA=${{ env.DATABRICKS_ANALYTICS_SCHEMA }}
+            DATABRICKS_RERANKER_ENDPOINT=${{ env.DATABRICKS_RERANKER_ENDPOINT }}
+            REDIS_URL=${{ env.REDIS_URL }}
+          env_vars_update_strategy: overwrite
+          flags: >-
+            --allow-unauthenticated
+            --port=8080
+            --cpu=1
+            --memory=512Mi
+            --concurrency=80
+            --min-instances=0
+            --max-instances=10
+            --timeout=900s
+            --vpc-connector=${{ env.VPC_CONNECTOR }}
+            --vpc-egress=private-ranges-only
+
+      - name: Print service URL
+        run: echo "Deployed ${{ env.CLOUD_RUN_SERVICE }} -> ${{ steps.deploy.outputs.url }}"

@@ -1,0 +1,3 @@
+setup:
+  - project: solana-developer-mcp
+    config: dev_personal
