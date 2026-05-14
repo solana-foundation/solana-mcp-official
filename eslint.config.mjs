@@ -10,7 +10,7 @@ export default tseslint.config(
       ".corepack/**",
       ".docs/**",
       ".pnpm-store/**",
-      ".vercel/**",
+      "build/**",
       "dist/**",
       "coverage/**",
       "node_modules/**",

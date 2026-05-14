@@ -22,9 +22,9 @@ vi.mock("dotenv", () => ({
   config: dotenvConfigMock,
 }));
 
-import { DELETE, GET, POST } from "../../api/server";
+import { handleMcpRequest } from "../../lib/handler";
 
-describe("api server handler", () => {
+describe("handleMcpRequest", () => {
   beforeEach(() => {
     requestHandlerMock.mockReset();
     requestHandlerMock.mockResolvedValue(new Response("ok"));
@@ -40,14 +40,14 @@ describe("api server handler", () => {
     expect(createMcpMock).toHaveBeenCalledTimes(1);
   });
 
-  it("delegates GET, POST, and DELETE requests to the same handler", async () => {
+  it("delegates GET, POST, and DELETE requests to the same underlying handler", async () => {
     const getReq = new Request("http://localhost/mcp", { method: "GET" });
     const postReq = new Request("http://localhost/mcp", { method: "POST", body: "{}" });
     const deleteReq = new Request("http://localhost/mcp", { method: "DELETE" });
 
-    await GET(getReq);
-    await POST(postReq);
-    await DELETE(deleteReq);
+    await handleMcpRequest(getReq);
+    await handleMcpRequest(postReq);
+    await handleMcpRequest(deleteReq);
 
     expect(requestHandlerMock).toHaveBeenNthCalledWith(1, getReq);
     expect(requestHandlerMock).toHaveBeenNthCalledWith(2, postReq);
@@ -62,8 +62,7 @@ describe("api server handler", () => {
       headers: { "mcp-session-id": "sess-1" },
     });
 
-    await POST(req);
-    // logIncomingRequest is fire-and-forget — flush microtasks
+    await handleMcpRequest(req);
     await new Promise(resolve => setImmediate(resolve));
 
     expect(logAnalyticsMock).toHaveBeenCalledTimes(1);
@@ -75,15 +74,15 @@ describe("api server handler", () => {
   });
 
   it("does not emit analytics for GET or DELETE requests", async () => {
-    await GET(new Request("http://localhost/mcp", { method: "GET" }));
-    await DELETE(new Request("http://localhost/mcp", { method: "DELETE" }));
+    await handleMcpRequest(new Request("http://localhost/mcp", { method: "GET" }));
+    await handleMcpRequest(new Request("http://localhost/mcp", { method: "DELETE" }));
     await new Promise(resolve => setImmediate(resolve));
     expect(logAnalyticsMock).not.toHaveBeenCalled();
   });
 
   it("skips analytics for POST requests with an empty body", async () => {
     const req = new Request("http://localhost/mcp", { method: "POST", body: "" });
-    await POST(req);
+    await handleMcpRequest(req);
     await new Promise(resolve => setImmediate(resolve));
     expect(logAnalyticsMock).not.toHaveBeenCalled();
   });
@@ -91,7 +90,7 @@ describe("api server handler", () => {
   it("does not block the response when logAnalytics throws", async () => {
     logAnalyticsMock.mockRejectedValueOnce(new Error("warehouse unavailable"));
     const req = new Request("http://localhost/mcp", { method: "POST", body: "{}" });
-    const res = await POST(req);
+    const res = await handleMcpRequest(req);
     expect(res).toBeInstanceOf(Response);
   });
 });
