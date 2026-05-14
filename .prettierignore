@@ -1,7 +1,7 @@
 .corepack/
 .docs/
 .pnpm-store/
-.vercel/
+build/
 coverage/
 dist/
 node_modules/

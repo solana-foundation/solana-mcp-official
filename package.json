@@ -5,10 +5,9 @@
   "main": "index.js",
   "scripts": {
     "gen:sources": "node scripts/build-sources.mjs",
-    "start": "vercel dev",
-    "dev:local": "node scripts/build-sources.mjs && vercel dev --local",
-    "build": "node scripts/build-sources.mjs",
-    "start:cloudrun": "node build/server/cloudrun.js",
+    "start": "node build/server/cloudrun.js",
+    "dev:local": "node scripts/build-sources.mjs && tsx watch server/cloudrun.ts",
+    "build": "node scripts/build-sources.mjs && tsc -p tsconfig.json",
     "test": "pnpm test:integration",
     "test:integration": "pnpm gen:sources && vitest run tests/integration.test.ts tests/unit/",
     "test:e2e": "pnpm gen:sources && vitest run tests/e2e.test.ts",
@@ -48,9 +47,9 @@
     "eslint-plugin-prettier": "^5.5.5",
     "js-yaml": "^4.1.0",
     "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.57.2",
-    "vercel": "^54.0.0",
     "vitest": "^4.1.3"
   }
 }

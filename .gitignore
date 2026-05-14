@@ -1,8 +1,8 @@
-.vercel
 node_modules/
 .env
 .env.*
 !.env.example
+build/
 dist/
 coverage/
 .pnpm-store/
