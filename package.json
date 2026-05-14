@@ -7,7 +7,7 @@
     "gen:sources": "node scripts/build-sources.mjs",
     "start": "node build/server/cloudrun.js",
     "dev:local": "node scripts/build-sources.mjs && tsx watch server/cloudrun.ts",
-    "build": "node scripts/build-sources.mjs && tsc -p tsconfig.json --outDir build",
+    "build": "node scripts/build-sources.mjs && tsc -p tsconfig.json",
     "test": "pnpm test:integration",
     "test:integration": "pnpm gen:sources && vitest run tests/integration.test.ts tests/unit/",
     "test:e2e": "pnpm gen:sources && vitest run tests/e2e.test.ts",
