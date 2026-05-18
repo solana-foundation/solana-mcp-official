@@ -82,20 +82,18 @@ import { anchorCloseWithoutReceiver } from "./anchor-close-without-receiver.js";
  *   account-relationship        → Check 26 (MEDIUM)
  *   account-borrow              → Check 27 (LOW)
  *
- * Anchor (tier 1, attribute-only)
+ * Anchor account constraints
  *   anchor-seeds-without-bump    (HIGH)
  *   anchor-init-without-space    (HIGH)
  *   anchor-init-without-payer    (CRITICAL)
  *   anchor-realloc-incomplete    (MEDIUM)
  *   anchor-unchecked-account     (LOW)
  *
- * Anchor (tier 2, struct + handler scope)
+ * Anchor account types and handler checks
  *   anchor-account-not-interface (MEDIUM) — Account<Mint> / Account<TokenAccount> vs InterfaceAccount
  *   anchor-manual-signer-check   (MEDIUM) — .is_signer access inside #[program] mod
  *   anchor-manual-key-eq         (LOW)    — require_keys_eq! inside #[program] mod
  *   anchor-emit-via-msg          (LOW)    — msg! inside #[program] mod
- *
- * Anchor (tier 3, cross-handler flow)
  *   anchor-missing-mut             (HIGH)     — ctx.accounts.X mutated, struct field lacks `mut`
  *   anchor-cpi-context-unverified  (HIGH)     — CpiContext::new(<untyped account>, ...) without typed Program/Interface
  *   anchor-close-without-receiver  (CRITICAL) — manual lamport drain without `close = ...` constraint

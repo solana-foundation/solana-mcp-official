@@ -1,7 +1,7 @@
 import type Parser from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
-import { collectCtxAccountsAccesses, findFieldsByName, isInsideProgramModule } from "./_anchor-helpers.js";
+import { collectCtxAccountsAccesses, findFieldsForHandlerContext, isInsideProgramModule } from "./_anchor-helpers.js";
 
 type Node = Parser.SyntaxNode;
 
@@ -50,7 +50,7 @@ export const anchorCloseWithoutReceiver: Visitor = {
       const fields = collectCtxAccountsAccesses(left);
       if (fields.size === 0) return;
       for (const fieldName of fields) {
-        const candidates = findFieldsByName(ctx.anchor.structs, fieldName);
+        const candidates = findFieldsForHandlerContext(ctx.anchor, node, fieldName);
         if (candidates.length === 0) continue;
         const hasClose = candidates.some(f => f.attribute?.kvPairs.has("close"));
         if (hasClose) continue;

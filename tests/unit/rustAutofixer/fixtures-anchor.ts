@@ -1,4 +1,4 @@
-// Fixtures for Anchor tier-1 visitors (attribute-only).
+// Fixtures for Anchor visitors.
 // Each pair: vulnerable + secure, framework: "anchor".
 
 const ANCHOR_HEADER = `use anchor_lang::prelude::*;\n`;
@@ -84,6 +84,23 @@ pub struct Init<'info> {
 pub struct Escrow { pub admin: Pubkey }
 `;
 
+export const VULNERABLE_NESTED_INIT_WITHOUT_PAYER = `${ANCHOR_HEADER}
+pub mod accounts {
+  use super::*;
+
+  #[derive(Accounts)]
+  pub struct Init<'info> {
+    #[account(init, space = 8 + 32)]
+    pub escrow: Account<'info, Escrow>,
+    #[account(mut)]
+    pub admin: Signer<'info>,
+    pub system_program: Program<'info, System>,
+  }
+}
+#[account]
+pub struct Escrow { pub admin: Pubkey }
+`;
+
 // ---------- anchor-realloc-incomplete ----------
 export const VULNERABLE_REALLOC_INCOMPLETE = `${ANCHOR_HEADER}
 #[derive(Accounts)]
@@ -111,7 +128,7 @@ pub struct Grow<'info> {
 pub struct Escrow { pub admin: Pubkey }
 `;
 
-// ---------- anchor-account-not-interface (tier 2) ----------
+// ---------- anchor-account-not-interface ----------
 export const VULNERABLE_ACCOUNT_NOT_INTERFACE = `${ANCHOR_HEADER}
 use anchor_spl::token::{Mint, TokenAccount};
 #[derive(Accounts)]
@@ -132,7 +149,7 @@ pub struct Use<'info> {
 }
 `;
 
-// ---------- anchor-manual-signer-check (tier 2) ----------
+// ---------- anchor-manual-signer-check ----------
 export const VULNERABLE_MANUAL_SIGNER_CHECK = `${ANCHOR_HEADER}
 #[derive(Accounts)]
 pub struct Ctx<'info> {
@@ -166,7 +183,7 @@ pub mod my_program {
 }
 `;
 
-// ---------- anchor-manual-key-eq (tier 2) ----------
+// ---------- anchor-manual-key-eq ----------
 export const VULNERABLE_MANUAL_KEY_EQ = `${ANCHOR_HEADER}
 #[derive(Accounts)]
 pub struct Ctx<'info> {
@@ -203,7 +220,7 @@ pub mod my_program {
 pub struct State { pub authority: Pubkey }
 `;
 
-// ---------- anchor-emit-via-msg (tier 2) ----------
+// ---------- anchor-emit-via-msg ----------
 export const VULNERABLE_EMIT_VIA_MSG = `${ANCHOR_HEADER}
 #[derive(Accounts)]
 pub struct Ctx<'info> {
@@ -236,7 +253,7 @@ pub mod my_program {
 }
 `;
 
-// ---------- anchor-missing-mut (tier 3) ----------
+// ---------- anchor-missing-mut ----------
 export const VULNERABLE_MISSING_MUT = `${ANCHOR_HEADER}
 #[derive(Accounts)]
 pub struct Ctx<'info> {
@@ -274,7 +291,48 @@ pub mod my_program {
 pub struct State { pub value: u64 }
 `;
 
-// ---------- anchor-cpi-context-unverified (tier 3) ----------
+export const VULNERABLE_MISSING_MUT_DUPLICATE_FIELD = `${ANCHOR_HEADER}
+#[derive(Accounts)]
+pub struct Good<'info> {
+  #[account(mut)]
+  pub state: Account<'info, State>,
+}
+#[derive(Accounts)]
+pub struct Bad<'info> {
+  pub state: Account<'info, State>,
+}
+#[program]
+pub mod my_program {
+  use super::*;
+  pub fn run(ctx: Context<Bad>, new_value: u64) -> Result<()> {
+    ctx.accounts.state.value = new_value;
+    Ok(())
+  }
+}
+#[account]
+pub struct State { pub value: u64 }
+`;
+
+export const SECURE_LOCAL_FIELD_MUTATION = `${ANCHOR_HEADER}
+#[derive(Accounts)]
+pub struct Ctx<'info> {
+  pub balance: Account<'info, State>,
+}
+pub struct Scratch { pub balance: u64 }
+#[program]
+pub mod my_program {
+  use super::*;
+  pub fn run(_ctx: Context<Ctx>, new_value: u64) -> Result<()> {
+    let mut scratch = Scratch { balance: 0 };
+    scratch.balance = new_value;
+    Ok(())
+  }
+}
+#[account]
+pub struct State { pub value: u64 }
+`;
+
+// ---------- anchor-cpi-context-unverified ----------
 export const VULNERABLE_CPI_UNVERIFIED = `${ANCHOR_HEADER}
 #[derive(Accounts)]
 pub struct Ctx<'info> {
@@ -314,7 +372,30 @@ struct Empty;
 fn invoke_helper<T>(_c: CpiContext<T>) -> Result<()> { Ok(()) }
 `;
 
-// ---------- anchor-close-without-receiver (tier 3) ----------
+export const VULNERABLE_CPI_UNVERIFIED_DUPLICATE_FIELD = `${ANCHOR_HEADER}
+use anchor_spl::token::Token;
+#[derive(Accounts)]
+pub struct Good<'info> {
+  pub token_program: Program<'info, Token>,
+}
+#[derive(Accounts)]
+pub struct Bad<'info> {
+  pub token_program: AccountInfo<'info>,
+}
+#[program]
+pub mod my_program {
+  use super::*;
+  pub fn run(ctx: Context<Bad>) -> Result<()> {
+    let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), Empty {});
+    invoke_helper(cpi_ctx)?;
+    Ok(())
+  }
+}
+struct Empty;
+fn invoke_helper<T>(_c: CpiContext<T>) -> Result<()> { Ok(()) }
+`;
+
+// ---------- anchor-close-without-receiver ----------
 export const VULNERABLE_CLOSE_MANUAL = `${ANCHOR_HEADER}
 #[derive(Accounts)]
 pub struct Ctx<'info> {
@@ -331,6 +412,33 @@ pub mod my_program {
     let from = ctx.accounts.escrow.to_account_info();
     let dest = ctx.accounts.receiver.to_account_info();
     **dest.lamports.borrow_mut() = dest.lamports().checked_add(from.lamports()).unwrap();
+    **ctx.accounts.escrow.to_account_info().lamports.borrow_mut() = 0;
+    Ok(())
+  }
+}
+#[account]
+pub struct Escrow { pub admin: Pubkey }
+`;
+
+export const VULNERABLE_CLOSE_MANUAL_DUPLICATE_FIELD = `${ANCHOR_HEADER}
+#[derive(Accounts)]
+pub struct Good<'info> {
+  #[account(mut, close = receiver)]
+  pub escrow: Account<'info, Escrow>,
+  #[account(mut)]
+  pub receiver: AccountInfo<'info>,
+}
+#[derive(Accounts)]
+pub struct Bad<'info> {
+  #[account(mut)]
+  pub escrow: Account<'info, Escrow>,
+  #[account(mut)]
+  pub receiver: AccountInfo<'info>,
+}
+#[program]
+pub mod my_program {
+  use super::*;
+  pub fn close_it(ctx: Context<Bad>) -> Result<()> {
     **ctx.accounts.escrow.to_account_info().lamports.borrow_mut() = 0;
     Ok(())
   }

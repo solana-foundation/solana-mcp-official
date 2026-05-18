@@ -1,7 +1,7 @@
 import type Parser from "web-tree-sitter";
 import type { Visitor, VisitorContext } from "../types.js";
 import { formatLocation } from "../types.js";
-import { ctxAccountsField, findFieldsByName, isInsideProgramModule } from "./_anchor-helpers.js";
+import { ctxAccountsField, findFieldsForHandlerContext, isInsideProgramModule } from "./_anchor-helpers.js";
 import { getMethodCallName } from "./_helpers.js";
 
 type Node = Parser.SyntaxNode;
@@ -27,7 +27,7 @@ function getState(ctx: VisitorContext): MissingMutState {
 }
 
 function emitIfFieldLacksMut(node: Node, fieldName: string, ctx: VisitorContext): void {
-  const candidates = findFieldsByName(ctx.anchor.structs, fieldName);
+  const candidates = findFieldsForHandlerContext(ctx.anchor, node, fieldName);
   if (candidates.length === 0) return;
   // Conservative: only fire when EVERY matching field lacks `mut`. Avoids cross-struct ambiguity FPs.
   const anyMut = candidates.some(f => f.attribute?.keywords.has("mut"));

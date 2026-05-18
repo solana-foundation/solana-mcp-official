@@ -1,7 +1,7 @@
 import type Parser from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
-import { ctxAccountsField, findFieldsByName, isInsideProgramModule } from "./_anchor-helpers.js";
+import { ctxAccountsField, findFieldsForHandlerContext, isInsideProgramModule } from "./_anchor-helpers.js";
 import { walk } from "../walk.js";
 
 type Node = Parser.SyntaxNode;
@@ -74,7 +74,7 @@ export const anchorCpiContextUnverified: Visitor = {
       }
       const field = ctxAccountsField(target);
       if (!field) return;
-      const candidates = findFieldsByName(ctx.anchor.structs, field);
+      const candidates = findFieldsForHandlerContext(ctx.anchor, node, field);
       if (candidates.length === 0) return;
       // Fire when EVERY candidate field is untyped (AccountInfo / UncheckedAccount).
       // If any candidate uses a typed program wrapper (Program / Interface), assume the program identity is enforced.

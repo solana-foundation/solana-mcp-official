@@ -1,4 +1,6 @@
 .corepack/
+.claude/
+.codex/
 .docs/
 .pnpm-store/
 build/

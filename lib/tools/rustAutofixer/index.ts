@@ -40,9 +40,7 @@ export function createRustAutofixerTool(): SolanaTool {
       framework: z
         .enum(["pinocchio", "anchor", "auto"])
         .optional()
-        .describe(
-          "Framework hint. Default 'auto' — detect from imports / attributes. Anchor coverage currently spans the tier-1 attribute-only checks; handler-body checks land in a follow-up.",
-        ),
+        .describe("Framework hint. Default 'auto' — detect from imports / attributes."),
     },
     outputSchema: {
       issues: z.array(issueSchema),
