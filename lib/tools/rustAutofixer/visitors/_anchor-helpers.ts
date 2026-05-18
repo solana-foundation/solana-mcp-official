@@ -218,53 +218,59 @@ function findFieldType(fieldNode: Node): Node | null {
   return null;
 }
 
-/**
- * Build the per-file anchor context: every `#[derive(Accounts)]` struct with
- * its fields and parsed attributes, plus a pointer to the `#[program]` module
- * (if any). Walks source_file's named children pairwise to associate
- * attribute_item with the immediately-following struct/mod.
- */
 export function collectAnchorContext(tree: Tree): AnchorContext {
   const structs: AnchorStruct[] = [];
   let programModule: Node | null = null;
-  const root = tree.rootNode;
 
-  let pendingIsAccountsDerive = false;
-  let pendingIsProgramAttr = false;
-  for (let i = 0; i < root.namedChildCount; i++) {
-    const node = root.namedChild(i);
-    if (!node) continue;
+  function scanItems(container: Node): void {
+    let pendingIsAccountsDerive = false;
+    let pendingIsProgramAttr = false;
+    for (let i = 0; i < container.namedChildCount; i++) {
+      const node = container.namedChild(i);
+      if (!node) continue;
 
-    if (node.type === "attribute_item") {
-      if (attributeIsDeriveAccounts(node)) pendingIsAccountsDerive = true;
-      else if (isProgramAttr(node)) pendingIsProgramAttr = true;
-      continue;
-    }
-
-    if (node.type === "struct_item") {
-      if (pendingIsAccountsDerive) {
-        const nameNode = node.childForFieldName("name");
-        const name = nameNode?.text ?? "<anonymous>";
-        structs.push({ name, structNode: node, fields: collectStructFields(node) });
+      if (node.type === "attribute_item") {
+        if (attributeIsDeriveAccounts(node)) pendingIsAccountsDerive = true;
+        else if (isProgramAttr(node)) pendingIsProgramAttr = true;
+        continue;
       }
+
+      if (node.type === "struct_item") {
+        if (pendingIsAccountsDerive) {
+          const nameNode = node.childForFieldName("name");
+          const name = nameNode?.text ?? "<anonymous>";
+          structs.push({ name, structNode: node, fields: collectStructFields(node) });
+        }
+        pendingIsAccountsDerive = false;
+        pendingIsProgramAttr = false;
+        continue;
+      }
+
+      if (node.type === "mod_item") {
+        if (pendingIsProgramAttr) programModule = node;
+        const body = findDeclarationList(node);
+        pendingIsAccountsDerive = false;
+        pendingIsProgramAttr = false;
+        if (body) scanItems(body);
+        continue;
+      }
+
       pendingIsAccountsDerive = false;
       pendingIsProgramAttr = false;
-      continue;
     }
-
-    if (node.type === "mod_item") {
-      if (pendingIsProgramAttr) programModule = node;
-      pendingIsAccountsDerive = false;
-      pendingIsProgramAttr = false;
-      continue;
-    }
-
-    // Any other top-level node clears the pending flags.
-    pendingIsAccountsDerive = false;
-    pendingIsProgramAttr = false;
   }
 
+  scanItems(tree.rootNode);
+
   return { structs, programModule };
+}
+
+function findDeclarationList(node: Node): Node | null {
+  for (let i = 0; i < node.namedChildCount; i++) {
+    const c = node.namedChild(i);
+    if (c?.type === "declaration_list") return c;
+  }
+  return null;
 }
 
 function isProgramAttr(attrItem: Node): boolean {
@@ -281,4 +287,137 @@ function isProgramAttr(attrItem: Node): boolean {
 export function isInsideProgramModule(node: Node, programModule: Node | null): boolean {
   if (!programModule) return false;
   return node.startIndex >= programModule.startIndex && node.endIndex <= programModule.endIndex;
+}
+
+/**
+ * For `ctx.accounts.<X>` style chains, walk inward and return the segment
+ * immediately after `ctx.accounts.`. Returns null if the chain doesn't match.
+ */
+export function ctxAccountsField(node: Node): string | null {
+  let cursor: Node | null = node;
+  while (cursor) {
+    if (cursor.type !== "field_expression") return null;
+    const value = cursor.childForFieldName("value");
+    const field = cursor.childForFieldName("field");
+    if (!value || !field) return null;
+    if (value.type === "field_expression") {
+      const innerValue = value.childForFieldName("value");
+      const innerField = value.childForFieldName("field");
+      if (innerValue?.type === "identifier" && innerValue.text === "ctx" && innerField?.text === "accounts") {
+        return field.text;
+      }
+    }
+    cursor = value;
+  }
+  return null;
+}
+
+/** Find every `ctx.accounts.<X>` access inside a given scope and return the set of `X` values. */
+export function collectCtxAccountsAccesses(scope: Node): Set<string> {
+  const out = new Set<string>();
+  const cursor = scope.walk();
+  const visit = (): void => {
+    const n = cursor.currentNode();
+    if (n.type === "field_expression") {
+      const value = n.childForFieldName("value");
+      const field = n.childForFieldName("field");
+      if (value?.type === "field_expression" && field) {
+        const innerValue = value.childForFieldName("value");
+        const innerField = value.childForFieldName("field");
+        if (innerValue?.type === "identifier" && innerValue.text === "ctx" && innerField?.text === "accounts") {
+          out.add(field.text);
+        }
+      }
+    }
+    if (cursor.gotoFirstChild()) {
+      do {
+        visit();
+      } while (cursor.gotoNextSibling());
+      cursor.gotoParent();
+    }
+  };
+  visit();
+  cursor.delete();
+  return out;
+}
+
+/** Look up all fields named `fieldName` across every Accounts struct in the file. */
+export function findFieldsByName(structs: AnchorStruct[], fieldName: string): AnchorField[] {
+  const out: AnchorField[] = [];
+  for (const s of structs) {
+    for (const f of s.fields) {
+      if (f.name === fieldName) out.push(f);
+    }
+  }
+  return out;
+}
+
+export function findFieldsForHandlerContext(ctx: AnchorContext, node: Node, fieldName: string): AnchorField[] {
+  const structName = findEnclosingContextStructName(node);
+  const structs = structName ? ctx.structs.filter(s => s.name === structName) : ctx.structs;
+  return findFieldsByName(structs, fieldName);
+}
+
+function findEnclosingContextStructName(node: Node): string | null {
+  let cursor: Node | null = node;
+  while (cursor) {
+    if (cursor.type === "function_item") return contextStructNameFromFunction(cursor);
+    cursor = cursor.parent;
+  }
+  return null;
+}
+
+function contextStructNameFromFunction(functionNode: Node): string | null {
+  const parameters = functionNode.childForFieldName("parameters") ?? findParameters(functionNode);
+  if (!parameters) return null;
+  for (let i = 0; i < parameters.namedChildCount; i++) {
+    const param = parameters.namedChild(i);
+    if (!param || param.type !== "parameter") continue;
+    const typeNode = param.childForFieldName("type") ?? findParameterType(param);
+    const name = typeNode ? contextStructNameFromType(typeNode) : null;
+    if (name) return name;
+  }
+  return null;
+}
+
+function findParameters(functionNode: Node): Node | null {
+  for (let i = 0; i < functionNode.namedChildCount; i++) {
+    const c = functionNode.namedChild(i);
+    if (c?.type === "parameters") return c;
+  }
+  return null;
+}
+
+function findParameterType(parameterNode: Node): Node | null {
+  for (let i = 0; i < parameterNode.namedChildCount; i++) {
+    const c = parameterNode.namedChild(i);
+    if (!c) continue;
+    if (c.type === "generic_type" || c.type === "scoped_type_identifier" || c.type === "type_identifier") return c;
+  }
+  return null;
+}
+
+function contextStructNameFromType(typeNode: Node): string | null {
+  if (typeNode.type !== "generic_type") return null;
+  const head = typeNode.namedChild(0);
+  if (!head || typeTailIdentifier(head) !== "Context") return null;
+  const args = typeNode.childForFieldName("type_arguments") ?? typeNode.namedChild(1);
+  return args ? lastTypeIdentifier(args) : null;
+}
+
+function typeTailIdentifier(node: Node): string | null {
+  if (node.type === "type_identifier") return node.text;
+  if (node.type === "scoped_type_identifier" || node.type === "generic_type") {
+    const last = node.namedChild(node.namedChildCount - 1);
+    return last ? typeTailIdentifier(last) : null;
+  }
+  return null;
+}
+
+function lastTypeIdentifier(node: Node): string | null {
+  let result: string | null = null;
+  walk(node, n => {
+    if (n.type === "type_identifier") result = n.text;
+  });
+  return result;
 }

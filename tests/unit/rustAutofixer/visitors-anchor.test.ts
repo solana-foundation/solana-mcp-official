@@ -7,6 +7,7 @@ import {
   SECURE_INIT_WITH_SPACE,
   VULNERABLE_INIT_WITHOUT_PAYER,
   SECURE_INIT_WITH_PAYER,
+  VULNERABLE_NESTED_INIT_WITHOUT_PAYER,
   VULNERABLE_REALLOC_INCOMPLETE,
   SECURE_REALLOC_COMPLETE,
   VULNERABLE_UNCHECKED_ACCOUNT,
@@ -19,6 +20,16 @@ import {
   SECURE_HAS_ONE,
   VULNERABLE_EMIT_VIA_MSG,
   SECURE_EMIT,
+  VULNERABLE_MISSING_MUT,
+  SECURE_MUT_CONSTRAINT,
+  VULNERABLE_MISSING_MUT_DUPLICATE_FIELD,
+  SECURE_LOCAL_FIELD_MUTATION,
+  VULNERABLE_CPI_UNVERIFIED,
+  SECURE_CPI_TYPED_PROGRAM,
+  VULNERABLE_CPI_UNVERIFIED_DUPLICATE_FIELD,
+  VULNERABLE_CLOSE_MANUAL,
+  SECURE_CLOSE_CONSTRAINT,
+  VULNERABLE_CLOSE_MANUAL_DUPLICATE_FIELD,
 } from "./fixtures-anchor.js";
 
 const PAIRS: ReadonlyArray<{
@@ -43,9 +54,20 @@ const PAIRS: ReadonlyArray<{
   },
   { rule: "anchor-manual-key-eq", vulnerable: VULNERABLE_MANUAL_KEY_EQ, secure: SECURE_HAS_ONE },
   { rule: "anchor-emit-via-msg", vulnerable: VULNERABLE_EMIT_VIA_MSG, secure: SECURE_EMIT },
+  { rule: "anchor-missing-mut", vulnerable: VULNERABLE_MISSING_MUT, secure: SECURE_MUT_CONSTRAINT },
+  {
+    rule: "anchor-cpi-context-unverified",
+    vulnerable: VULNERABLE_CPI_UNVERIFIED,
+    secure: SECURE_CPI_TYPED_PROGRAM,
+  },
+  {
+    rule: "anchor-close-without-receiver",
+    vulnerable: VULNERABLE_CLOSE_MANUAL,
+    secure: SECURE_CLOSE_CONSTRAINT,
+  },
 ];
 
-describe("rust_autofixer Anchor tier-1 visitors", () => {
+describe("rust_autofixer Anchor visitors", () => {
   it.each(PAIRS)(
     "$rule fires on vulnerable Anchor fixture",
     async ({ rule, vulnerable }) => {
@@ -66,9 +88,44 @@ describe("rust_autofixer Anchor tier-1 visitors", () => {
     20_000,
   );
 
-  it("auto-detects Anchor and runs tier-1 visitors", async () => {
+  it("auto-detects Anchor and runs Anchor visitors", async () => {
     const out = await runRustAutofixer({ code: VULNERABLE_INIT_WITHOUT_PAYER, framework: "auto" });
     const hit = out.issues.find(i => i.rule === "anchor-init-without-payer");
-    expect(hit, "auto-detect failed to identify Anchor + run tier-1 visitors").toBeDefined();
+    expect(hit, "auto-detect failed to identify Anchor + run Anchor visitors").toBeDefined();
+  }, 20_000);
+
+  it("collects Accounts derives nested inside modules", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_NESTED_INIT_WITHOUT_PAYER, framework: "anchor" });
+    const hit = out.issues.find(i => i.rule === "anchor-init-without-payer");
+    expect(hit, "nested #[derive(Accounts)] struct was not analyzed").toBeDefined();
+  }, 20_000);
+
+  it.each([
+    {
+      rule: "anchor-missing-mut",
+      code: VULNERABLE_MISSING_MUT_DUPLICATE_FIELD,
+    },
+    {
+      rule: "anchor-cpi-context-unverified",
+      code: VULNERABLE_CPI_UNVERIFIED_DUPLICATE_FIELD,
+    },
+    {
+      rule: "anchor-close-without-receiver",
+      code: VULNERABLE_CLOSE_MANUAL_DUPLICATE_FIELD,
+    },
+  ])(
+    "resolves duplicate account field names through handler Context<T> for $rule",
+    async ({ rule, code }) => {
+      const out = await runRustAutofixer({ code, framework: "anchor" });
+      const hit = out.issues.find(i => i.rule === rule);
+      expect(hit, `${rule} was masked by another Accounts struct with the same field name`).toBeDefined();
+    },
+    20_000,
+  );
+
+  it("does not treat local field mutations as ctx.accounts mutations", async () => {
+    const out = await runRustAutofixer({ code: SECURE_LOCAL_FIELD_MUTATION, framework: "anchor" });
+    const hit = out.issues.find(i => i.rule === "anchor-missing-mut");
+    expect(hit, `local field mutation was reported as an account mutation: ${hit?.title}`).toBeUndefined();
   }, 20_000);
 });

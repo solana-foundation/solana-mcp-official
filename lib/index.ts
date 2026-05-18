@@ -13,7 +13,7 @@ Tools:
 2. get_documentation(section: string | string[]) — fetch full canonical docs. \`section\` accepts a source id (e.g. "anchor-docs") OR a section taxonomy id (e.g. "frameworks") which expands to every source tagged with that section. Pass an array to fetch several at once. Token-intensive (per-source cap 50 KB, total cap 200 KB).
 3. Solana_Documentation_Search(query) — semantic RAG search. Use for narrow questions where you don't need full source specs — e.g. "how do I derive a PDA with Anchor?". Returns relevant chunks.
 4. Solana_Expert__Ask_For_Help(question) — same backend as Solana_Documentation_Search, framed for how-to / debugging questions. Provide errors, snippets, intent.
-5. rust_autofixer(code, filename?, framework?) — static-analyses Solana program Rust (Pinocchio full coverage; Anchor tier-1 attribute-only) and returns \`{ issues, suggestions, require_another_tool_call_after_fixing }\`. MUST be called whenever you write or modify Solana program code, BEFORE returning code to the user. After applying fixes, call again; loop until \`require_another_tool_call_after_fixing\` is false.
+5. rust_autofixer(code, filename?, framework?) — static-analyses Solana program Rust (Pinocchio + Anchor) and returns \`{ issues, suggestions, require_another_tool_call_after_fixing }\`. MUST be called whenever you write or modify Solana program code, BEFORE returning code to the user. After applying fixes, call again; loop until \`require_another_tool_call_after_fixing\` is false.
 
 Routing:
 - Canonical spec for a library / program / framework → list_sections, then get_documentation.
