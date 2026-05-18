@@ -1,5 +1,6 @@
 import type Parser from "web-tree-sitter";
 import type { TryFromBody } from "./visitors/_helpers.js";
+import type { AnchorContext } from "./visitors/_anchor-helpers.js";
 
 type Node = Parser.SyntaxNode;
 
@@ -30,6 +31,8 @@ export interface VisitorContext {
   output: AutofixerOutput;
   /** Cached once per run by the driver. Populated before any enter handler fires. */
   tryFromBodies: TryFromBody[];
+  /** Cached once per run by the driver. Anchor-specific structures (Accounts derives + #[program] mod). */
+  anchor: AnchorContext;
 }
 
 export type EnterHandler = (node: Node, ctx: VisitorContext) => void;

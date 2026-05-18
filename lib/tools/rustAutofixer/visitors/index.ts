@@ -26,6 +26,11 @@ import { bumpCanonicalization } from "./bump-canonicalization.js";
 import { writableMutation } from "./writable-mutation.js";
 import { accountRelationship } from "./account-relationship.js";
 import { accountBorrow } from "./account-borrow.js";
+import { anchorSeedsWithoutBump } from "./anchor-seeds-without-bump.js";
+import { anchorInitWithoutSpace } from "./anchor-init-without-space.js";
+import { anchorInitWithoutPayer } from "./anchor-init-without-payer.js";
+import { anchorReallocIncomplete } from "./anchor-realloc-incomplete.js";
+import { anchorUncheckedAccount } from "./anchor-unchecked-account.js";
 
 /**
  * 27-check visitor registry. Each entry maps to a numbered check in
@@ -69,6 +74,13 @@ import { accountBorrow } from "./account-borrow.js";
  *   unsafe-unwrap               → Check 25 (MEDIUM)
  *   account-relationship        → Check 26 (MEDIUM)
  *   account-borrow              → Check 27 (LOW)
+ *
+ * Anchor (tier 1, attribute-only)
+ *   anchor-seeds-without-bump    (HIGH)
+ *   anchor-init-without-space    (HIGH)
+ *   anchor-init-without-payer    (CRITICAL)
+ *   anchor-realloc-incomplete    (MEDIUM)
+ *   anchor-unchecked-account     (LOW)
  */
 export const allVisitors: readonly Visitor[] = [
   missingSigner,
@@ -98,4 +110,9 @@ export const allVisitors: readonly Visitor[] = [
   writableMutation,
   accountRelationship,
   accountBorrow,
+  anchorSeedsWithoutBump,
+  anchorInitWithoutSpace,
+  anchorInitWithoutPayer,
+  anchorReallocIncomplete,
+  anchorUncheckedAccount,
 ];

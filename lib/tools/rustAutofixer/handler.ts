@@ -3,6 +3,7 @@ import { parseRust } from "./parse.js";
 import { walk } from "./walk.js";
 import { allVisitors } from "./visitors/index.js";
 import { findTryFromBodies } from "./visitors/_helpers.js";
+import { collectAnchorContext } from "./visitors/_anchor-helpers.js";
 import type { AutofixerOutput, EnterHandler, Framework, Issue, Visitor, VisitorContext } from "./types.js";
 
 const PINOCCHIO_USE_ROOTS = new Set([
@@ -188,18 +189,13 @@ export async function runRustAutofixer({
 
   const resolvedFramework: Framework = framework === "auto" ? detectFramework(tree) : framework;
 
-  if (resolvedFramework === "anchor") {
-    output.suggestions.push(
-      "Anchor program detected. This tool currently only runs framework-agnostic Rust checks (arithmetic, unwrap, raw pointer cast, double-mut-borrow) against Anchor code — Anchor-specific constraint and account-type validation is not yet implemented.",
-    );
-  }
-
   const ctx: VisitorContext = {
     source: code,
     filename,
     framework: resolvedFramework,
     output,
     tryFromBodies: findTryFromBodies(tree),
+    anchor: collectAnchorContext(tree),
   };
 
   runVisitorPipeline(tree, ctx);
