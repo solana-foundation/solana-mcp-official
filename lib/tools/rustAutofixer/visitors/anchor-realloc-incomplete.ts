@@ -10,7 +10,7 @@ export const anchorReallocIncomplete: Visitor = {
       for (const field of struct.fields) {
         const attr = field.attribute;
         if (!attr) continue;
-        const usesRealloc = attr.kvPairs.has("realloc") || attr.keywords.has("realloc");
+        const usesRealloc = attr.kvPairs.has("realloc");
         if (!usesRealloc) continue;
         const missing: string[] = [];
         if (!attr.kvPairs.has("realloc::payer")) missing.push("realloc::payer");
