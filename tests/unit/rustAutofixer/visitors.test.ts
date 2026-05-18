@@ -11,12 +11,14 @@ import {
   SECURE_ARITHMETIC,
   VULNERABLE_CPI,
   SECURE_CPI,
+  VULNERABLE_CPI_MISMATCHED_VERIFY,
+  VULNERABLE_CPI_PARTIAL_VERIFY,
   VULNERABLE_PDA,
   SECURE_PDA,
   VULNERABLE_SYSVAR,
   SECURE_SYSVAR,
   SECURE_PDA_NE_METHOD,
-  SECURE_PDA_ASSERT_NE,
+  VULNERABLE_PDA_ASSERT_NE,
   SECURE_ARITHMETIC_LEN_MATH,
   VULNERABLE_ARITHMETIC_LAMPORTS,
 } from "./fixtures.js";
@@ -85,10 +87,22 @@ describe("rust_autofixer regression cases (no regex fallbacks)", () => {
     expect(hit, `pda-validation fired on .ne() validation: ${hit?.title}`).toBeUndefined();
   }, 20_000);
 
-  it("does not flag pda-validation when validation uses `assert_ne!`", async () => {
-    const out = await runRustAutofixer({ code: SECURE_PDA_ASSERT_NE, framework: "pinocchio" });
+  it("flags pda-validation when validation uses `assert_ne!`", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_PDA_ASSERT_NE, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "pda-validation");
-    expect(hit, `pda-validation fired on assert_ne!: ${hit?.title}`).toBeUndefined();
+    expect(hit, "pda-validation missed assert_ne! rejecting the real PDA").toBeDefined();
+  }, 20_000);
+
+  it("flags arbitrary-cpi when a different program account was verified", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_CPI_MISMATCHED_VERIFY, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi missed invoke using an unverified program account").toBeDefined();
+  }, 20_000);
+
+  it("flags arbitrary-cpi when only one program-shaped account was verified", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_CPI_PARTIAL_VERIFY, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi missed invoke with a partially verified program account list").toBeDefined();
   }, 20_000);
 
   it("does not flag unchecked-arithmetic on account-layout `len()` math", async () => {

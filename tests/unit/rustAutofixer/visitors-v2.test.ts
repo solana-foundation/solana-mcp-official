@@ -19,6 +19,7 @@ import {
   SECURE_RENT_EXEMPT,
   VULNERABLE_AUTHORITY_ESC,
   SECURE_AUTHORITY_ESC,
+  VULNERABLE_AUTHORITY_ESC_UNRELATED_SIGNER,
   VULNERABLE_TOKEN_2022,
   SECURE_TOKEN_2022,
   VULNERABLE_INSTR_BOUNDS,
@@ -113,5 +114,16 @@ describe("unsafe-unwrap noise suppression (infallible try_into patterns)", () =>
     const out = await runRustAutofixer({ code: VULNERABLE_UNWRAP_FROM_UTF8, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "unsafe-unwrap");
     expect(hit, "unsafe-unwrap missed from_utf8 panic site").toBeDefined();
+  }, 20_000);
+});
+
+describe("authority-escalation signer matching", () => {
+  it("flags authority writes when only an unrelated signer was verified", async () => {
+    const out = await runRustAutofixer({
+      code: VULNERABLE_AUTHORITY_ESC_UNRELATED_SIGNER,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "authority-escalation");
+    expect(hit, "authority-escalation missed an unrelated verified signer").toBeDefined();
   }, 20_000);
 });

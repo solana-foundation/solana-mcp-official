@@ -102,6 +102,20 @@ pub fn forward(token_program: &AccountView, ix: &Instruction) -> Result<(), Prog
 }
 `;
 
+export const VULNERABLE_CPI_MISMATCHED_VERIFY = `use pinocchio::cpi::{invoke, Instruction};
+pub fn forward(system_program: &AccountView, token_program: &AccountView, ix: &Instruction) -> Result<(), ProgramError> {
+  verify_system_program(system_program)?;
+  invoke(ix, &[token_program.clone()])
+}
+`;
+
+export const VULNERABLE_CPI_PARTIAL_VERIFY = `use pinocchio::cpi::{invoke, Instruction};
+pub fn forward(system_program: &AccountView, token_program: &AccountView, ix: &Instruction) -> Result<(), ProgramError> {
+  verify_system_program(system_program)?;
+  invoke(ix, &[system_program.clone(), token_program.clone()])
+}
+`;
+
 export const VULNERABLE_PDA = `use pinocchio::pubkey::find_program_address;
 pub fn handle(account: &AccountView, seed: &[u8]) -> Result<(), ProgramError> {
   let (pda, _bump) = find_program_address(&[seed], &crate::ID);
@@ -153,8 +167,8 @@ pub fn handle(credential_info: &AccountView, name: &[u8], authority: &AccountVie
 }
 `;
 
-// PDA validated via assert_ne! macro. Must NOT fire pda-validation.
-export const SECURE_PDA_ASSERT_NE = `use pinocchio::pubkey::find_program_address;
+// Negative assertion rejects the real PDA. Must fire pda-validation.
+export const VULNERABLE_PDA_ASSERT_NE = `use pinocchio::pubkey::find_program_address;
 pub fn handle(account: &AccountView, seed: &[u8]) -> Result<(), ProgramError> {
   let (pda, _bump) = find_program_address(&[seed], &crate::ID);
   assert_ne!(account.key(), &pda.to_bytes(), "wrong pda");

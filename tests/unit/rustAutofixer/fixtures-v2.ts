@@ -151,6 +151,19 @@ export const SECURE_AUTHORITY_ESC = `${PINOCCHIO_USE}
 struct State { admin: [u8;32] }
 pub fn rotate(state: &mut State, current_signer: &AccountView, new_admin: [u8;32]) -> Result<(), ProgramError> {
   verify_signer(current_signer, false)?;
+  if current_signer.key().ne(&state.admin) {
+    return Err(ProgramError::MissingRequiredSignature);
+  }
+  state.admin = new_admin;
+  Ok(())
+}
+fn verify_signer(_a: &AccountView, _b: bool) -> Result<(), ProgramError> { Ok(()) }
+`;
+
+export const VULNERABLE_AUTHORITY_ESC_UNRELATED_SIGNER = `${PINOCCHIO_USE}
+struct State { admin: [u8;32] }
+pub fn rotate(state: &mut State, payer: &AccountView, new_admin: [u8;32]) -> Result<(), ProgramError> {
+  verify_signer(payer, false)?;
   state.admin = new_admin;
   Ok(())
 }

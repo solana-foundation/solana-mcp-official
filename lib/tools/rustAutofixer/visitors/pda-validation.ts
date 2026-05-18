@@ -17,16 +17,10 @@ const PDA_DERIVATION_FNS = new Set(["find_program_address", "try_find_program_ad
 
 const PDA_VALIDATE_FNS = new Set(["validate_pda", "verify_pda", "check_pda"]);
 
-const COMPARISON_METHOD_NAMES = new Set(["eq", "ne", "equals", "not_equals"]);
+const POSITIVE_COMPARISON_METHOD_NAMES = new Set(["eq", "equals"]);
+const NEGATIVE_COMPARISON_METHOD_NAMES = new Set(["ne", "not_equals"]);
 
-const COMPARISON_MACROS = new Set([
-  "assert_eq",
-  "assert_ne",
-  "debug_assert_eq",
-  "debug_assert_ne",
-  "require_eq",
-  "require_neq",
-]);
+const POSITIVE_COMPARISON_MACROS = new Set(["assert_eq", "debug_assert_eq", "require_eq"]);
 
 function pdaVarsFromLet(letNode: Node, derivationCall: Node): string[] {
   const value = letNode.childForFieldName("value");
@@ -67,6 +61,39 @@ function findEnclosingLet(node: Node): Node | null {
   return null;
 }
 
+function branchReturnsErr(ifNode: Node): boolean {
+  const consequence = ifNode.childForFieldName("consequence");
+  if (!consequence) return false;
+  let found = false;
+  walk(consequence, n => {
+    if (found) return "skip";
+    if (n.type !== "return_expression") return;
+    walk(n, child => {
+      if (found) return "skip";
+      if (child.type !== "call_expression") return;
+      const fn = child.childForFieldName("function");
+      const name = fn ? getCallName(fn) : null;
+      if (name === "Err") {
+        found = true;
+        return "skip";
+      }
+    });
+  });
+  return found;
+}
+
+function isRejectingGuard(node: Node): boolean {
+  let cursor: Node | null = node.parent;
+  while (cursor) {
+    if (cursor.type === "if_expression") {
+      const condition = cursor.childForFieldName("condition") ?? cursor.namedChild(0);
+      return !!condition && nodeContainsExact(condition, node) && branchReturnsErr(cursor);
+    }
+    cursor = cursor.parent;
+  }
+  return false;
+}
+
 function scopeValidatesPda(scope: Node, pdaVars: string[]): boolean {
   if (pdaVars.length === 0) return false;
   let validated = false;
@@ -80,7 +107,15 @@ function scopeValidatesPda(scope: Node, pdaVars: string[]): boolean {
       const left = n.childForFieldName("left");
       const right = n.childForFieldName("right");
       if (!left || !right) return;
-      if (pdaVars.some(v => containsIdentifier(left, v) || containsIdentifier(right, v))) {
+      if (op === "==" && pdaVars.some(v => containsIdentifier(left, v) || containsIdentifier(right, v))) {
+        validated = true;
+        return "skip";
+      }
+      if (
+        op === "!=" &&
+        isRejectingGuard(n) &&
+        pdaVars.some(v => containsIdentifier(left, v) || containsIdentifier(right, v))
+      ) {
         validated = true;
         return "skip";
       }
@@ -88,7 +123,7 @@ function scopeValidatesPda(scope: Node, pdaVars: string[]): boolean {
 
     if (n.type === "macro_invocation") {
       const macroName = getMacroName(n);
-      if (!macroName || !COMPARISON_MACROS.has(macroName)) return;
+      if (!macroName || !POSITIVE_COMPARISON_MACROS.has(macroName)) return;
       const ids = macroIdentifiers(n);
       if (pdaVars.some(v => ids.includes(v))) {
         validated = true;
@@ -107,7 +142,15 @@ function scopeValidatesPda(scope: Node, pdaVars: string[]): boolean {
         }
       }
       const methodName = getMethodCallName(n);
-      if (methodName && COMPARISON_METHOD_NAMES.has(methodName)) {
+      if (methodName && POSITIVE_COMPARISON_METHOD_NAMES.has(methodName)) {
+        const receiverRoot = getMethodReceiverRoot(n);
+        const argMentions = pdaVars.some(v => containsIdentifier(n, v));
+        if ((receiverRoot && pdaVars.includes(receiverRoot)) || argMentions) {
+          validated = true;
+          return "skip";
+        }
+      }
+      if (methodName && NEGATIVE_COMPARISON_METHOD_NAMES.has(methodName) && isRejectingGuard(n)) {
         const receiverRoot = getMethodReceiverRoot(n);
         const argMentions = pdaVars.some(v => containsIdentifier(n, v));
         if ((receiverRoot && pdaVars.includes(receiverRoot)) || argMentions) {

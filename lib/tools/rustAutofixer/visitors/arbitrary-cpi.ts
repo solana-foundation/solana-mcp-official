@@ -2,7 +2,7 @@ import type Parser from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { getCallName, walk } from "../walk.js";
-import { findEnclosingFunctionBody } from "./_helpers.js";
+import { findEnclosingFunctionBody, getCallArgs, isProgramAccountName, rootIdentifierOf } from "./_helpers.js";
 
 type Node = Parser.SyntaxNode;
 
@@ -36,17 +36,57 @@ function invokeUsesHardcodedProgramId(call: Node): boolean {
   return usesHardcoded;
 }
 
-function functionHasProgramVerification(scope: Node, beforeIndex: number): boolean {
-  let found = false;
+function verifiedProgramsBefore(scope: Node, beforeIndex: number): Set<string> {
+  const verified = new Set<string>();
   walk(scope, n => {
-    if (found) return "skip";
     if (n.startIndex >= beforeIndex) return "skip";
     if (n.type !== "call_expression") return;
     const fn = n.childForFieldName("function");
     const name = fn ? getCallName(fn) : null;
-    if (name && PROGRAM_VERIFY_FNS.has(name)) found = true;
+    if (!name || !PROGRAM_VERIFY_FNS.has(name)) return;
+    const programArg = getCallArgs(n)[0];
+    const root = programArg ? rootIdentifierOf(programArg) : null;
+    if (root) verified.add(root);
   });
-  return found;
+  return verified;
+}
+
+function collectRootIdentifiers(node: Node): Set<string> {
+  const roots = new Set<string>();
+  walk(node, n => {
+    const root = rootIdentifierOf(n);
+    if (root) {
+      roots.add(root);
+      return "skip";
+    }
+  });
+  return roots;
+}
+
+function programShapedRoots(roots: ReadonlySet<string>): Set<string> {
+  const out = new Set<string>();
+  for (const root of roots) {
+    if (root === "program" || root.endsWith("_program") || isProgramAccountName(root)) out.add(root);
+  }
+  return out;
+}
+
+function invokeUsesVerifiedProgram(call: Node, verifiedPrograms: ReadonlySet<string>): boolean {
+  if (verifiedPrograms.size === 0) return false;
+  const accountList = getCallArgs(call)[1];
+  if (!accountList) return false;
+  const roots = collectRootIdentifiers(accountList);
+  const programRoots = programShapedRoots(roots);
+  if (programRoots.size > 0) {
+    for (const root of programRoots) {
+      if (!verifiedPrograms.has(root)) return false;
+    }
+    return true;
+  }
+  for (const verified of verifiedPrograms) {
+    if (roots.has(verified)) return true;
+  }
+  return false;
 }
 
 export const arbitraryCpi: Visitor = {
@@ -66,7 +106,7 @@ export const arbitraryCpi: Visitor = {
       if (invokeUsesHardcodedProgramId(node)) return;
       const scope = findEnclosingFunctionBody(node);
       if (!scope) return;
-      if (functionHasProgramVerification(scope, node.startIndex)) return;
+      if (invokeUsesVerifiedProgram(node, verifiedProgramsBefore(scope, node.startIndex))) return;
       ctx.output.issues.push({
         severity: "high",
         rule: "arbitrary-cpi",
