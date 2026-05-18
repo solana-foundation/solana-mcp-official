@@ -26,6 +26,18 @@ import { bumpCanonicalization } from "./bump-canonicalization.js";
 import { writableMutation } from "./writable-mutation.js";
 import { accountRelationship } from "./account-relationship.js";
 import { accountBorrow } from "./account-borrow.js";
+import { anchorSeedsWithoutBump } from "./anchor-seeds-without-bump.js";
+import { anchorInitWithoutSpace } from "./anchor-init-without-space.js";
+import { anchorInitWithoutPayer } from "./anchor-init-without-payer.js";
+import { anchorReallocIncomplete } from "./anchor-realloc-incomplete.js";
+import { anchorUncheckedAccount } from "./anchor-unchecked-account.js";
+import { anchorAccountNotInterface } from "./anchor-account-not-interface.js";
+import { anchorManualSignerCheck } from "./anchor-manual-signer-check.js";
+import { anchorManualKeyEq } from "./anchor-manual-key-eq.js";
+import { anchorEmitViaMsg } from "./anchor-emit-via-msg.js";
+import { anchorMissingMut } from "./anchor-missing-mut.js";
+import { anchorCpiContextUnverified } from "./anchor-cpi-context-unverified.js";
+import { anchorCloseWithoutReceiver } from "./anchor-close-without-receiver.js";
 
 /**
  * 27-check visitor registry. Each entry maps to a numbered check in
@@ -69,6 +81,22 @@ import { accountBorrow } from "./account-borrow.js";
  *   unsafe-unwrap               → Check 25 (MEDIUM)
  *   account-relationship        → Check 26 (MEDIUM)
  *   account-borrow              → Check 27 (LOW)
+ *
+ * Anchor account constraints
+ *   anchor-seeds-without-bump    (HIGH)
+ *   anchor-init-without-space    (HIGH)
+ *   anchor-init-without-payer    (CRITICAL)
+ *   anchor-realloc-incomplete    (MEDIUM)
+ *   anchor-unchecked-account     (LOW)
+ *
+ * Anchor account types and handler checks
+ *   anchor-account-not-interface (MEDIUM) — Account<Mint> / Account<TokenAccount> vs InterfaceAccount
+ *   anchor-manual-signer-check   (MEDIUM) — .is_signer access inside #[program] mod
+ *   anchor-manual-key-eq         (LOW)    — require_keys_eq! inside #[program] mod
+ *   anchor-emit-via-msg          (LOW)    — msg! inside #[program] mod
+ *   anchor-missing-mut             (HIGH)     — ctx.accounts.X mutated, struct field lacks `mut`
+ *   anchor-cpi-context-unverified  (HIGH)     — CpiContext::new(<untyped account>, ...) without typed Program/Interface
+ *   anchor-close-without-receiver  (CRITICAL) — manual lamport drain without `close = ...` constraint
  */
 export const allVisitors: readonly Visitor[] = [
   missingSigner,
@@ -98,4 +126,16 @@ export const allVisitors: readonly Visitor[] = [
   writableMutation,
   accountRelationship,
   accountBorrow,
+  anchorSeedsWithoutBump,
+  anchorInitWithoutSpace,
+  anchorInitWithoutPayer,
+  anchorReallocIncomplete,
+  anchorUncheckedAccount,
+  anchorAccountNotInterface,
+  anchorManualSignerCheck,
+  anchorManualKeyEq,
+  anchorEmitViaMsg,
+  anchorMissingMut,
+  anchorCpiContextUnverified,
+  anchorCloseWithoutReceiver,
 ];

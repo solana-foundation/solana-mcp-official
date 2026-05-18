@@ -40,6 +40,8 @@ import {
   SECURE_UNWRAP_FIXED_SLICE_OFFSET,
   SECURE_UNWRAP_TO_LE_BYTES,
   VULNERABLE_UNWRAP_FROM_UTF8,
+  VULNERABLE_REINIT_UNRELATED_LAMPORTS,
+  SECURE_EXISTING_LAMPORTS_REJECTS,
 } from "./fixtures-v2.js";
 
 const PAIRS: ReadonlyArray<{
@@ -117,7 +119,7 @@ describe("unsafe-unwrap noise suppression (infallible try_into patterns)", () =>
   }, 20_000);
 });
 
-describe("authority-escalation signer matching", () => {
+describe("cross-check regression cases", () => {
   it("flags authority writes when only an unrelated signer was verified", async () => {
     const out = await runRustAutofixer({
       code: VULNERABLE_AUTHORITY_ESC_UNRELATED_SIGNER,
@@ -125,5 +127,23 @@ describe("authority-escalation signer matching", () => {
     });
     const hit = out.issues.find(i => i.rule === "authority-escalation");
     expect(hit, "authority-escalation missed an unrelated verified signer").toBeDefined();
+  }, 20_000);
+
+  it("flags CreateAccount when only an unrelated lamports balance was checked", async () => {
+    const out = await runRustAutofixer({
+      code: VULNERABLE_REINIT_UNRELATED_LAMPORTS,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "reinitialization");
+    expect(hit, "reinitialization accepted a lamports check for the wrong account").toBeDefined();
+  }, 20_000);
+
+  it("does not require idempotent fallback when the existing-lamports branch rejects", async () => {
+    const out = await runRustAutofixer({
+      code: SECURE_EXISTING_LAMPORTS_REJECTS,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "existing-lamports");
+    expect(hit, `existing-lamports flagged an explicit rejection branch: ${hit?.title}`).toBeUndefined();
   }, 20_000);
 });

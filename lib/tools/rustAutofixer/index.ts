@@ -19,13 +19,13 @@ const issueSchema = z.object({
   code_snippet: z.string().optional(),
 });
 
-export const RUST_AUTOFIXER_DESCRIPTION = `Static-analyse Pinocchio-based Solana program Rust for security antipatterns. Returns structured issues + suggestions.
+export const RUST_AUTOFIXER_DESCRIPTION = `Static-analyse Solana program Rust (Pinocchio + Anchor) for security antipatterns. Returns structured issues + suggestions.
 
-MUST be called whenever the user asks to write or modify Pinocchio program code, BEFORE returning the code to them. After applying fixes, call again — keep looping until \`require_another_tool_call_after_fixing\` is false.
+MUST be called whenever the user asks to write or modify Solana program code, BEFORE returning the code to them. After applying fixes, call again — keep looping until \`require_another_tool_call_after_fixing\` is false.
 
-Detects: missing signer/owner/discriminator checks, unverified program IDs, sysvar spoofing, arbitrary CPI, unvalidated PDA derivation, unchecked arithmetic, signers verified but unused, accounts with no \`verify_*\` call, type cosplay, unchecked deserialization, account closure, re-initialization, rent-exempt, authority escalation, Token-2022 extensions, instruction data bounds, PDA seed collision, bump canonicalization, writable mutation, account relationship, account borrow safety, unsafe unwrap/expect, and events emitted via \`msg!\`.
+Pinocchio: missing signer/owner/discriminator checks, unverified program IDs, sysvar spoofing, arbitrary CPI, unvalidated PDA derivation, unchecked arithmetic, signers verified but unused, accounts with no \`verify_*\` call, type cosplay, unchecked deserialization, account closure, re-initialization, rent-exempt, authority escalation, Token-2022 extensions, instruction data bounds, PDA seed collision, bump canonicalization, writable mutation, account relationship, account borrow safety, unsafe unwrap/expect, events emitted via \`msg!\`.
 
-Anchor coverage is intentionally minimal in this version — only framework-agnostic Rust checks (arithmetic, unwrap, raw pointer casts, double-mut-borrow) apply to Anchor programs.`;
+Anchor: \`seeds\` without \`bump\`, \`init\` without \`space\` / \`payer\`, \`realloc\` missing \`realloc::payer\` / \`realloc::zero\`, \`UncheckedAccount\` / \`AccountInfo\` opt-outs, \`Account<Mint>\` / \`Account<TokenAccount>\` instead of \`InterfaceAccount\`, manual \`.is_signer\` checks, \`require_keys_eq!\` instead of \`has_one\`, \`msg!\` events inside \`#[program]\` (use \`emit!\`), \`ctx.accounts.X\` mutation without \`mut\` constraint, \`CpiContext::new\` with untyped program account, and manual lamport drain without \`close = ...\`.`;
 
 export function createRustAutofixerTool(): SolanaTool {
   return {
@@ -38,11 +38,9 @@ export function createRustAutofixerTool(): SolanaTool {
         .optional()
         .describe('File name for issue locations, e.g. "instructions/init.rs". Defaults to "input.rs".'),
       framework: z
-        .enum(["pinocchio", "auto"])
+        .enum(["pinocchio", "anchor", "auto"])
         .optional()
-        .describe(
-          "Framework hint. Default 'auto' — detect from imports / attributes. Pass 'pinocchio' to force the full Pinocchio rule set; Anchor-specific checks are not yet supported.",
-        ),
+        .describe("Framework hint. Default 'auto' — detect from imports / attributes."),
     },
     outputSchema: {
       issues: z.array(issueSchema),
@@ -62,7 +60,7 @@ export function createRustAutofixerTool(): SolanaTool {
     }: {
       code: string;
       filename?: string;
-      framework?: "pinocchio" | "auto";
+      framework?: "pinocchio" | "anchor" | "auto";
     }) => {
       const result = await runRustAutofixer({ code, filename, framework });
       const text = JSON.stringify(result, null, 2);

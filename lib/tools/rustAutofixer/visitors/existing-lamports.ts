@@ -3,7 +3,7 @@ import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
 import { getCallName } from "../walk.js";
-import { getMethodCallName } from "./_helpers.js";
+import { getMacroName, getMethodCallName } from "./_helpers.js";
 
 type Node = Parser.SyntaxNode;
 
@@ -41,6 +41,41 @@ function findIfWithLamportsCheck(scope: Node): Node | null {
   return result;
 }
 
+function nodeContainsErrorConstructor(node: Node): boolean {
+  let found = false;
+  walk(node, n => {
+    if (found) return "skip";
+    if (n.type === "call_expression") {
+      const fn = n.childForFieldName("function");
+      const name = fn ? getCallName(fn) : null;
+      if (name === "Err") {
+        found = true;
+        return "skip";
+      }
+    }
+    if (n.type === "macro_invocation") {
+      const name = getMacroName(n);
+      if (name === "err") {
+        found = true;
+        return "skip";
+      }
+    }
+  });
+  return found;
+}
+
+function branchReturnsError(consequence: Node): boolean {
+  let found = false;
+  walk(consequence, n => {
+    if (found) return "skip";
+    if (n.type === "return_expression" && nodeContainsErrorConstructor(n)) {
+      found = true;
+      return "skip";
+    }
+  });
+  return found;
+}
+
 export const existingLamports: Visitor = {
   name: "existing-lamports",
   severity: "medium",
@@ -53,6 +88,7 @@ export const existingLamports: Visitor = {
       if (!ifNode) return;
       const consequence = ifNode.childForFieldName("consequence");
       if (!consequence) return;
+      if (branchReturnsError(consequence)) return;
       let hasFallback = false;
       walk(consequence, n => {
         if (hasFallback) return "skip";
