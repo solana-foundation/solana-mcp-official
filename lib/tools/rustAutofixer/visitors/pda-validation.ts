@@ -221,7 +221,7 @@ function scopeValidatesPda(scope: Node, pdaVars: string[]): boolean {
 
 export const pdaValidation: Visitor = {
   name: "pda-validation",
-  severity: "high",
+  severity: "critical",
   appliesTo: ["pinocchio"],
   enter: {
     call_expression(node, ctx) {
@@ -237,7 +237,7 @@ export const pdaValidation: Visitor = {
       if (pdaVars.length > 0 && scopeValidatesPda(scope, pdaVars)) return;
 
       ctx.output.issues.push({
-        severity: "high",
+        severity: "critical",
         rule: "pda-validation",
         title: `PDA derived but not validated`,
         location: formatLocation(ctx.filename, node),

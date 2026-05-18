@@ -27,6 +27,18 @@ pub fn emit(amount: u64) {
   msg!("transfer amount: {}", amount);
 }
 `;
+export const VULNERABLE_EVENT_VIA_CPI_MULTIPLE_LOGS = `${PINOCCHIO_USE}
+pub fn emit(amount: u64) {
+  msg!("transfer amount: {}", amount);
+  msg!("withdraw amount: {}", amount);
+}
+`;
+export const SECURE_EVENT_VIA_CPI_DEBUG_LOGS = `${PINOCCHIO_USE}
+pub fn process(amount: u64) {
+  msg!("entered processor");
+  msg!("amount parsed: {}", amount);
+}
+`;
 export const SECURE_EVENT_VIA_CPI = `${PINOCCHIO_USE}
 pub fn emit(program_id: &[u8;32], event_authority: &AccountView, program: &AccountView, amount: u64) -> Result<(), ProgramError> {
   emit_event(program_id, event_authority, program, &amount.to_le_bytes())?;
@@ -322,6 +334,16 @@ pub fn handle(a: &AccountView) -> Result<(), ProgramError> {
   let d1 = a.try_borrow_mut()?;
   drop(d1);
   let _d2 = a.try_borrow_mut()?;
+  Ok(())
+}
+`;
+export const SECURE_ACCOUNT_BORROW_NESTED_FN = `${PINOCCHIO_USE}
+pub fn outer(a: &AccountView) -> Result<(), ProgramError> {
+  fn inner(a: &AccountView) -> Result<(), ProgramError> {
+    let _d1 = a.try_borrow_mut()?;
+    let _d2 = a.try_borrow_mut()?;
+    Ok(())
+  }
   Ok(())
 }
 `;

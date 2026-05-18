@@ -4,6 +4,8 @@ import {
   VULNERABLE_UNSAFE_UNWRAP,
   SECURE_UNSAFE_UNWRAP,
   VULNERABLE_EVENT_VIA_CPI,
+  VULNERABLE_EVENT_VIA_CPI_MULTIPLE_LOGS,
+  SECURE_EVENT_VIA_CPI_DEBUG_LOGS,
   SECURE_EVENT_VIA_CPI,
   VULNERABLE_UNCHECKED_DESER,
   SECURE_UNCHECKED_DESER,
@@ -35,6 +37,7 @@ import {
   SECURE_ACCOUNT_REL,
   VULNERABLE_ACCOUNT_BORROW,
   SECURE_ACCOUNT_BORROW,
+  SECURE_ACCOUNT_BORROW_NESTED_FN,
   VULNERABLE_EXISTING_LAMPORTS,
   SECURE_EXISTING_LAMPORTS,
   SECURE_UNWRAP_FIXED_SLICE_LITERAL,
@@ -122,6 +125,33 @@ describe("unsafe-unwrap noise suppression (infallible try_into patterns)", () =>
 });
 
 describe("cross-check regression cases", () => {
+  it("reports at most one event-via-cpi finding per file", async () => {
+    const out = await runRustAutofixer({
+      code: VULNERABLE_EVENT_VIA_CPI_MULTIPLE_LOGS,
+      framework: "pinocchio",
+    });
+    const hits = out.issues.filter(i => i.rule === "event-via-cpi");
+    expect(hits).toHaveLength(1);
+  }, 20_000);
+
+  it("does not flag diagnostic msg logs as event-via-cpi", async () => {
+    const out = await runRustAutofixer({
+      code: SECURE_EVENT_VIA_CPI_DEBUG_LOGS,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "event-via-cpi");
+    expect(hit, `event-via-cpi flagged diagnostic logs: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+
+  it("does not count nested function borrows against the outer function", async () => {
+    const out = await runRustAutofixer({
+      code: SECURE_ACCOUNT_BORROW_NESTED_FN,
+      framework: "pinocchio",
+    });
+    const hits = out.issues.filter(i => i.rule === "account-borrow");
+    expect(hits).toHaveLength(1);
+  }, 20_000);
+
   it("flags authority writes when only an unrelated signer was verified", async () => {
     const out = await runRustAutofixer({
       code: VULNERABLE_AUTHORITY_ESC_UNRELATED_SIGNER,

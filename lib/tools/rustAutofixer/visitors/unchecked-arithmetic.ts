@@ -112,7 +112,6 @@ function handleArithmetic(node: Node, ctx: import("../types.js").VisitorContext)
   const baseOp = op.endsWith("=") ? op.slice(0, -1) : op;
   const isCompound = COMPOUND_OPS.has(op);
   if (!isCompound && !RISKY_OPS.has(baseOp)) return;
-  if (isCompound && !COMPOUND_OPS.has(op)) return;
   const left = node.childForFieldName("left");
   const right = node.childForFieldName("right");
   if (!left || !right) return;

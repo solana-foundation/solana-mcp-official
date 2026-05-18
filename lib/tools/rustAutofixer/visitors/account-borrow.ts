@@ -16,6 +16,7 @@ const BORROW_METHODS = new Set(["try_borrow_mut", "try_borrow_mut_data", "borrow
 function findMutBorrowsByReceiver(body: Node): Map<string, Node[]> {
   const out = new Map<string, Node[]>();
   walk(body, n => {
+    if (n.type === "function_item") return "skip";
     if (n.type !== "call_expression") return;
     const name = getMethodCallName(n);
     if (!name || !BORROW_METHODS.has(name)) return;
@@ -32,6 +33,7 @@ function hasDropBetween(scope: Node, first: Node, second: Node): boolean {
   let found = false;
   walk(scope, n => {
     if (found) return "skip";
+    if (n.type === "function_item") return "skip";
     if (n.startIndex <= first.endIndex) return;
     if (n.startIndex >= second.startIndex) return "skip";
     if (n.type !== "call_expression") return;

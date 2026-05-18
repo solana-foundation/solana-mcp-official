@@ -91,7 +91,7 @@ function invokeUsesVerifiedProgram(call: Node, verifiedPrograms: ReadonlySet<str
 
 export const arbitraryCpi: Visitor = {
   name: "arbitrary-cpi",
-  severity: "high",
+  severity: "critical",
   appliesTo: ["pinocchio"],
   enter: {
     call_expression(node, ctx) {
@@ -108,7 +108,7 @@ export const arbitraryCpi: Visitor = {
       if (!scope) return;
       if (invokeUsesVerifiedProgram(node, verifiedProgramsBefore(scope, node.startIndex))) return;
       ctx.output.issues.push({
-        severity: "high",
+        severity: "critical",
         rule: "arbitrary-cpi",
         title: `Unverified program in ${name}()`,
         location: formatLocation(ctx.filename, node),
