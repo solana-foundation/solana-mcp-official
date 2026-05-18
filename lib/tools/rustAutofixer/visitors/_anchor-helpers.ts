@@ -282,3 +282,71 @@ export function isInsideProgramModule(node: Node, programModule: Node | null): b
   if (!programModule) return false;
   return node.startIndex >= programModule.startIndex && node.endIndex <= programModule.endIndex;
 }
+
+/**
+ * For `ctx.accounts.<X>` style chains, walk inward and return the segment
+ * immediately after `ctx.accounts.`. Returns null if the chain doesn't match.
+ */
+export function ctxAccountsField(node: Node): string | null {
+  // Climb up through field_expression chains until we find the segment whose receiver is `ctx.accounts`.
+  let cursor: Node | null = node;
+  let lastField: string | null = null;
+  while (cursor) {
+    if (cursor.type !== "field_expression") return null;
+    const value = cursor.childForFieldName("value");
+    const field = cursor.childForFieldName("field");
+    if (!value || !field) return null;
+    if (value.type === "field_expression") {
+      const innerValue = value.childForFieldName("value");
+      const innerField = value.childForFieldName("field");
+      if (innerValue?.type === "identifier" && innerValue.text === "ctx" && innerField?.text === "accounts") {
+        return field.text;
+      }
+    }
+    // Step inward through the chain — the outer-most `ctx.accounts.X.Y` has Y as field, X.Y nested.
+    lastField = field.text;
+    cursor = value;
+    if (cursor.type !== "field_expression") break;
+  }
+  return lastField;
+}
+
+/** Find every `ctx.accounts.<X>` access inside a given scope and return the set of `X` values. */
+export function collectCtxAccountsAccesses(scope: Node): Set<string> {
+  const out = new Set<string>();
+  const cursor = scope.walk();
+  const visit = (): void => {
+    const n = cursor.currentNode();
+    if (n.type === "field_expression") {
+      const value = n.childForFieldName("value");
+      const field = n.childForFieldName("field");
+      if (value?.type === "field_expression" && field) {
+        const innerValue = value.childForFieldName("value");
+        const innerField = value.childForFieldName("field");
+        if (innerValue?.type === "identifier" && innerValue.text === "ctx" && innerField?.text === "accounts") {
+          out.add(field.text);
+        }
+      }
+    }
+    if (cursor.gotoFirstChild()) {
+      do {
+        visit();
+      } while (cursor.gotoNextSibling());
+      cursor.gotoParent();
+    }
+  };
+  visit();
+  cursor.delete();
+  return out;
+}
+
+/** Look up all fields named `fieldName` across every Accounts struct in the file. */
+export function findFieldsByName(structs: AnchorStruct[], fieldName: string): AnchorField[] {
+  const out: AnchorField[] = [];
+  for (const s of structs) {
+    for (const f of s.fields) {
+      if (f.name === fieldName) out.push(f);
+    }
+  }
+  return out;
+}

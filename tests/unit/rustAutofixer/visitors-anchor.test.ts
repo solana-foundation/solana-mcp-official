@@ -19,6 +19,12 @@ import {
   SECURE_HAS_ONE,
   VULNERABLE_EMIT_VIA_MSG,
   SECURE_EMIT,
+  VULNERABLE_MISSING_MUT,
+  SECURE_MUT_CONSTRAINT,
+  VULNERABLE_CPI_UNVERIFIED,
+  SECURE_CPI_TYPED_PROGRAM,
+  VULNERABLE_CLOSE_MANUAL,
+  SECURE_CLOSE_CONSTRAINT,
 } from "./fixtures-anchor.js";
 
 const PAIRS: ReadonlyArray<{
@@ -43,6 +49,17 @@ const PAIRS: ReadonlyArray<{
   },
   { rule: "anchor-manual-key-eq", vulnerable: VULNERABLE_MANUAL_KEY_EQ, secure: SECURE_HAS_ONE },
   { rule: "anchor-emit-via-msg", vulnerable: VULNERABLE_EMIT_VIA_MSG, secure: SECURE_EMIT },
+  { rule: "anchor-missing-mut", vulnerable: VULNERABLE_MISSING_MUT, secure: SECURE_MUT_CONSTRAINT },
+  {
+    rule: "anchor-cpi-context-unverified",
+    vulnerable: VULNERABLE_CPI_UNVERIFIED,
+    secure: SECURE_CPI_TYPED_PROGRAM,
+  },
+  {
+    rule: "anchor-close-without-receiver",
+    vulnerable: VULNERABLE_CLOSE_MANUAL,
+    secure: SECURE_CLOSE_CONSTRAINT,
+  },
 ];
 
 describe("rust_autofixer Anchor tier-1 visitors", () => {

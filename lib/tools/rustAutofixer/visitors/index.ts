@@ -35,6 +35,9 @@ import { anchorAccountNotInterface } from "./anchor-account-not-interface.js";
 import { anchorManualSignerCheck } from "./anchor-manual-signer-check.js";
 import { anchorManualKeyEq } from "./anchor-manual-key-eq.js";
 import { anchorEmitViaMsg } from "./anchor-emit-via-msg.js";
+import { anchorMissingMut } from "./anchor-missing-mut.js";
+import { anchorCpiContextUnverified } from "./anchor-cpi-context-unverified.js";
+import { anchorCloseWithoutReceiver } from "./anchor-close-without-receiver.js";
 
 /**
  * 27-check visitor registry. Each entry maps to a numbered check in
@@ -91,6 +94,11 @@ import { anchorEmitViaMsg } from "./anchor-emit-via-msg.js";
  *   anchor-manual-signer-check   (MEDIUM) — .is_signer access inside #[program] mod
  *   anchor-manual-key-eq         (LOW)    — require_keys_eq! inside #[program] mod
  *   anchor-emit-via-msg          (LOW)    — msg! inside #[program] mod
+ *
+ * Anchor (tier 3, cross-handler flow)
+ *   anchor-missing-mut             (HIGH)     — ctx.accounts.X mutated, struct field lacks `mut`
+ *   anchor-cpi-context-unverified  (HIGH)     — CpiContext::new(<untyped account>, ...) without typed Program/Interface
+ *   anchor-close-without-receiver  (CRITICAL) — manual lamport drain without `close = ...` constraint
  */
 export const allVisitors: readonly Visitor[] = [
   missingSigner,
@@ -129,4 +137,7 @@ export const allVisitors: readonly Visitor[] = [
   anchorManualSignerCheck,
   anchorManualKeyEq,
   anchorEmitViaMsg,
+  anchorMissingMut,
+  anchorCpiContextUnverified,
+  anchorCloseWithoutReceiver,
 ];

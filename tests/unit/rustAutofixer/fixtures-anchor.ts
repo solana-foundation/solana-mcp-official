@@ -236,6 +236,127 @@ pub mod my_program {
 }
 `;
 
+// ---------- anchor-missing-mut (tier 3) ----------
+export const VULNERABLE_MISSING_MUT = `${ANCHOR_HEADER}
+#[derive(Accounts)]
+pub struct Ctx<'info> {
+  pub state: Account<'info, State>,
+  pub admin: Signer<'info>,
+}
+#[program]
+pub mod my_program {
+  use super::*;
+  pub fn run(ctx: Context<Ctx>, new_value: u64) -> Result<()> {
+    ctx.accounts.state.value = new_value;
+    Ok(())
+  }
+}
+#[account]
+pub struct State { pub value: u64 }
+`;
+
+export const SECURE_MUT_CONSTRAINT = `${ANCHOR_HEADER}
+#[derive(Accounts)]
+pub struct Ctx<'info> {
+  #[account(mut)]
+  pub state: Account<'info, State>,
+  pub admin: Signer<'info>,
+}
+#[program]
+pub mod my_program {
+  use super::*;
+  pub fn run(ctx: Context<Ctx>, new_value: u64) -> Result<()> {
+    ctx.accounts.state.value = new_value;
+    Ok(())
+  }
+}
+#[account]
+pub struct State { pub value: u64 }
+`;
+
+// ---------- anchor-cpi-context-unverified (tier 3) ----------
+export const VULNERABLE_CPI_UNVERIFIED = `${ANCHOR_HEADER}
+#[derive(Accounts)]
+pub struct Ctx<'info> {
+  pub token_program: AccountInfo<'info>,
+  pub admin: Signer<'info>,
+}
+#[program]
+pub mod my_program {
+  use super::*;
+  pub fn run(ctx: Context<Ctx>) -> Result<()> {
+    let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), Empty {});
+    invoke_helper(cpi_ctx)?;
+    Ok(())
+  }
+}
+struct Empty;
+fn invoke_helper<T>(_c: CpiContext<T>) -> Result<()> { Ok(()) }
+`;
+
+export const SECURE_CPI_TYPED_PROGRAM = `${ANCHOR_HEADER}
+use anchor_spl::token::Token;
+#[derive(Accounts)]
+pub struct Ctx<'info> {
+  pub token_program: Program<'info, Token>,
+  pub admin: Signer<'info>,
+}
+#[program]
+pub mod my_program {
+  use super::*;
+  pub fn run(ctx: Context<Ctx>) -> Result<()> {
+    let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), Empty {});
+    invoke_helper(cpi_ctx)?;
+    Ok(())
+  }
+}
+struct Empty;
+fn invoke_helper<T>(_c: CpiContext<T>) -> Result<()> { Ok(()) }
+`;
+
+// ---------- anchor-close-without-receiver (tier 3) ----------
+export const VULNERABLE_CLOSE_MANUAL = `${ANCHOR_HEADER}
+#[derive(Accounts)]
+pub struct Ctx<'info> {
+  #[account(mut)]
+  pub escrow: Account<'info, Escrow>,
+  #[account(mut)]
+  pub receiver: AccountInfo<'info>,
+  pub admin: Signer<'info>,
+}
+#[program]
+pub mod my_program {
+  use super::*;
+  pub fn close_it(ctx: Context<Ctx>) -> Result<()> {
+    let from = ctx.accounts.escrow.to_account_info();
+    let dest = ctx.accounts.receiver.to_account_info();
+    **dest.lamports.borrow_mut() = dest.lamports().checked_add(from.lamports()).unwrap();
+    **ctx.accounts.escrow.to_account_info().lamports.borrow_mut() = 0;
+    Ok(())
+  }
+}
+#[account]
+pub struct Escrow { pub admin: Pubkey }
+`;
+
+export const SECURE_CLOSE_CONSTRAINT = `${ANCHOR_HEADER}
+#[derive(Accounts)]
+pub struct Ctx<'info> {
+  #[account(mut, close = receiver)]
+  pub escrow: Account<'info, Escrow>,
+  #[account(mut)]
+  pub receiver: AccountInfo<'info>,
+  pub admin: Signer<'info>,
+}
+#[program]
+pub mod my_program {
+  use super::*;
+  pub fn close_it(_ctx: Context<Ctx>) -> Result<()> { Ok(()) }
+}
+#[account]
+pub struct Escrow { pub admin: Pubkey }
+`;
+
 // ---------- anchor-unchecked-account ----------
 export const VULNERABLE_UNCHECKED_ACCOUNT = `${ANCHOR_HEADER}
 #[derive(Accounts)]
