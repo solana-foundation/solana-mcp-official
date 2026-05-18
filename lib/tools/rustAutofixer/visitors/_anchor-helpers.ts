@@ -273,3 +273,12 @@ function isProgramAttr(attrItem: Node): boolean {
   const head = attribute.namedChild(0);
   return head?.text === "program";
 }
+
+/**
+ * True if `node` falls within the byte range of the `#[program]` mod body.
+ * Cheap range comparison — no parent walk.
+ */
+export function isInsideProgramModule(node: Node, programModule: Node | null): boolean {
+  if (!programModule) return false;
+  return node.startIndex >= programModule.startIndex && node.endIndex <= programModule.endIndex;
+}

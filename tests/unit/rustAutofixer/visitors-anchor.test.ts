@@ -11,6 +11,14 @@ import {
   SECURE_REALLOC_COMPLETE,
   VULNERABLE_UNCHECKED_ACCOUNT,
   SECURE_TYPED_ACCOUNT,
+  VULNERABLE_ACCOUNT_NOT_INTERFACE,
+  SECURE_ACCOUNT_INTERFACE,
+  VULNERABLE_MANUAL_SIGNER_CHECK,
+  SECURE_TYPED_SIGNER,
+  VULNERABLE_MANUAL_KEY_EQ,
+  SECURE_HAS_ONE,
+  VULNERABLE_EMIT_VIA_MSG,
+  SECURE_EMIT,
 } from "./fixtures-anchor.js";
 
 const PAIRS: ReadonlyArray<{
@@ -23,6 +31,18 @@ const PAIRS: ReadonlyArray<{
   { rule: "anchor-init-without-payer", vulnerable: VULNERABLE_INIT_WITHOUT_PAYER, secure: SECURE_INIT_WITH_PAYER },
   { rule: "anchor-realloc-incomplete", vulnerable: VULNERABLE_REALLOC_INCOMPLETE, secure: SECURE_REALLOC_COMPLETE },
   { rule: "anchor-unchecked-account", vulnerable: VULNERABLE_UNCHECKED_ACCOUNT, secure: SECURE_TYPED_ACCOUNT },
+  {
+    rule: "anchor-account-not-interface",
+    vulnerable: VULNERABLE_ACCOUNT_NOT_INTERFACE,
+    secure: SECURE_ACCOUNT_INTERFACE,
+  },
+  {
+    rule: "anchor-manual-signer-check",
+    vulnerable: VULNERABLE_MANUAL_SIGNER_CHECK,
+    secure: SECURE_TYPED_SIGNER,
+  },
+  { rule: "anchor-manual-key-eq", vulnerable: VULNERABLE_MANUAL_KEY_EQ, secure: SECURE_HAS_ONE },
+  { rule: "anchor-emit-via-msg", vulnerable: VULNERABLE_EMIT_VIA_MSG, secure: SECURE_EMIT },
 ];
 
 describe("rust_autofixer Anchor tier-1 visitors", () => {
