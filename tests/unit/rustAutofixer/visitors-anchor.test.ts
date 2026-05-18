@@ -5,6 +5,7 @@ import {
   SECURE_SEEDS_WITH_BUMP,
   VULNERABLE_INIT_WITHOUT_SPACE,
   SECURE_INIT_WITH_SPACE,
+  SECURE_SPL_MINT_INIT_WITHOUT_SPACE,
   VULNERABLE_INIT_WITHOUT_PAYER,
   SECURE_INIT_WITH_PAYER,
   VULNERABLE_NESTED_INIT_WITHOUT_PAYER,
@@ -127,5 +128,11 @@ describe("rust_autofixer Anchor visitors", () => {
     const out = await runRustAutofixer({ code: SECURE_LOCAL_FIELD_MUTATION, framework: "anchor" });
     const hit = out.issues.find(i => i.rule === "anchor-missing-mut");
     expect(hit, `local field mutation was reported as an account mutation: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+
+  it("does not require `space` for Anchor SPL mint initialization", async () => {
+    const out = await runRustAutofixer({ code: SECURE_SPL_MINT_INIT_WITHOUT_SPACE, framework: "anchor" });
+    const hit = out.issues.find(i => i.rule === "anchor-init-without-space");
+    expect(hit, `anchor-init-without-space flagged SPL init: ${hit?.title}`).toBeUndefined();
   }, 20_000);
 });

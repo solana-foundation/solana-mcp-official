@@ -359,3 +359,22 @@ pub fn create(pda: &AccountView, payer: &AccountView) -> Result<(), ProgramError
   Ok(())
 }
 `;
+
+export const VULNERABLE_REINIT_UNRELATED_LAMPORTS = `${PINOCCHIO_USE}
+struct CreateAccount<'a> { from: &'a AccountView, to: &'a AccountView, lamports: u64, space: u64, owner: [u8;32] }
+impl<'a> CreateAccount<'a> { fn invoke_signed(&self, _s: &[u8]) -> Result<(), ProgramError> { Ok(()) } }
+pub fn create(payer: &AccountView, pda: &AccountView) -> Result<(), ProgramError> {
+  if payer.lamports() < 1 { return Err(ProgramError::InsufficientFunds); }
+  CreateAccount { from: payer, to: pda, lamports: 1_000_000, space: 100, owner: [0u8;32] }.invoke_signed(&[])?;
+  Ok(())
+}
+`;
+
+export const SECURE_EXISTING_LAMPORTS_REJECTS = `${PINOCCHIO_USE}
+pub fn create(pda: &AccountView) -> Result<(), ProgramError> {
+  if pda.lamports() > 0 {
+    return Err(ProgramError::AccountAlreadyInitialized);
+  }
+  Ok(())
+}
+`;

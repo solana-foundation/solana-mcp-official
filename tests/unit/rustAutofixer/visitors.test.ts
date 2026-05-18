@@ -21,6 +21,7 @@ import {
   VULNERABLE_PDA_ASSERT_NE,
   SECURE_ARITHMETIC_LEN_MATH,
   VULNERABLE_ARITHMETIC_LAMPORTS,
+  SECURE_TRY_FROM_WITH_LOCAL_BINDING,
 } from "./fixtures.js";
 
 const RULE_FIXTURES: ReadonlyArray<{
@@ -118,5 +119,14 @@ describe("rust_autofixer regression cases (no regex fallbacks)", () => {
     });
     const hit = out.issues.find(i => i.rule === "unchecked-arithmetic");
     expect(hit, `unchecked-arithmetic missed lamport math`).toBeDefined();
+  }, 20_000);
+
+  it("does not treat local try_from bindings as account destructures", async () => {
+    const out = await runRustAutofixer({
+      code: SECURE_TRY_FROM_WITH_LOCAL_BINDING,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "readonly-enforcement" && i.title.includes("bump"));
+    expect(hit, `readonly-enforcement treated local bump as an account: ${hit?.title}`).toBeUndefined();
   }, 20_000);
 });

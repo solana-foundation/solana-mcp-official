@@ -1,9 +1,15 @@
 import type Parser from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation, snippet } from "../types.js";
-import { walk } from "../walk.js";
-import { getCallName } from "../walk.js";
-import { containsIdentifier, findEnclosingFunctionBody, getCallArgs, rootIdentifierOf } from "./_helpers.js";
+import { getCallName, walk } from "../walk.js";
+import {
+  containsIdentifier,
+  findEnclosingFunctionBody,
+  getCallArgs,
+  getMacroName,
+  getMethodCallName,
+  rootIdentifierOf,
+} from "./_helpers.js";
 
 type Node = Parser.SyntaxNode;
 
@@ -19,7 +25,17 @@ const AUTHORITY_FIELD_NAMES = new Set([
 ]);
 
 const VERIFY_SIGNER_FNS = new Set(["verify_signer", "assert_signer", "check_signer"]);
-const AUTHORITY_COMPARISON_METHODS = new Set(["eq", "ne", "equals", "not_equals"]);
+const AUTHORIZATION_METHODS = new Set(["eq", "ne", "equals", "not_equals"]);
+const AUTHORIZATION_MACROS = new Set([
+  "assert_eq",
+  "assert_ne",
+  "debug_assert_eq",
+  "debug_assert_ne",
+  "require_eq",
+  "require_neq",
+  "require_keys_eq",
+  "require_keys_neq",
+]);
 
 function verifiedSignersBefore(scope: Node, beforeIndex: number): Set<string> {
   const signers = new Set<string>();
@@ -29,23 +45,21 @@ function verifiedSignersBefore(scope: Node, beforeIndex: number): Set<string> {
     const fn = n.childForFieldName("function");
     const name = fn ? getCallName(fn) : null;
     if (!name || !VERIFY_SIGNER_FNS.has(name)) return;
-    const signerArg = getCallArgs(n)[0];
-    const root = signerArg ? rootIdentifierOf(signerArg) : null;
+    const signer = getCallArgs(n)[0];
+    const root = signer ? rootIdentifierOf(signer) : null;
     if (root) signers.add(root);
   });
   return signers;
 }
 
-function fieldNameOf(node: Node): string | null {
-  if (node.type !== "field_expression") return null;
-  return node.childForFieldName("field")?.text ?? null;
-}
-
-function expressionMentionsField(node: Node, fieldName: string): boolean {
+function containsAuthorityField(node: Node, stateRoot: string, fieldName: string): boolean {
   let found = false;
   walk(node, n => {
     if (found) return "skip";
-    if (fieldNameOf(n) === fieldName) {
+    if (n.type !== "field_expression") return;
+    const field = n.childForFieldName("field");
+    const value = n.childForFieldName("value");
+    if (field?.text === fieldName && value && rootIdentifierOf(value) === stateRoot) {
       found = true;
       return "skip";
     }
@@ -53,48 +67,63 @@ function expressionMentionsField(node: Node, fieldName: string): boolean {
   return found;
 }
 
-function expressionMentionsSigner(node: Node, signer: string): boolean {
-  return containsIdentifier(node, signer);
+function mentionsAnySigner(node: Node, signers: ReadonlySet<string>): boolean {
+  for (const signer of signers) {
+    if (containsIdentifier(node, signer)) return true;
+  }
+  return false;
 }
 
-function scopeAuthorizesFieldWrite(
+function comparisonAuthorizesMutation(
+  node: Node,
+  signers: ReadonlySet<string>,
+  stateRoot: string,
+  fieldName: string,
+): boolean {
+  if (node.type === "binary_expression") {
+    const op = node.childForFieldName("operator")?.text;
+    if (op !== "==" && op !== "!=") return false;
+    const left = node.childForFieldName("left");
+    const right = node.childForFieldName("right");
+    if (!left || !right) return false;
+    return (
+      (mentionsAnySigner(left, signers) && containsAuthorityField(right, stateRoot, fieldName)) ||
+      (mentionsAnySigner(right, signers) && containsAuthorityField(left, stateRoot, fieldName))
+    );
+  }
+
+  if (node.type === "macro_invocation") {
+    const name = getMacroName(node);
+    if (!name || !AUTHORIZATION_MACROS.has(name)) return false;
+    return (
+      mentionsAnySigner(node, signers) && containsIdentifier(node, stateRoot) && containsIdentifier(node, fieldName)
+    );
+  }
+
+  if (node.type === "call_expression") {
+    const methodName = getMethodCallName(node);
+    if (!methodName || !AUTHORIZATION_METHODS.has(methodName)) return false;
+    return mentionsAnySigner(node, signers) && containsAuthorityField(node, stateRoot, fieldName);
+  }
+
+  return false;
+}
+
+function functionAuthorizesAuthorityMutation(
   scope: Node,
   beforeIndex: number,
+  stateRoot: string,
   fieldName: string,
-  verifiedSigners: ReadonlySet<string>,
 ): boolean {
-  if (verifiedSigners.size === 0) return false;
+  const signers = verifiedSignersBefore(scope, beforeIndex);
+  if (signers.size === 0) return false;
   let authorized = false;
   walk(scope, n => {
     if (authorized) return "skip";
     if (n.startIndex >= beforeIndex) return "skip";
-    if (n.type === "binary_expression") {
-      const op = n.childForFieldName("operator")?.text;
-      if (op !== "==" && op !== "!=") return;
-      const left = n.childForFieldName("left");
-      const right = n.childForFieldName("right");
-      if (!left || !right) return;
-      const mentionsField = expressionMentionsField(left, fieldName) || expressionMentionsField(right, fieldName);
-      if (!mentionsField) return;
-      for (const signer of verifiedSigners) {
-        if (expressionMentionsSigner(left, signer) || expressionMentionsSigner(right, signer)) {
-          authorized = true;
-          return "skip";
-        }
-      }
-    }
-    if (n.type === "call_expression") {
-      const fn = n.childForFieldName("function");
-      if (!fn || fn.type !== "field_expression") return;
-      const method = fn.childForFieldName("field") ?? fn.lastChild;
-      if (!method || !AUTHORITY_COMPARISON_METHODS.has(method.text)) return;
-      if (!expressionMentionsField(n, fieldName)) return;
-      for (const signer of verifiedSigners) {
-        if (expressionMentionsSigner(n, signer)) {
-          authorized = true;
-          return "skip";
-        }
-      }
+    if (comparisonAuthorizesMutation(n, signers, stateRoot, fieldName)) {
+      authorized = true;
+      return "skip";
     }
   });
   return authorized;
@@ -110,10 +139,12 @@ export const authorityEscalation: Visitor = {
       if (!left || left.type !== "field_expression") return;
       const field = left.childForFieldName("field");
       if (!field || !AUTHORITY_FIELD_NAMES.has(field.text)) return;
+      const state = left.childForFieldName("value");
+      const stateRoot = state ? rootIdentifierOf(state) : null;
+      if (!stateRoot) return;
       const scope = findEnclosingFunctionBody(node);
       if (!scope) return;
-      const verifiedSigners = verifiedSignersBefore(scope, node.startIndex);
-      if (scopeAuthorizesFieldWrite(scope, node.startIndex, field.text, verifiedSigners)) return;
+      if (functionAuthorizesAuthorityMutation(scope, node.startIndex, stateRoot, field.text)) return;
       ctx.output.issues.push({
         severity: "high",
         rule: "authority-escalation",

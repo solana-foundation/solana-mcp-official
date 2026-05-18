@@ -86,13 +86,19 @@ function findEnclosingImplName(node: Node): string | null {
 function collectAccountBindings(body: Node): string[] {
   const names: string[] = [];
   walk(body, n => {
-    if (n.type === "let_declaration") {
-      const pattern = n.childForFieldName("pattern");
-      if (!pattern) return;
-      collectIdentifiers(pattern, names);
-    }
+    if (n.type !== "let_declaration") return;
+    const pattern = n.childForFieldName("pattern");
+    const value = n.childForFieldName("value");
+    if (!pattern || !value) return;
+    if (!isAccountSlicePattern(pattern)) return;
+    if (rootIdentifierOf(value) !== "accounts") return;
+    collectIdentifiers(pattern, names);
   });
   return names;
+}
+
+function isAccountSlicePattern(pattern: Node): boolean {
+  return pattern.type === "slice_pattern" || pattern.type === "tuple_pattern";
 }
 
 function collectIdentifiers(node: Node, out: string[]): void {

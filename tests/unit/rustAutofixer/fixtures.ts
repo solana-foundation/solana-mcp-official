@@ -188,3 +188,20 @@ export const VULNERABLE_ARITHMETIC_LAMPORTS = `pub fn update(state: &mut State, 
   state.lamports = state.lamports + delta;
 }
 `;
+
+export const SECURE_TRY_FROM_WITH_LOCAL_BINDING = `${PINOCCHIO_HEADER}
+pub struct InitAccounts<'a> {
+  pub admin: &'a AccountView,
+  pub escrow: &'a AccountView,
+}
+
+impl<'a> InitAccounts<'a> {
+  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+    let [admin, escrow] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
+    let bump = 255u8;
+    verify_signer(admin, false)?;
+    verify_owned_by(escrow, &crate::ID)?;
+    Ok(Self { admin, escrow })
+  }
+}
+`;

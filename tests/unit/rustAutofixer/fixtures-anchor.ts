@@ -57,6 +57,18 @@ pub struct Init<'info> {
 pub struct Escrow { pub admin: Pubkey }
 `;
 
+export const SECURE_SPL_MINT_INIT_WITHOUT_SPACE = `${ANCHOR_HEADER}
+use anchor_spl::token_interface::Mint;
+#[derive(Accounts)]
+pub struct Create<'info> {
+  #[account(init, payer = payer, mint::decimals = 9, mint::authority = payer)]
+  pub mint: InterfaceAccount<'info, Mint>,
+  #[account(mut)]
+  pub payer: Signer<'info>,
+  pub system_program: Program<'info, System>,
+}
+`;
+
 // ---------- anchor-init-without-payer ----------
 export const VULNERABLE_INIT_WITHOUT_PAYER = `${ANCHOR_HEADER}
 #[derive(Accounts)]

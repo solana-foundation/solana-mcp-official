@@ -1,5 +1,23 @@
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
+import type { ParsedAccountAttr } from "./_anchor-helpers.js";
+
+const SPL_INIT_CONSTRAINTS = new Set([
+  "token::mint",
+  "token::authority",
+  "associated_token::mint",
+  "associated_token::authority",
+  "mint::decimals",
+  "mint::authority",
+  "mint::freeze_authority",
+]);
+
+function isSplInit(attr: ParsedAccountAttr): boolean {
+  for (const key of SPL_INIT_CONSTRAINTS) {
+    if (attr.kvPairs.has(key)) return true;
+  }
+  return false;
+}
 
 export const anchorInitWithoutSpace: Visitor = {
   name: "anchor-init-without-space",
@@ -13,6 +31,7 @@ export const anchorInitWithoutSpace: Visitor = {
         const isInit = attr.keywords.has("init") || attr.keywords.has("init_if_needed");
         if (!isInit) continue;
         if (attr.kvPairs.has("space")) continue;
+        if (isSplInit(attr)) continue;
         // Zero-copy accounts declare space via the struct's `#[account(zero_copy)]` attribute on the data type;
         // skip flagging when the field type is wrapped in AccountLoader.
         if (field.typeIdentifier === "AccountLoader") continue;
