@@ -31,6 +31,10 @@ import { anchorInitWithoutSpace } from "./anchor-init-without-space.js";
 import { anchorInitWithoutPayer } from "./anchor-init-without-payer.js";
 import { anchorReallocIncomplete } from "./anchor-realloc-incomplete.js";
 import { anchorUncheckedAccount } from "./anchor-unchecked-account.js";
+import { anchorAccountNotInterface } from "./anchor-account-not-interface.js";
+import { anchorManualSignerCheck } from "./anchor-manual-signer-check.js";
+import { anchorManualKeyEq } from "./anchor-manual-key-eq.js";
+import { anchorEmitViaMsg } from "./anchor-emit-via-msg.js";
 
 /**
  * 27-check visitor registry. Each entry maps to a numbered check in
@@ -81,6 +85,12 @@ import { anchorUncheckedAccount } from "./anchor-unchecked-account.js";
  *   anchor-init-without-payer    (CRITICAL)
  *   anchor-realloc-incomplete    (MEDIUM)
  *   anchor-unchecked-account     (LOW)
+ *
+ * Anchor (tier 2, struct + handler scope)
+ *   anchor-account-not-interface (MEDIUM) — Account<Mint> / Account<TokenAccount> vs InterfaceAccount
+ *   anchor-manual-signer-check   (MEDIUM) — .is_signer access inside #[program] mod
+ *   anchor-manual-key-eq         (LOW)    — require_keys_eq! inside #[program] mod
+ *   anchor-emit-via-msg          (LOW)    — msg! inside #[program] mod
  */
 export const allVisitors: readonly Visitor[] = [
   missingSigner,
@@ -115,4 +125,8 @@ export const allVisitors: readonly Visitor[] = [
   anchorInitWithoutPayer,
   anchorReallocIncomplete,
   anchorUncheckedAccount,
+  anchorAccountNotInterface,
+  anchorManualSignerCheck,
+  anchorManualKeyEq,
+  anchorEmitViaMsg,
 ];

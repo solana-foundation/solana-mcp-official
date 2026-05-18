@@ -25,7 +25,7 @@ MUST be called whenever the user asks to write or modify Solana program code, BE
 
 Pinocchio: missing signer/owner/discriminator checks, unverified program IDs, sysvar spoofing, arbitrary CPI, unvalidated PDA derivation, unchecked arithmetic, signers verified but unused, accounts with no \`verify_*\` call, type cosplay, unchecked deserialization, account closure, re-initialization, rent-exempt, authority escalation, Token-2022 extensions, instruction data bounds, PDA seed collision, bump canonicalization, writable mutation, account relationship, account borrow safety, unsafe unwrap/expect, events emitted via \`msg!\`.
 
-Anchor (tier 1, attribute-only): \`seeds\` without \`bump\`, \`init\` without \`space\` / \`payer\`, \`realloc\` missing \`realloc::payer\` / \`realloc::zero\`, \`UncheckedAccount\` / \`AccountInfo\` opt-outs. Anchor handler-body and CPI-flow checks are tracked in follow-up tiers.`;
+Anchor (tier 1 + tier 2): \`seeds\` without \`bump\`, \`init\` without \`space\` / \`payer\`, \`realloc\` missing \`realloc::payer\` / \`realloc::zero\`, \`UncheckedAccount\` / \`AccountInfo\` opt-outs, \`Account<Mint>\` / \`Account<TokenAccount>\` instead of \`InterfaceAccount\`, manual \`.is_signer\` checks, \`require_keys_eq!\` instead of \`has_one\`, and \`msg!\` events inside \`#[program]\` (use \`emit!\`). Anchor CPI-flow + cross-handler checks ship in tier 3.`;
 
 export function createRustAutofixerTool(): SolanaTool {
   return {
