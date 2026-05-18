@@ -19,6 +19,7 @@ import {
   SECURE_SYSVAR,
   SECURE_PDA_NE_METHOD,
   VULNERABLE_PDA_ASSERT_NE,
+  VULNERABLE_PDA_ASSERT_EQ_UNRELATED,
   SECURE_ARITHMETIC_LEN_MATH,
   VULNERABLE_ARITHMETIC_LAMPORTS,
   SECURE_TRY_FROM_WITH_LOCAL_BINDING,
@@ -92,6 +93,12 @@ describe("rust_autofixer regression cases (no regex fallbacks)", () => {
     const out = await runRustAutofixer({ code: VULNERABLE_PDA_ASSERT_NE, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "pda-validation");
     expect(hit, "pda-validation missed assert_ne! rejecting the real PDA").toBeDefined();
+  }, 20_000);
+
+  it("flags pda-validation when the PDA is compared to an unrelated key", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_PDA_ASSERT_EQ_UNRELATED, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "pda-validation");
+    expect(hit, "pda-validation accepted an unrelated Pubkey comparison").toBeDefined();
   }, 20_000);
 
   it("flags arbitrary-cpi when a different program account was verified", async () => {

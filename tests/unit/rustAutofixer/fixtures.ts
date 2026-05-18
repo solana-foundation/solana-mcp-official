@@ -176,6 +176,14 @@ pub fn handle(account: &AccountView, seed: &[u8]) -> Result<(), ProgramError> {
 }
 `;
 
+export const VULNERABLE_PDA_ASSERT_EQ_UNRELATED = `use pinocchio::pubkey::{find_program_address, Pubkey};
+pub fn handle(account: &AccountView, seed: &[u8]) -> Result<(), ProgramError> {
+  let (pda, _bump) = find_program_address(&[seed], &crate::ID);
+  assert_eq!(pda, Pubkey::default());
+  Ok(())
+}
+`;
+
 // Account-layout / size math using len(). No balance-shaped identifiers.
 // Must NOT fire unchecked-arithmetic.
 export const SECURE_ARITHMETIC_LEN_MATH = `pub fn space_for(signers: &[u8], name: &str) -> usize {

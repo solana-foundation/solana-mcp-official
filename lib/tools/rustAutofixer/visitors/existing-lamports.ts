@@ -3,7 +3,7 @@ import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
 import { getCallName } from "../walk.js";
-import { getMacroName, getMethodCallName } from "./_helpers.js";
+import { getMacroName, getMethodCallName, rootIdentifierOf } from "./_helpers.js";
 
 type Node = Parser.SyntaxNode;
 
@@ -26,17 +26,55 @@ function isFallbackStruct(node: Node): boolean {
   return false;
 }
 
-function findIfWithLamportsCheck(scope: Node): Node | null {
+function isIntegerLiteral(node: Node, value: string): boolean {
+  return node.type === "integer_literal" && node.text.replaceAll("_", "") === value;
+}
+
+function lamportsReceiverRoot(node: Node): string | null {
+  if (node.type !== "call_expression") return null;
+  if (getMethodCallName(node) !== "lamports") return null;
+  const fn = node.childForFieldName("function");
+  if (!fn || fn.type !== "field_expression") return null;
+  const value = fn.childForFieldName("value");
+  return value ? rootIdentifierOf(value) : null;
+}
+
+function comparisonChecksExistingLamports(node: Node): boolean {
+  if (node.type !== "binary_expression") return false;
+  const op = node.childForFieldName("operator")?.text;
+  if (!op) return false;
+  const left = node.childForFieldName("left");
+  const right = node.childForFieldName("right");
+  if (!left || !right) return false;
+  const leftLamports = lamportsReceiverRoot(left) !== null;
+  const rightLamports = lamportsReceiverRoot(right) !== null;
+  if (leftLamports === rightLamports) return false;
+  const literal = leftLamports ? right : left;
+  const lamportsOnLeft = leftLamports;
+  if (isIntegerLiteral(literal, "0")) {
+    if (op === "!=") return true;
+    return lamportsOnLeft ? op === ">" : op === "<";
+  }
+  if (isIntegerLiteral(literal, "1")) {
+    return lamportsOnLeft ? op === ">=" : op === "<=";
+  }
+  return false;
+}
+
+function findIfWithExistingLamportsCheck(scope: Node): Node | null {
   let result: Node | null = null;
   walk(scope, n => {
     if (result) return "skip";
     if (n.type !== "if_expression") return;
-    let hasLamports = false;
+    let hasExistingLamportsCheck = false;
     walk(n.childForFieldName("condition") ?? n, c => {
-      if (hasLamports) return "skip";
-      if (c.type === "call_expression" && getMethodCallName(c) === "lamports") hasLamports = true;
+      if (hasExistingLamportsCheck) return "skip";
+      if (comparisonChecksExistingLamports(c)) {
+        hasExistingLamportsCheck = true;
+        return "skip";
+      }
     });
-    if (hasLamports) result = n;
+    if (hasExistingLamportsCheck) result = n;
   });
   return result;
 }
@@ -84,7 +122,7 @@ export const existingLamports: Visitor = {
     function_item(node, ctx) {
       const body = node.childForFieldName("body");
       if (!body) return;
-      const ifNode = findIfWithLamportsCheck(body);
+      const ifNode = findIfWithExistingLamportsCheck(body);
       if (!ifNode) return;
       const consequence = ifNode.childForFieldName("consequence");
       if (!consequence) return;

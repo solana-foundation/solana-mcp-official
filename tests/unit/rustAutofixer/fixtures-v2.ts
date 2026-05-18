@@ -170,6 +170,19 @@ pub fn rotate(state: &mut State, payer: &AccountView, new_admin: [u8;32]) -> Res
 fn verify_signer(_a: &AccountView, _b: bool) -> Result<(), ProgramError> { Ok(()) }
 `;
 
+export const VULNERABLE_AUTHORITY_ESC_PASSIVE_COMPARE = `${PINOCCHIO_USE}
+struct State { admin: [u8;32] }
+pub fn rotate(state: &mut State, current_signer: &AccountView, new_admin: [u8;32]) -> Result<(), ProgramError> {
+  verify_signer(current_signer, false)?;
+  if current_signer.key() == &state.admin {
+    msg!("admin seen");
+  }
+  state.admin = new_admin;
+  Ok(())
+}
+fn verify_signer(_a: &AccountView, _b: bool) -> Result<(), ProgramError> { Ok(()) }
+`;
+
 // ----- token-2022-extensions (Check 22) -----
 export const VULNERABLE_TOKEN_2022 = `${PINOCCHIO_USE}
 use pinocchio_token_2022::TOKEN_2022_PROGRAM_ID;
@@ -374,6 +387,15 @@ export const SECURE_EXISTING_LAMPORTS_REJECTS = `${PINOCCHIO_USE}
 pub fn create(pda: &AccountView) -> Result<(), ProgramError> {
   if pda.lamports() > 0 {
     return Err(ProgramError::AccountAlreadyInitialized);
+  }
+  Ok(())
+}
+`;
+
+export const SECURE_EXISTING_LAMPORTS_ZERO_BRANCH = `${PINOCCHIO_USE}
+pub fn create(pda: &AccountView) -> Result<(), ProgramError> {
+  if pda.lamports() == 0 {
+    msg!("fresh account");
   }
   Ok(())
 }

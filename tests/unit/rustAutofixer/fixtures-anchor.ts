@@ -325,6 +325,24 @@ pub mod my_program {
 pub struct State { pub value: u64 }
 `;
 
+export const VULNERABLE_MISSING_MUT_TO_ACCOUNT_INFO = `${ANCHOR_HEADER}
+#[derive(Accounts)]
+pub struct Ctx<'info> {
+  pub state: Account<'info, State>,
+}
+#[program]
+pub mod my_program {
+  use super::*;
+  pub fn run(ctx: Context<Ctx>) -> Result<()> {
+    let mut data = ctx.accounts.state.to_account_info().try_borrow_mut_data()?;
+    data[0] = 1;
+    Ok(())
+  }
+}
+#[account]
+pub struct State { pub value: u64 }
+`;
+
 export const SECURE_LOCAL_FIELD_MUTATION = `${ANCHOR_HEADER}
 #[derive(Accounts)]
 pub struct Ctx<'info> {
@@ -356,6 +374,26 @@ pub mod my_program {
   use super::*;
   pub fn run(ctx: Context<Ctx>) -> Result<()> {
     let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), Empty {});
+    invoke_helper(cpi_ctx)?;
+    Ok(())
+  }
+}
+struct Empty;
+fn invoke_helper<T>(_c: CpiContext<T>) -> Result<()> { Ok(()) }
+`;
+
+export const VULNERABLE_CPI_UNVERIFIED_ALIAS = `${ANCHOR_HEADER}
+#[derive(Accounts)]
+pub struct Ctx<'info> {
+  pub token_program: AccountInfo<'info>,
+  pub admin: Signer<'info>,
+}
+#[program]
+pub mod my_program {
+  use super::*;
+  pub fn run(ctx: Context<Ctx>) -> Result<()> {
+    let program = ctx.accounts.token_program.to_account_info();
+    let cpi_ctx = CpiContext::new(program, Empty {});
     invoke_helper(cpi_ctx)?;
     Ok(())
   }

@@ -8,7 +8,6 @@ import {
   getMacroName,
   getMethodCallName,
   getMethodReceiverRoot,
-  macroIdentifiers,
 } from "./_helpers.js";
 
 type Node = Parser.SyntaxNode;
@@ -21,6 +20,8 @@ const POSITIVE_COMPARISON_METHOD_NAMES = new Set(["eq", "equals"]);
 const NEGATIVE_COMPARISON_METHOD_NAMES = new Set(["ne", "not_equals"]);
 
 const POSITIVE_COMPARISON_MACROS = new Set(["assert_eq", "debug_assert_eq", "require_eq"]);
+const ACCOUNT_IDENTITY_METHODS = new Set(["key", "address", "pubkey"]);
+const ACCOUNT_IDENTITY_FIELDS = new Set(["key", "address", "pubkey"]);
 
 function pdaVarsFromLet(letNode: Node, derivationCall: Node): string[] {
   const value = letNode.childForFieldName("value");
@@ -32,7 +33,10 @@ function pdaVarsFromLet(letNode: Node, derivationCall: Node): string[] {
   if (pattern.type === "tuple_pattern") {
     for (let i = 0; i < pattern.namedChildCount; i++) {
       const child = pattern.namedChild(i);
-      if (child?.type === "identifier" && !child.text.startsWith("_")) out.push(child.text);
+      if (child?.type === "identifier" && !child.text.startsWith("_")) {
+        out.push(child.text);
+        break;
+      }
     }
   } else if (pattern.type === "identifier") {
     out.push(pattern.text);
@@ -94,6 +98,69 @@ function isRejectingGuard(node: Node): boolean {
   return false;
 }
 
+function mentionsAnyIdentifier(node: Node, targets: readonly string[]): boolean {
+  return targets.some(v => containsIdentifier(node, v));
+}
+
+function containsAccountIdentityMarker(node: Node): boolean {
+  let found = false;
+  walk(node, n => {
+    if (found) return "skip";
+    if (n.type === "call_expression") {
+      const methodName = getMethodCallName(n);
+      if (methodName && ACCOUNT_IDENTITY_METHODS.has(methodName)) {
+        found = true;
+        return "skip";
+      }
+    }
+    if ((n.type === "field_identifier" || n.type === "identifier") && ACCOUNT_IDENTITY_FIELDS.has(n.text)) {
+      found = true;
+      return "skip";
+    }
+  });
+  return found;
+}
+
+function looksLikeAccountIdentity(node: Node, pdaVars: readonly string[]): boolean {
+  return !mentionsAnyIdentifier(node, pdaVars) && containsAccountIdentityMarker(node);
+}
+
+function binaryComparesPdaWithAccountIdentity(node: Node, pdaVars: readonly string[]): boolean {
+  const left = node.childForFieldName("left");
+  const right = node.childForFieldName("right");
+  if (!left || !right) return false;
+  const leftMentionsPda = mentionsAnyIdentifier(left, pdaVars);
+  const rightMentionsPda = mentionsAnyIdentifier(right, pdaVars);
+  if (leftMentionsPda === rightMentionsPda) return false;
+  return leftMentionsPda ? looksLikeAccountIdentity(right, pdaVars) : looksLikeAccountIdentity(left, pdaVars);
+}
+
+function macroComparesPdaWithAccountIdentity(node: Node, pdaVars: readonly string[]): boolean {
+  if (!mentionsAnyIdentifier(node, pdaVars)) return false;
+  return containsAccountIdentityMarker(node);
+}
+
+function methodReceiverValue(callNode: Node): Node | null {
+  const fn = callNode.childForFieldName("function");
+  if (!fn || fn.type !== "field_expression") return null;
+  return fn.childForFieldName("value");
+}
+
+function methodComparesPdaWithAccountIdentity(node: Node, pdaVars: readonly string[]): boolean {
+  const receiver = methodReceiverValue(node);
+  if (!receiver) return false;
+  const receiverMentionsPda = mentionsAnyIdentifier(receiver, pdaVars);
+  const argsMentionPda = pdaVars.some(v => containsIdentifier(node, v)) && !receiverMentionsPda;
+  if (receiverMentionsPda) {
+    for (let i = 0; i < node.namedChildCount; i++) {
+      const child = node.namedChild(i);
+      if (child && looksLikeAccountIdentity(child, pdaVars)) return true;
+    }
+    return false;
+  }
+  return argsMentionPda && looksLikeAccountIdentity(receiver, pdaVars);
+}
+
 function scopeValidatesPda(scope: Node, pdaVars: string[]): boolean {
   if (pdaVars.length === 0) return false;
   let validated = false;
@@ -104,18 +171,11 @@ function scopeValidatesPda(scope: Node, pdaVars: string[]): boolean {
     if (n.type === "binary_expression") {
       const op = n.childForFieldName("operator")?.text;
       if (op !== "==" && op !== "!=") return;
-      const left = n.childForFieldName("left");
-      const right = n.childForFieldName("right");
-      if (!left || !right) return;
-      if (op === "==" && pdaVars.some(v => containsIdentifier(left, v) || containsIdentifier(right, v))) {
+      if (op === "==" && binaryComparesPdaWithAccountIdentity(n, pdaVars)) {
         validated = true;
         return "skip";
       }
-      if (
-        op === "!=" &&
-        isRejectingGuard(n) &&
-        pdaVars.some(v => containsIdentifier(left, v) || containsIdentifier(right, v))
-      ) {
+      if (op === "!=" && isRejectingGuard(n) && binaryComparesPdaWithAccountIdentity(n, pdaVars)) {
         validated = true;
         return "skip";
       }
@@ -124,8 +184,7 @@ function scopeValidatesPda(scope: Node, pdaVars: string[]): boolean {
     if (n.type === "macro_invocation") {
       const macroName = getMacroName(n);
       if (!macroName || !POSITIVE_COMPARISON_MACROS.has(macroName)) return;
-      const ids = macroIdentifiers(n);
-      if (pdaVars.some(v => ids.includes(v))) {
+      if (macroComparesPdaWithAccountIdentity(n, pdaVars)) {
         validated = true;
         return "skip";
       }
@@ -143,17 +202,13 @@ function scopeValidatesPda(scope: Node, pdaVars: string[]): boolean {
       }
       const methodName = getMethodCallName(n);
       if (methodName && POSITIVE_COMPARISON_METHOD_NAMES.has(methodName)) {
-        const receiverRoot = getMethodReceiverRoot(n);
-        const argMentions = pdaVars.some(v => containsIdentifier(n, v));
-        if ((receiverRoot && pdaVars.includes(receiverRoot)) || argMentions) {
+        if (methodComparesPdaWithAccountIdentity(n, pdaVars)) {
           validated = true;
           return "skip";
         }
       }
       if (methodName && NEGATIVE_COMPARISON_METHOD_NAMES.has(methodName) && isRejectingGuard(n)) {
-        const receiverRoot = getMethodReceiverRoot(n);
-        const argMentions = pdaVars.some(v => containsIdentifier(n, v));
-        if ((receiverRoot && pdaVars.includes(receiverRoot)) || argMentions) {
+        if (methodComparesPdaWithAccountIdentity(n, pdaVars)) {
           validated = true;
           return "skip";
         }

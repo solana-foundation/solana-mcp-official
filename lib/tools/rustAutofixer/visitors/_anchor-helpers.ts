@@ -296,6 +296,12 @@ export function isInsideProgramModule(node: Node, programModule: Node | null): b
 export function ctxAccountsField(node: Node): string | null {
   let cursor: Node | null = node;
   while (cursor) {
+    if (cursor.type === "call_expression") {
+      const fn = cursor.childForFieldName("function");
+      if (!fn || fn.type !== "field_expression") return null;
+      cursor = fn.childForFieldName("value");
+      continue;
+    }
     if (cursor.type !== "field_expression") return null;
     const value = cursor.childForFieldName("value");
     const field = cursor.childForFieldName("field");

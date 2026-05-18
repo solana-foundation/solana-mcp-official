@@ -26,16 +26,7 @@ const AUTHORITY_FIELD_NAMES = new Set([
 
 const VERIFY_SIGNER_FNS = new Set(["verify_signer", "assert_signer", "check_signer"]);
 const AUTHORIZATION_METHODS = new Set(["eq", "ne", "equals", "not_equals"]);
-const AUTHORIZATION_MACROS = new Set([
-  "assert_eq",
-  "assert_ne",
-  "debug_assert_eq",
-  "debug_assert_ne",
-  "require_eq",
-  "require_neq",
-  "require_keys_eq",
-  "require_keys_neq",
-]);
+const AUTHORIZATION_MACROS = new Set(["assert_eq", "debug_assert_eq", "require_eq", "require_keys_eq"]);
 
 function verifiedSignersBefore(scope: Node, beforeIndex: number): Set<string> {
   const signers = new Set<string>();
@@ -67,6 +58,78 @@ function containsAuthorityField(node: Node, stateRoot: string, fieldName: string
   return found;
 }
 
+function nodeContainsErrorConstructor(node: Node): boolean {
+  let found = false;
+  walk(node, n => {
+    if (found) return "skip";
+    if (n.type === "call_expression") {
+      const fn = n.childForFieldName("function");
+      const name = fn ? getCallName(fn) : null;
+      if (name === "Err") {
+        found = true;
+        return "skip";
+      }
+    }
+    if (n.type === "macro_invocation") {
+      const name = getMacroName(n);
+      if (name === "err" || name === "require" || name === "require_keys_eq") {
+        found = true;
+        return "skip";
+      }
+    }
+  });
+  return found;
+}
+
+function branchRejects(ifNode: Node): boolean {
+  const consequence = ifNode.childForFieldName("consequence");
+  return !!consequence && nodeContainsErrorConstructor(consequence);
+}
+
+function nodeIsInIfCondition(node: Node, ifNode: Node): boolean {
+  const condition = ifNode.childForFieldName("condition") ?? ifNode.namedChild(0);
+  if (!condition) return false;
+  return node.startIndex >= condition.startIndex && node.endIndex <= condition.endIndex;
+}
+
+function isUnderNegationBefore(node: Node, ancestor: Node): boolean {
+  let cursor: Node | null = node.parent;
+  while (cursor && cursor.startIndex >= ancestor.startIndex && cursor.endIndex <= ancestor.endIndex) {
+    if (cursor.type === "unary_expression" && cursor.text.trim().startsWith("!")) return true;
+    if (
+      cursor.startIndex === ancestor.startIndex &&
+      cursor.endIndex === ancestor.endIndex &&
+      cursor.type === ancestor.type
+    ) {
+      break;
+    }
+    cursor = cursor.parent;
+  }
+  return false;
+}
+
+function isRejectingGuard(node: Node): boolean {
+  let cursor: Node | null = node.parent;
+  while (cursor) {
+    if (cursor.type === "if_expression") {
+      return nodeIsInIfCondition(node, cursor) && branchRejects(cursor);
+    }
+    cursor = cursor.parent;
+  }
+  return false;
+}
+
+function isNegatedRejectingGuard(node: Node): boolean {
+  let cursor: Node | null = node.parent;
+  while (cursor) {
+    if (cursor.type === "if_expression") {
+      return nodeIsInIfCondition(node, cursor) && branchRejects(cursor) && isUnderNegationBefore(node, cursor);
+    }
+    cursor = cursor.parent;
+  }
+  return false;
+}
+
 function mentionsAnySigner(node: Node, signers: ReadonlySet<string>): boolean {
   for (const signer of signers) {
     if (containsIdentifier(node, signer)) return true;
@@ -86,10 +149,12 @@ function comparisonAuthorizesMutation(
     const left = node.childForFieldName("left");
     const right = node.childForFieldName("right");
     if (!left || !right) return false;
-    return (
+    const mentionsSignerAndAuthority =
       (mentionsAnySigner(left, signers) && containsAuthorityField(right, stateRoot, fieldName)) ||
-      (mentionsAnySigner(right, signers) && containsAuthorityField(left, stateRoot, fieldName))
-    );
+      (mentionsAnySigner(right, signers) && containsAuthorityField(left, stateRoot, fieldName));
+    if (!mentionsSignerAndAuthority) return false;
+    if (op === "!=") return isRejectingGuard(node);
+    return isNegatedRejectingGuard(node);
   }
 
   if (node.type === "macro_invocation") {
@@ -103,7 +168,9 @@ function comparisonAuthorizesMutation(
   if (node.type === "call_expression") {
     const methodName = getMethodCallName(node);
     if (!methodName || !AUTHORIZATION_METHODS.has(methodName)) return false;
-    return mentionsAnySigner(node, signers) && containsAuthorityField(node, stateRoot, fieldName);
+    if (!mentionsAnySigner(node, signers) || !containsAuthorityField(node, stateRoot, fieldName)) return false;
+    if (methodName === "ne" || methodName === "not_equals") return isRejectingGuard(node);
+    return isNegatedRejectingGuard(node);
   }
 
   return false;

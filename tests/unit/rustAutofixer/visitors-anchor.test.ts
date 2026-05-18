@@ -24,8 +24,10 @@ import {
   VULNERABLE_MISSING_MUT,
   SECURE_MUT_CONSTRAINT,
   VULNERABLE_MISSING_MUT_DUPLICATE_FIELD,
+  VULNERABLE_MISSING_MUT_TO_ACCOUNT_INFO,
   SECURE_LOCAL_FIELD_MUTATION,
   VULNERABLE_CPI_UNVERIFIED,
+  VULNERABLE_CPI_UNVERIFIED_ALIAS,
   SECURE_CPI_TYPED_PROGRAM,
   VULNERABLE_CPI_UNVERIFIED_DUPLICATE_FIELD,
   VULNERABLE_CLOSE_MANUAL,
@@ -128,6 +130,18 @@ describe("rust_autofixer Anchor visitors", () => {
     const out = await runRustAutofixer({ code: SECURE_LOCAL_FIELD_MUTATION, framework: "anchor" });
     const hit = out.issues.find(i => i.rule === "anchor-missing-mut");
     expect(hit, `local field mutation was reported as an account mutation: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+
+  it("flags missing mut when mutation goes through to_account_info()", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_MISSING_MUT_TO_ACCOUNT_INFO, framework: "anchor" });
+    const hit = out.issues.find(i => i.rule === "anchor-missing-mut");
+    expect(hit, "anchor-missing-mut missed a to_account_info() mutable borrow").toBeDefined();
+  }, 20_000);
+
+  it("resolves local program aliases before CpiContext::new", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_CPI_UNVERIFIED_ALIAS, framework: "anchor" });
+    const hit = out.issues.find(i => i.rule === "anchor-cpi-context-unverified");
+    expect(hit, "anchor-cpi-context-unverified missed an aliased program account").toBeDefined();
   }, 20_000);
 
   it("does not require `space` for Anchor SPL mint initialization", async () => {

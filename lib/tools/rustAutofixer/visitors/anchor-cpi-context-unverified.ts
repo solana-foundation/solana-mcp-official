@@ -32,13 +32,47 @@ function callArgsFirst(call: Node): Node | null {
 }
 
 function unwrapAccountInfoCall(arg: Node): Node | null {
-  // Anchor convention: `ctx.accounts.<x>.to_account_info()`. Step into the call to reach the field access.
   if (arg.type !== "call_expression") return arg;
   const fn = arg.childForFieldName("function");
   if (!fn || fn.type !== "field_expression") return null;
   const method = fn.childForFieldName("field");
   if (method?.text !== "to_account_info") return null;
   return fn.childForFieldName("value");
+}
+
+function findEnclosingFunctionBody(node: Node): Node | null {
+  let cursor: Node | null = node.parent;
+  while (cursor) {
+    if (cursor.type === "function_item") return cursor.childForFieldName("body");
+    cursor = cursor.parent;
+  }
+  return null;
+}
+
+function localBindingValueBefore(scope: Node, name: string, beforeIndex: number): Node | null {
+  let result: Node | null = null;
+  walk(scope, n => {
+    if (result) return "skip";
+    if (n.startIndex >= beforeIndex) return "skip";
+    if (n.type !== "let_declaration") return;
+    const pattern = n.childForFieldName("pattern");
+    const value = n.childForFieldName("value");
+    if (pattern?.type === "identifier" && pattern.text === name && value) {
+      result = value;
+      return "skip";
+    }
+  });
+  return result;
+}
+
+function resolveProgramTarget(arg: Node, scope: Node, beforeIndex: number, seen = new Set<string>()): Node | null {
+  const unwrapped = unwrapAccountInfoCall(arg);
+  if (!unwrapped) return null;
+  if (unwrapped.type !== "identifier") return unwrapped;
+  if (seen.has(unwrapped.text)) return unwrapped;
+  seen.add(unwrapped.text);
+  const bound = localBindingValueBefore(scope, unwrapped.text, beforeIndex);
+  return bound ? resolveProgramTarget(bound, scope, beforeIndex, seen) : unwrapped;
 }
 
 function programArgUsesHardcodedId(arg: Node): boolean {
@@ -67,11 +101,10 @@ export const anchorCpiContextUnverified: Visitor = {
       const first = callArgsFirst(node);
       if (!first) return;
       if (programArgUsesHardcodedId(first)) return;
-      const target = unwrapAccountInfoCall(first);
-      if (!target) {
-        // Conservative: unknown shape, don't fire.
-        return;
-      }
+      const scope = findEnclosingFunctionBody(node);
+      if (!scope) return;
+      const target = resolveProgramTarget(first, scope, node.startIndex);
+      if (!target) return;
       const field = ctxAccountsField(target);
       if (!field) return;
       const candidates = findFieldsForHandlerContext(ctx.anchor, node, field);

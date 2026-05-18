@@ -20,6 +20,7 @@ import {
   VULNERABLE_AUTHORITY_ESC,
   SECURE_AUTHORITY_ESC,
   VULNERABLE_AUTHORITY_ESC_UNRELATED_SIGNER,
+  VULNERABLE_AUTHORITY_ESC_PASSIVE_COMPARE,
   VULNERABLE_TOKEN_2022,
   SECURE_TOKEN_2022,
   VULNERABLE_INSTR_BOUNDS,
@@ -42,6 +43,7 @@ import {
   VULNERABLE_UNWRAP_FROM_UTF8,
   VULNERABLE_REINIT_UNRELATED_LAMPORTS,
   SECURE_EXISTING_LAMPORTS_REJECTS,
+  SECURE_EXISTING_LAMPORTS_ZERO_BRANCH,
 } from "./fixtures-v2.js";
 
 const PAIRS: ReadonlyArray<{
@@ -129,6 +131,15 @@ describe("cross-check regression cases", () => {
     expect(hit, "authority-escalation missed an unrelated verified signer").toBeDefined();
   }, 20_000);
 
+  it("flags authority writes when the signer comparison is not a rejecting guard", async () => {
+    const out = await runRustAutofixer({
+      code: VULNERABLE_AUTHORITY_ESC_PASSIVE_COMPARE,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "authority-escalation");
+    expect(hit, "authority-escalation accepted a passive comparison").toBeDefined();
+  }, 20_000);
+
   it("flags CreateAccount when only an unrelated lamports balance was checked", async () => {
     const out = await runRustAutofixer({
       code: VULNERABLE_REINIT_UNRELATED_LAMPORTS,
@@ -145,5 +156,14 @@ describe("cross-check regression cases", () => {
     });
     const hit = out.issues.find(i => i.rule === "existing-lamports");
     expect(hit, `existing-lamports flagged an explicit rejection branch: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+
+  it("does not treat a zero-lamports branch as an existing-account branch", async () => {
+    const out = await runRustAutofixer({
+      code: SECURE_EXISTING_LAMPORTS_ZERO_BRANCH,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "existing-lamports");
+    expect(hit, `existing-lamports flagged a fresh-account branch: ${hit?.title}`).toBeUndefined();
   }, 20_000);
 });
