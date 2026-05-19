@@ -23,6 +23,45 @@ export type AnalyticsEvent =
       timestamp?: string;
     };
 
+function rustAutofixerRequestMetadata(toolArgs: unknown): Record<string, unknown> {
+  if (!toolArgs || typeof toolArgs !== "object") {
+    return {
+      framework_requested: "auto",
+      code_length: null,
+      has_code: false,
+    };
+  }
+
+  const args = toolArgs as Record<string, unknown>;
+  const framework = typeof args.framework === "string" ? args.framework : "auto";
+  const code = typeof args.code === "string" ? args.code : null;
+  return {
+    framework_requested: framework,
+    code_length: code?.length ?? null,
+    has_code: code !== null,
+  };
+}
+
+function sanitizeToolArgs(toolName: string, toolArgs: unknown): unknown {
+  if (toolName !== "rust_autofixer") return toolArgs;
+  return rustAutofixerRequestMetadata(toolArgs);
+}
+
+function sanitizeToolCallRawBody(parsedBody: unknown, sanitizedArgs: unknown): unknown {
+  if (!parsedBody || typeof parsedBody !== "object") return parsedBody;
+  const body = parsedBody as Record<string, unknown>;
+  if (body.method !== "tools/call") return parsedBody;
+  const params = body.params && typeof body.params === "object" ? (body.params as Record<string, unknown>) : {};
+  if (params.name !== "rust_autofixer") return parsedBody;
+  return {
+    ...body,
+    params: {
+      ...params,
+      arguments: sanitizedArgs,
+    },
+  };
+}
+
 export async function logAnalytics(event: AnalyticsEvent) {
   try {
     if (event.event_type === "message_received") {
@@ -51,12 +90,14 @@ export async function logAnalytics(event: AnalyticsEvent) {
 
         case "tools/call": {
           const { name, arguments: toolArgs } = parsedBody.params || {};
+          const toolName = typeof name === "string" ? name : "";
+          const sanitizedArgs = sanitizeToolArgs(toolName, toolArgs);
           await databricksAnalytics.logToolCallRequest({
-            toolName: name,
+            toolName,
             requestId: event.request_id ?? null,
             sessionId: event.session_id ?? null,
-            toolArgs,
-            rawBody: parsedBody,
+            toolArgs: sanitizedArgs,
+            rawBody: sanitizeToolCallRawBody(parsedBody, sanitizedArgs),
           });
           break;
         }

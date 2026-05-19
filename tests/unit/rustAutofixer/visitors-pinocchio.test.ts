@@ -1,0 +1,334 @@
+import { describe, expect, it } from "vitest";
+import { runRustAutofixer } from "../../../lib/tools/rustAutofixer/handler.js";
+import {
+  VULNERABLE_MISSING_SIGNER,
+  SECURE_MISSING_SIGNER,
+  VULNERABLE_MISSING_OWNER,
+  SECURE_MISSING_OWNER,
+  VULNERABLE_PROGRAM_ID,
+  SECURE_PROGRAM_ID,
+  VULNERABLE_ARITHMETIC,
+  SECURE_ARITHMETIC,
+  VULNERABLE_CPI,
+  SECURE_CPI,
+  VULNERABLE_CPI_MISMATCHED_VERIFY,
+  VULNERABLE_CPI_PARTIAL_VERIFY,
+  VULNERABLE_PDA,
+  SECURE_PDA,
+  VULNERABLE_SYSVAR,
+  SECURE_SYSVAR,
+  SECURE_PDA_NE_METHOD,
+  VULNERABLE_PDA_ASSERT_NE,
+  VULNERABLE_PDA_ASSERT_EQ_UNRELATED,
+  SECURE_ARITHMETIC_LEN_MATH,
+  VULNERABLE_ARITHMETIC_LAMPORTS,
+  SECURE_TRY_FROM_WITH_LOCAL_BINDING,
+  VULNERABLE_UNSAFE_UNWRAP,
+  SECURE_UNSAFE_UNWRAP,
+  VULNERABLE_EVENT_VIA_CPI,
+  VULNERABLE_EVENT_VIA_CPI_MULTIPLE_LOGS,
+  SECURE_EVENT_VIA_CPI_DEBUG_LOGS,
+  SECURE_EVENT_VIA_CPI,
+  VULNERABLE_UNCHECKED_DESER,
+  SECURE_UNCHECKED_DESER,
+  VULNERABLE_DATA_SIZE,
+  SECURE_DATA_SIZE,
+  VULNERABLE_TYPE_COSPLAY,
+  SECURE_TYPE_COSPLAY,
+  VULNERABLE_ACCOUNT_CLOSURE,
+  SECURE_ACCOUNT_CLOSURE,
+  VULNERABLE_REINIT,
+  SECURE_REINIT,
+  VULNERABLE_RENT_EXEMPT,
+  SECURE_RENT_EXEMPT,
+  VULNERABLE_AUTHORITY_ESC,
+  SECURE_AUTHORITY_ESC,
+  VULNERABLE_AUTHORITY_ESC_UNRELATED_SIGNER,
+  VULNERABLE_AUTHORITY_ESC_PASSIVE_COMPARE,
+  VULNERABLE_TOKEN_2022,
+  SECURE_TOKEN_2022,
+  VULNERABLE_INSTR_BOUNDS,
+  SECURE_INSTR_BOUNDS,
+  VULNERABLE_SEED_COLLISION,
+  SECURE_SEED_COLLISION,
+  VULNERABLE_BUMP_CANON,
+  SECURE_BUMP_CANON,
+  VULNERABLE_WRITABLE_MUTATION,
+  SECURE_WRITABLE_MUTATION,
+  VULNERABLE_ACCOUNT_REL,
+  SECURE_ACCOUNT_REL,
+  VULNERABLE_ACCOUNT_BORROW,
+  SECURE_ACCOUNT_BORROW,
+  SECURE_ACCOUNT_BORROW_NESTED_FN,
+  VULNERABLE_EXISTING_LAMPORTS,
+  SECURE_EXISTING_LAMPORTS,
+  SECURE_UNWRAP_FIXED_SLICE_LITERAL,
+  SECURE_UNWRAP_FIXED_SLICE_OFFSET,
+  SECURE_UNWRAP_TO_LE_BYTES,
+  VULNERABLE_UNWRAP_FROM_UTF8,
+  VULNERABLE_REINIT_UNRELATED_LAMPORTS,
+  SECURE_EXISTING_LAMPORTS_REJECTS,
+  SECURE_EXISTING_LAMPORTS_ZERO_BRANCH,
+} from "./fixtures-pinocchio.js";
+
+const RULE_FIXTURES: ReadonlyArray<{
+  rule: string;
+  vulnerable: string;
+  secure: string;
+}> = [
+  { rule: "missing-signer", vulnerable: VULNERABLE_MISSING_SIGNER, secure: SECURE_MISSING_SIGNER },
+  { rule: "missing-owner", vulnerable: VULNERABLE_MISSING_OWNER, secure: SECURE_MISSING_OWNER },
+  { rule: "program-id-verification", vulnerable: VULNERABLE_PROGRAM_ID, secure: SECURE_PROGRAM_ID },
+  { rule: "unchecked-arithmetic", vulnerable: VULNERABLE_ARITHMETIC, secure: SECURE_ARITHMETIC },
+  { rule: "arbitrary-cpi", vulnerable: VULNERABLE_CPI, secure: SECURE_CPI },
+  { rule: "pda-validation", vulnerable: VULNERABLE_PDA, secure: SECURE_PDA },
+  { rule: "sysvar-spoofing", vulnerable: VULNERABLE_SYSVAR, secure: SECURE_SYSVAR },
+];
+
+const EXTENDED_RULE_FIXTURES: ReadonlyArray<{
+  rule: string;
+  vulnerable: string;
+  secure: string;
+}> = [
+  { rule: "unsafe-unwrap", vulnerable: VULNERABLE_UNSAFE_UNWRAP, secure: SECURE_UNSAFE_UNWRAP },
+  { rule: "event-via-cpi", vulnerable: VULNERABLE_EVENT_VIA_CPI, secure: SECURE_EVENT_VIA_CPI },
+  { rule: "unchecked-deserialization", vulnerable: VULNERABLE_UNCHECKED_DESER, secure: SECURE_UNCHECKED_DESER },
+  { rule: "data-size-validation", vulnerable: VULNERABLE_DATA_SIZE, secure: SECURE_DATA_SIZE },
+  { rule: "type-cosplay", vulnerable: VULNERABLE_TYPE_COSPLAY, secure: SECURE_TYPE_COSPLAY },
+  { rule: "account-closure", vulnerable: VULNERABLE_ACCOUNT_CLOSURE, secure: SECURE_ACCOUNT_CLOSURE },
+  { rule: "reinitialization", vulnerable: VULNERABLE_REINIT, secure: SECURE_REINIT },
+  { rule: "rent-exempt", vulnerable: VULNERABLE_RENT_EXEMPT, secure: SECURE_RENT_EXEMPT },
+  { rule: "authority-escalation", vulnerable: VULNERABLE_AUTHORITY_ESC, secure: SECURE_AUTHORITY_ESC },
+  { rule: "token-2022-extensions", vulnerable: VULNERABLE_TOKEN_2022, secure: SECURE_TOKEN_2022 },
+  { rule: "instruction-data-bounds", vulnerable: VULNERABLE_INSTR_BOUNDS, secure: SECURE_INSTR_BOUNDS },
+  { rule: "pda-seed-collision", vulnerable: VULNERABLE_SEED_COLLISION, secure: SECURE_SEED_COLLISION },
+  { rule: "bump-canonicalization", vulnerable: VULNERABLE_BUMP_CANON, secure: SECURE_BUMP_CANON },
+  { rule: "writable-mutation", vulnerable: VULNERABLE_WRITABLE_MUTATION, secure: SECURE_WRITABLE_MUTATION },
+  { rule: "account-relationship", vulnerable: VULNERABLE_ACCOUNT_REL, secure: SECURE_ACCOUNT_REL },
+  { rule: "account-borrow", vulnerable: VULNERABLE_ACCOUNT_BORROW, secure: SECURE_ACCOUNT_BORROW },
+  { rule: "existing-lamports", vulnerable: VULNERABLE_EXISTING_LAMPORTS, secure: SECURE_EXISTING_LAMPORTS },
+];
+
+describe("rust_autofixer Pinocchio visitors", () => {
+  it.each(RULE_FIXTURES)(
+    "$rule flags the vulnerable fixture",
+    async ({ rule, vulnerable }) => {
+      const out = await runRustAutofixer({ code: vulnerable, framework: "pinocchio" });
+      const hit = out.issues.find(i => i.rule === rule);
+      expect(hit, `expected ${rule} to fire on vulnerable fixture`).toBeDefined();
+      expect(out.require_another_tool_call_after_fixing).toBe(true);
+    },
+    20_000,
+  );
+
+  it.each(RULE_FIXTURES)(
+    "$rule stays silent on the secure fixture",
+    async ({ rule, secure }) => {
+      const out = await runRustAutofixer({ code: secure, framework: "pinocchio" });
+      const hit = out.issues.find(i => i.rule === rule);
+      expect(hit, `${rule} fired on secure fixture: ${hit?.title}`).toBeUndefined();
+    },
+    20_000,
+  );
+
+  it("sets require_another_tool_call_after_fixing to false on clean code", async () => {
+    const clean = `pub fn add(a: u64, b: u64) -> u64 { a.checked_add(b).unwrap_or(0) }`;
+    const out = await runRustAutofixer({ code: clean, framework: "pinocchio" });
+    expect(out.issues).toEqual([]);
+    expect(out.suggestions).toEqual([]);
+    expect(out.require_another_tool_call_after_fixing).toBe(false);
+  });
+
+  it("reports parse-error issue for non-Rust input gracefully", async () => {
+    const out = await runRustAutofixer({ code: "this is not rust @#$%^&", framework: "pinocchio" });
+    expect(out.require_another_tool_call_after_fixing).toBe(true);
+  });
+});
+
+describe("rust_autofixer Pinocchio additional visitors", () => {
+  it.each(EXTENDED_RULE_FIXTURES)(
+    "$rule fires on vulnerable fixture",
+    async ({ rule, vulnerable }) => {
+      const out = await runRustAutofixer({ code: vulnerable, framework: "pinocchio" });
+      const hit = out.issues.find(i => i.rule === rule);
+      expect(
+        hit,
+        `expected ${rule} to fire on vulnerable fixture; got: ${JSON.stringify(out.issues.map(i => i.rule))}`,
+      ).toBeDefined();
+    },
+    20_000,
+  );
+
+  it.each(EXTENDED_RULE_FIXTURES)(
+    "$rule stays silent on the secure fixture",
+    async ({ rule, secure }) => {
+      const out = await runRustAutofixer({ code: secure, framework: "pinocchio" });
+      const hit = out.issues.find(i => i.rule === rule);
+      expect(hit, `${rule} fired on secure fixture: ${hit?.title}`).toBeUndefined();
+    },
+    20_000,
+  );
+});
+
+describe("rust_autofixer framework detection", () => {
+  it("auto-detects pinocchio from imports", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_MISSING_SIGNER, framework: "auto" });
+    expect(out.issues.some(i => i.rule === "missing-signer")).toBe(true);
+  });
+});
+
+describe("rust_autofixer regression cases (no regex fallbacks)", () => {
+  it("does not flag pda-validation when validation uses `.ne()` method", async () => {
+    const out = await runRustAutofixer({ code: SECURE_PDA_NE_METHOD, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "pda-validation");
+    expect(hit, `pda-validation fired on .ne() validation: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+
+  it("flags pda-validation when validation uses `assert_ne!`", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_PDA_ASSERT_NE, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "pda-validation");
+    expect(hit, "pda-validation missed assert_ne! rejecting the real PDA").toBeDefined();
+  }, 20_000);
+
+  it("flags pda-validation when the PDA is compared to an unrelated key", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_PDA_ASSERT_EQ_UNRELATED, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "pda-validation");
+    expect(hit, "pda-validation accepted an unrelated Pubkey comparison").toBeDefined();
+  }, 20_000);
+
+  it("flags arbitrary-cpi when a different program account was verified", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_CPI_MISMATCHED_VERIFY, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi missed invoke using an unverified program account").toBeDefined();
+  }, 20_000);
+
+  it("flags arbitrary-cpi when only one program-shaped account was verified", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_CPI_PARTIAL_VERIFY, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi missed invoke with a partially verified program account list").toBeDefined();
+  }, 20_000);
+
+  it("does not flag unchecked-arithmetic on account-layout `len()` math", async () => {
+    const out = await runRustAutofixer({ code: SECURE_ARITHMETIC_LEN_MATH, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "unchecked-arithmetic");
+    expect(hit, `unchecked-arithmetic fired on len() math: ${hit?.code_snippet}`).toBeUndefined();
+  }, 20_000);
+
+  it("does flag unchecked-arithmetic on lamport math", async () => {
+    const out = await runRustAutofixer({
+      code: VULNERABLE_ARITHMETIC_LAMPORTS,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "unchecked-arithmetic");
+    expect(hit, `unchecked-arithmetic missed lamport math`).toBeDefined();
+  }, 20_000);
+
+  it("does not treat local try_from bindings as account destructures", async () => {
+    const out = await runRustAutofixer({
+      code: SECURE_TRY_FROM_WITH_LOCAL_BINDING,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "readonly-enforcement" && i.title.includes("bump"));
+    expect(hit, `readonly-enforcement treated local bump as an account: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+});
+
+describe("unsafe-unwrap noise suppression (infallible try_into patterns)", () => {
+  it("suppresses `data[0..N].try_into().unwrap()` with literal range", async () => {
+    const out = await runRustAutofixer({ code: SECURE_UNWRAP_FIXED_SLICE_LITERAL, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "unsafe-unwrap");
+    expect(hit, `unsafe-unwrap fired on literal fixed slice: ${hit?.code_snippet}`).toBeUndefined();
+  }, 20_000);
+
+  it("suppresses `data[offset..offset + N].try_into().unwrap()`", async () => {
+    const out = await runRustAutofixer({ code: SECURE_UNWRAP_FIXED_SLICE_OFFSET, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "unsafe-unwrap");
+    expect(hit, `unsafe-unwrap fired on offset+literal slice: ${hit?.code_snippet}`).toBeUndefined();
+  }, 20_000);
+
+  it("suppresses `value.to_le_bytes().try_into().unwrap()`", async () => {
+    const out = await runRustAutofixer({ code: SECURE_UNWRAP_TO_LE_BYTES, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "unsafe-unwrap");
+    expect(hit, `unsafe-unwrap fired on to_le_bytes round-trip: ${hit?.code_snippet}`).toBeUndefined();
+  }, 20_000);
+
+  it("still flags `from_utf8(attacker_bytes).unwrap()`", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_UNWRAP_FROM_UTF8, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "unsafe-unwrap");
+    expect(hit, "unsafe-unwrap missed from_utf8 panic site").toBeDefined();
+  }, 20_000);
+});
+
+describe("rust_autofixer Pinocchio cross-check regression cases", () => {
+  it("reports at most one event-via-cpi finding per file", async () => {
+    const out = await runRustAutofixer({
+      code: VULNERABLE_EVENT_VIA_CPI_MULTIPLE_LOGS,
+      framework: "pinocchio",
+    });
+    const hits = out.issues.filter(i => i.rule === "event-via-cpi");
+    expect(hits).toHaveLength(1);
+  }, 20_000);
+
+  it("does not flag diagnostic msg logs as event-via-cpi", async () => {
+    const out = await runRustAutofixer({
+      code: SECURE_EVENT_VIA_CPI_DEBUG_LOGS,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "event-via-cpi");
+    expect(hit, `event-via-cpi flagged diagnostic logs: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+
+  it("does not count nested function borrows against the outer function", async () => {
+    const out = await runRustAutofixer({
+      code: SECURE_ACCOUNT_BORROW_NESTED_FN,
+      framework: "pinocchio",
+    });
+    const hits = out.issues.filter(i => i.rule === "account-borrow");
+    expect(hits).toHaveLength(1);
+  }, 20_000);
+
+  it("flags authority writes when only an unrelated signer was verified", async () => {
+    const out = await runRustAutofixer({
+      code: VULNERABLE_AUTHORITY_ESC_UNRELATED_SIGNER,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "authority-escalation");
+    expect(hit, "authority-escalation missed an unrelated verified signer").toBeDefined();
+  }, 20_000);
+
+  it("flags authority writes when the signer comparison is not a rejecting guard", async () => {
+    const out = await runRustAutofixer({
+      code: VULNERABLE_AUTHORITY_ESC_PASSIVE_COMPARE,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "authority-escalation");
+    expect(hit, "authority-escalation accepted a passive comparison").toBeDefined();
+  }, 20_000);
+
+  it("flags CreateAccount when only an unrelated lamports balance was checked", async () => {
+    const out = await runRustAutofixer({
+      code: VULNERABLE_REINIT_UNRELATED_LAMPORTS,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "reinitialization");
+    expect(hit, "reinitialization accepted a lamports check for the wrong account").toBeDefined();
+  }, 20_000);
+
+  it("does not require idempotent fallback when the existing-lamports branch rejects", async () => {
+    const out = await runRustAutofixer({
+      code: SECURE_EXISTING_LAMPORTS_REJECTS,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "existing-lamports");
+    expect(hit, `existing-lamports flagged an explicit rejection branch: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+
+  it("does not treat a zero-lamports branch as an existing-account branch", async () => {
+    const out = await runRustAutofixer({
+      code: SECURE_EXISTING_LAMPORTS_ZERO_BRANCH,
+      framework: "pinocchio",
+    });
+    const hit = out.issues.find(i => i.rule === "existing-lamports");
+    expect(hit, `existing-lamports flagged a fresh-account branch: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+});

@@ -71,6 +71,48 @@ describe("logAnalytics", () => {
     });
   });
 
+  it("redacts rust_autofixer source and filename from request analytics", async () => {
+    await logAnalytics({
+      event_type: "message_received",
+      request_id: "req-123",
+      session_id: "session-456",
+      details: {
+        body: JSON.stringify({
+          method: "tools/call",
+          params: {
+            name: "rust_autofixer",
+            arguments: {
+              code: "pub fn sensitive_program() {}",
+              filename: "private/program/path/lib.rs",
+              framework: "anchor",
+            },
+          },
+        }),
+      },
+    });
+
+    const expectedArgs = {
+      framework_requested: "anchor",
+      code_length: "pub fn sensitive_program() {}".length,
+      has_code: true,
+    };
+    expect(dbxLogToolCallRequestMock).toHaveBeenCalledWith({
+      toolName: "rust_autofixer",
+      requestId: "req-123",
+      sessionId: "session-456",
+      toolArgs: expectedArgs,
+      rawBody: {
+        method: "tools/call",
+        params: {
+          name: "rust_autofixer",
+          arguments: expectedArgs,
+        },
+      },
+    });
+    expect(JSON.stringify(dbxLogToolCallRequestMock.mock.calls[0][0])).not.toContain("sensitive_program");
+    expect(JSON.stringify(dbxLogToolCallRequestMock.mock.calls[0][0])).not.toContain("private/program/path");
+  });
+
   it("routes message_response to databricks logToolCallResponse", async () => {
     await logAnalytics({
       event_type: "message_response",

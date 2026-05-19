@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
+import { createRustAutofixerTool } from "../lib/tools/rustAutofixer/index.js";
 import type { SolanaTool } from "../lib/tools/types";
 
 const { createMcpHandlerMock } = vi.hoisted(() => ({
@@ -35,7 +36,7 @@ function resolveGeneralSolanaTools(): SolanaTool[] {
   return [];
 }
 
-const allTools: SolanaTool[] = resolveGeneralSolanaTools();
+const allTools: SolanaTool[] = [...resolveGeneralSolanaTools(), createRustAutofixerTool()];
 
 describe("createMcp", () => {
   beforeEach(() => {
