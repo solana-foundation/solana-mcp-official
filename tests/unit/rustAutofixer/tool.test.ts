@@ -4,7 +4,7 @@ const { logAnalyticsMock } = vi.hoisted(() => ({ logAnalyticsMock: vi.fn() }));
 vi.mock("../../../lib/analytics", () => ({ logAnalytics: logAnalyticsMock }));
 
 import { createRustAutofixerTool } from "../../../lib/tools/rustAutofixer/index.js";
-import { VULNERABLE_MISSING_SIGNER } from "./fixtures.js";
+import { VULNERABLE_MISSING_SIGNER } from "./fixtures-pinocchio.js";
 
 describe("createRustAutofixerTool", () => {
   beforeEach(() => {

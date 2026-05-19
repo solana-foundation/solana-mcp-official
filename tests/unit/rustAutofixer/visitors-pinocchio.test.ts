@@ -23,7 +23,7 @@ import {
   SECURE_ARITHMETIC_LEN_MATH,
   VULNERABLE_ARITHMETIC_LAMPORTS,
   SECURE_TRY_FROM_WITH_LOCAL_BINDING,
-} from "./fixtures.js";
+} from "./fixtures-pinocchio.js";
 
 const RULE_FIXTURES: ReadonlyArray<{
   rule: string;

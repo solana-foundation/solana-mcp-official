@@ -47,7 +47,7 @@ import {
   VULNERABLE_REINIT_UNRELATED_LAMPORTS,
   SECURE_EXISTING_LAMPORTS_REJECTS,
   SECURE_EXISTING_LAMPORTS_ZERO_BRANCH,
-} from "./fixtures-v2.js";
+} from "./fixtures-pinocchio.js";
 
 const PAIRS: ReadonlyArray<{
   rule: string;
@@ -73,7 +73,7 @@ const PAIRS: ReadonlyArray<{
   { rule: "existing-lamports", vulnerable: VULNERABLE_EXISTING_LAMPORTS, secure: SECURE_EXISTING_LAMPORTS },
 ];
 
-describe("rust_autofixer v1.1 visitors (Checks 5, 9, 10, 12-17, 19, 21-27)", () => {
+describe("rust_autofixer Pinocchio extended visitors (Checks 5, 9, 10, 12-17, 19, 21-27)", () => {
   it.each(PAIRS)(
     "$rule fires on vulnerable fixture",
     async ({ rule, vulnerable }) => {
