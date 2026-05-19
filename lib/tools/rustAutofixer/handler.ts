@@ -163,6 +163,7 @@ export async function runRustAutofixer({
   const output: AutofixerOutput = {
     issues: [],
     suggestions: [],
+    framework_detected: "unknown",
     require_another_tool_call_after_fixing: false,
   };
 
@@ -178,6 +179,7 @@ export async function runRustAutofixer({
       description: `tree-sitter could not parse the input: ${(err as Error).message}`,
       suggestion: "Confirm the input is valid Rust (a single file or concatenated module).",
     });
+    output.require_another_tool_call_after_fixing = true;
     return output;
   }
 
@@ -187,7 +189,9 @@ export async function runRustAutofixer({
     );
   }
 
-  const resolvedFramework: Framework = framework === "auto" ? detectFramework(tree) : framework;
+  const detectedFramework = detectFramework(tree);
+  const resolvedFramework: Framework = framework === "auto" ? detectedFramework : framework;
+  output.framework_detected = detectedFramework;
 
   const ctx: VisitorContext = {
     source: code,

@@ -21,6 +21,7 @@ export interface Issue {
 export interface AutofixerOutput {
   issues: Issue[];
   suggestions: string[];
+  framework_detected: Framework;
   require_another_tool_call_after_fixing: boolean;
 }
 

@@ -2,12 +2,7 @@ import { z } from "zod";
 import { logAnalytics } from "../../analytics.js";
 import { runRustAutofixer } from "./handler.js";
 import type { SolanaTool } from "../types.js";
-
-const ANALYTICS_RES_SNIPPET_CHARS = 500;
-
-function snippet(text: string): string {
-  return text.length <= ANALYTICS_RES_SNIPPET_CHARS ? text : `${text.slice(0, ANALYTICS_RES_SNIPPET_CHARS)}…`;
-}
+import type { AutofixerOutput } from "./types.js";
 
 const issueSchema = z.object({
   severity: z.enum(["critical", "high", "medium", "low"]),
@@ -19,13 +14,30 @@ const issueSchema = z.object({
   code_snippet: z.string().optional(),
 });
 
-export const RUST_AUTOFIXER_DESCRIPTION = `Static-analyse Solana program Rust (Pinocchio + Anchor) for security antipatterns. Returns structured issues + suggestions.
+function summarizeForAnalytics({
+  code,
+  framework,
+  result,
+}: {
+  code: string;
+  framework: "pinocchio" | "anchor" | "auto";
+  result: AutofixerOutput;
+}) {
+  return {
+    framework_requested: framework,
+    framework_detected: result.framework_detected,
+    code_length: code.length,
+    issue_count: result.issues.length,
+    suggestion_count: result.suggestions.length,
+    rules: Array.from(new Set(result.issues.map(i => i.rule))).sort(),
+    severities: Array.from(new Set(result.issues.map(i => i.severity))).sort(),
+    require_another_tool_call_after_fixing: result.require_another_tool_call_after_fixing,
+  };
+}
 
-MUST be called whenever the user asks to write or modify Solana program code, BEFORE returning the code to them. After applying fixes, call again — keep looping until \`require_another_tool_call_after_fixing\` is false.
+export const RUST_AUTOFIXER_DESCRIPTION = `Analyze Solana program Rust for Pinocchio and Anchor security antipatterns. Returns structured issues, fix suggestions, the detected framework, and whether another validation pass is required.
 
-Pinocchio: missing signer/owner/discriminator checks, unverified program IDs, sysvar spoofing, arbitrary CPI, unvalidated PDA derivation, unchecked arithmetic, signers verified but unused, accounts with no \`verify_*\` call, type cosplay, unchecked deserialization, account closure, re-initialization, rent-exempt, authority escalation, Token-2022 extensions, instruction data bounds, PDA seed collision, bump canonicalization, writable mutation, account relationship, account borrow safety, unsafe unwrap/expect, events emitted via \`msg!\`.
-
-Anchor: \`seeds\` without \`bump\`, \`init\` without \`space\` / \`payer\`, \`realloc\` missing \`realloc::payer\` / \`realloc::zero\`, \`UncheckedAccount\` / \`AccountInfo\` opt-outs, \`Account<Mint>\` / \`Account<TokenAccount>\` instead of \`InterfaceAccount\`, manual \`.is_signer\` checks, \`require_keys_eq!\` instead of \`has_one\`, \`msg!\` events inside \`#[program]\` (use \`emit!\`), \`ctx.accounts.X\` mutation without \`mut\` constraint, \`CpiContext::new\` with untyped program account, and manual lamport drain without \`close = ...\`.`;
+MUST be called whenever the user asks to write or modify Solana program Rust, before returning code. After applying fixes, call it again until \`require_another_tool_call_after_fixing\` is false.`;
 
 export function createRustAutofixerTool(): SolanaTool {
   return {
@@ -40,14 +52,17 @@ export function createRustAutofixerTool(): SolanaTool {
       framework: z
         .enum(["pinocchio", "anchor", "auto"])
         .optional()
+        .default("auto")
         .describe("Framework hint. Default 'auto' — detect from imports / attributes."),
     },
     outputSchema: {
       issues: z.array(issueSchema),
       suggestions: z.array(z.string()),
+      framework_detected: z.enum(["pinocchio", "anchor", "unknown"]),
       require_another_tool_call_after_fixing: z.boolean(),
     },
     annotations: {
+      title: "Rust Autofixer",
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,
@@ -62,14 +77,19 @@ export function createRustAutofixerTool(): SolanaTool {
       filename?: string;
       framework?: "pinocchio" | "anchor" | "auto";
     }) => {
-      const result = await runRustAutofixer({ code, filename, framework });
+      const frameworkRequested = framework ?? "auto";
+      const result = await runRustAutofixer({ code, filename, framework: frameworkRequested });
       const text = JSON.stringify(result, null, 2);
+      const analytics = summarizeForAnalytics({ code, framework: frameworkRequested, result });
       await logAnalytics({
         event_type: "message_response",
         details: {
           tool: "rust_autofixer",
-          req: snippet(code),
-          res: snippet(text),
+          req: JSON.stringify({
+            framework_requested: analytics.framework_requested,
+            code_length: analytics.code_length,
+          }),
+          res: JSON.stringify(analytics),
         },
       });
       return {
