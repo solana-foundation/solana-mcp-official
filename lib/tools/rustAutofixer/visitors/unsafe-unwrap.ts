@@ -1,9 +1,7 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation, snippet } from "../types.js";
 import { getMethodCallName } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const TARGETS = new Set(["unwrap", "expect"]);
 const SAFE_CONVERT_METHODS = new Set(["to_le_bytes", "to_be_bytes", "to_ne_bytes"]);

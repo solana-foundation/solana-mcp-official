@@ -1,4 +1,4 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor, VisitorContext } from "../types.js";
 import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
@@ -13,8 +13,6 @@ import {
   macroIdentifiers,
   rootIdentifierOf,
 } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const AUTHORIZATION_METHODS = new Set(["eq", "ne", "equals", "not_equals"]);
 

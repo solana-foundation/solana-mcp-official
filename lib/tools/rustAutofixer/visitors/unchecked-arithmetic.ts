@@ -1,10 +1,8 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation, snippet } from "../types.js";
 import { walk } from "../walk.js";
 import { CHECKED_ARITHMETIC_METHODS } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const RISKY_OPS = new Set(["+", "-", "*"]);
 const COMPOUND_OPS = new Set(["+=", "-=", "*="]);

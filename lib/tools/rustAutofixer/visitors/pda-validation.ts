@@ -1,4 +1,4 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { getCallName, walk } from "../walk.js";
@@ -9,8 +9,6 @@ import {
   getMethodCallName,
   getMethodReceiverRoot,
 } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const PDA_DERIVATION_FNS = new Set(["find_program_address", "try_find_program_address", "create_program_address"]);
 

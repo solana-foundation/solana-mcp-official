@@ -1,9 +1,7 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor, VisitorContext } from "../types.js";
 import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
-
-type Node = Parser.SyntaxNode;
 
 const TOKEN_2022_MARKERS = new Set([
   "TOKEN_2022_PROGRAM_ID",

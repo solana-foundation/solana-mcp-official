@@ -1,4 +1,4 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation, snippet } from "../types.js";
 import { getCallName, walk } from "../walk.js";
@@ -10,8 +10,6 @@ import {
   getMethodCallName,
   rootIdentifierOf,
 } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const AUTHORITY_FIELD_NAMES = new Set([
   "admin",

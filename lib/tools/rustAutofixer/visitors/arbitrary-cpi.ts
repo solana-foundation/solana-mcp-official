@@ -1,10 +1,8 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { getCallName, walk } from "../walk.js";
 import { findEnclosingFunctionBody, getCallArgs, isProgramAccountName, rootIdentifierOf } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const INVOKE_FNS = new Set(["invoke", "invoke_signed", "invoke_unchecked", "invoke_signed_unchecked"]);
 

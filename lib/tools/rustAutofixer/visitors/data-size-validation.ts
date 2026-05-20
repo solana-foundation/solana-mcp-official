@@ -1,11 +1,9 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
 import { getCallName } from "../walk.js";
 import { findEnclosingFunctionBody, getMacroName } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const UNCHECKED_CALLS = new Set(["from_bytes_unchecked", "load_unchecked"]);
 const LENGTH_CHECK_MACROS = new Set(["require_len", "require_size", "require_eq_len"]);

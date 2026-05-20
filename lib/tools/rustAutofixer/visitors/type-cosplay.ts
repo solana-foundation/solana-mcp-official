@@ -1,8 +1,6 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor, VisitorContext } from "../types.js";
 import { formatLocation } from "../types.js";
-
-type Node = Parser.SyntaxNode;
 
 interface DiscriminatorAssignment {
   ownerType: string;

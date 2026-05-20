@@ -1,9 +1,7 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { collectCtxAccountsAccesses, findFieldsForHandlerContext, isInsideProgramModule } from "./_anchor-helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 function isZeroLiteral(node: Node): boolean {
   if (node.type === "integer_literal") return node.text === "0";
@@ -18,7 +16,7 @@ function lhsTouchesLamports(left: Node): boolean {
   let found = false;
   const cursor = left.walk();
   const visit = (): void => {
-    const n = cursor.currentNode();
+    const n = cursor.currentNode;
     if (found) return;
     if (n.type === "field_identifier" && n.text === "lamports") found = true;
     if (n.type === "identifier" && n.text === "lamports") found = true;

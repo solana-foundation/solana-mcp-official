@@ -1,8 +1,6 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation, snippet } from "../types.js";
-
-type Node = Parser.SyntaxNode;
 
 /**
  * Pointer cast `as *const T` / `as *mut T` is fine inside a function explicitly

@@ -1,4 +1,4 @@
-import type Parser from "web-tree-sitter";
+import type { Node, Tree } from "web-tree-sitter";
 import { parseRust } from "./parse.js";
 import { walk } from "./walk.js";
 import { allVisitors } from "./visitors/index.js";
@@ -17,12 +17,12 @@ const PINOCCHIO_USE_ROOTS = new Set([
 
 const ANCHOR_USE_ROOTS = new Set(["anchor_lang", "anchor_spl"]);
 
-function useDeclarationRoot(useDecl: Parser.SyntaxNode): string | null {
+function useDeclarationRoot(useDecl: Node): string | null {
   for (let i = 0; i < useDecl.namedChildCount; i++) {
     const child = useDecl.namedChild(i);
     if (!child) continue;
     if (child.type === "scoped_identifier" || child.type === "use_wildcard" || child.type === "scoped_use_list") {
-      let cursor: Parser.SyntaxNode | null = child;
+      let cursor: Node | null = child;
       while (cursor) {
         if (cursor.type === "identifier") return cursor.text;
         if (cursor.type === "scoped_identifier") {
@@ -43,7 +43,7 @@ function useDeclarationRoot(useDecl: Parser.SyntaxNode): string | null {
   return null;
 }
 
-function detectFramework(tree: Parser.Tree): Framework {
+function detectFramework(tree: Tree): Framework {
   let pinocchio = false;
   let anchor = false;
 
@@ -114,7 +114,7 @@ function buildDispatch(visitors: readonly Visitor[]): Map<string, Array<{ visito
   return dispatch;
 }
 
-function runVisitorPipeline(tree: Parser.Tree, ctx: VisitorContext): void {
+function runVisitorPipeline(tree: Tree, ctx: VisitorContext): void {
   const active = allVisitors.filter(v => ctx.framework === "unknown" || v.appliesTo.includes(ctx.framework));
 
   for (const v of active) {
@@ -183,7 +183,7 @@ export async function runRustAutofixer({
     return output;
   }
 
-  if (tree.rootNode.hasError()) {
+  if (tree.rootNode.hasError) {
     output.suggestions.push(
       "Parser reported syntax errors in the input. Fix syntax first; some lint rules may be unreliable on partially-parsed code.",
     );

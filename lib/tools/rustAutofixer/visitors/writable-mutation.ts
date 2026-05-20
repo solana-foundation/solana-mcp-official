@@ -1,11 +1,9 @@
-import type Parser from "web-tree-sitter";
+import type { Node, Tree } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
 import { getCallName } from "../walk.js";
 import { getCallArgs, rootIdentifierOf } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const WRITABLE_VERIFY_CALLS = new Set(["verify_writable"]);
 const MUTATING_METHODS = new Set([
@@ -47,7 +45,7 @@ function chainMentions(node: Node, target: string): boolean {
   return mentions;
 }
 
-function moduleMutatesAccount(tree: Parser.Tree, target: string): boolean {
+function moduleMutatesAccount(tree: Tree, target: string): boolean {
   let mutated = false;
   walk(tree.rootNode, n => {
     if (mutated) return "skip";
