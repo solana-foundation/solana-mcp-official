@@ -70,7 +70,7 @@ async function serveStaticFile(
   try {
     const body = await readFile(join(PUBLIC_DIR, fileName));
     res.writeHead(200, {
-      "Cache-Control": fileName === "index.html" ? "public, max-age=60" : "public, max-age=31536000, immutable",
+      "Cache-Control": fileName === "index.html" ? "public, max-age=60" : "public, max-age=86400",
       "Content-Length": body.byteLength,
       "Content-Type": contentType,
     });
