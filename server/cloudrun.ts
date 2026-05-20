@@ -1,9 +1,21 @@
+import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { join } from "node:path";
 
 import { handleMcpRequest } from "../lib/handler";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const SHUTDOWN_GRACE_MS = 10_000;
+const PUBLIC_DIR = join(process.cwd(), "public");
+const STATIC_ASSETS = new Map([
+  ["/apple-touch-icon.png", "image/png"],
+  ["/favicon.ico", "image/x-icon"],
+  ["/favicon.png", "image/png"],
+  ["/favicon.svg", "image/svg+xml"],
+  ["/icon-192.png", "image/png"],
+  ["/icon-512.png", "image/png"],
+  ["/meta.png", "image/png"],
+]);
 
 const server = createServer((req, res) => {
   void route(req, res).catch(err => {
@@ -18,15 +30,59 @@ const server = createServer((req, res) => {
 });
 
 async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (req.method === "GET" && req.url === "/health") {
+  const pathname = getPathname(req);
+
+  if (req.method === "GET" && pathname === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
     return;
   }
 
+  if (req.method === "GET" || req.method === "HEAD") {
+    if (pathname === "/" || pathname === "/index.html") {
+      await serveStaticFile(res, "index.html", "text/html; charset=utf-8", req.method === "HEAD");
+      return;
+    }
+
+    const contentType = STATIC_ASSETS.get(pathname);
+    if (contentType) {
+      await serveStaticFile(res, pathname.slice(1), contentType, req.method === "HEAD");
+      return;
+    }
+  }
+
   const webReq = await toWebRequest(req);
   const webRes = await handleMcpRequest(webReq);
   await streamWebResponse(webRes, res);
+}
+
+function getPathname(req: IncomingMessage): string {
+  const host = req.headers.host ?? `localhost:${PORT}`;
+  return new URL(req.url ?? "/", `http://${host}`).pathname;
+}
+
+async function serveStaticFile(
+  res: ServerResponse,
+  fileName: string,
+  contentType: string,
+  headOnly: boolean,
+): Promise<void> {
+  try {
+    const body = await readFile(join(PUBLIC_DIR, fileName));
+    res.writeHead(200, {
+      "Cache-Control": fileName === "index.html" ? "public, max-age=60" : "public, max-age=31536000, immutable",
+      "Content-Length": body.byteLength,
+      "Content-Type": contentType,
+    });
+    res.end(headOnly ? undefined : body);
+  } catch (err) {
+    if (err instanceof Error && "code" in err && err.code === "ENOENT") {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(headOnly ? undefined : "Not found");
+      return;
+    }
+    throw err;
+  }
 }
 
 async function toWebRequest(req: IncomingMessage): Promise<Request> {
