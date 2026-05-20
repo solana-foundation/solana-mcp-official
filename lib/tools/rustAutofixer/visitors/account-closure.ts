@@ -1,10 +1,8 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
 import { findEnclosingFunctionBody, getMethodCallName, getMethodReceiverRoot } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 function isLamportsZeroCall(node: Node): { receiver: string | null } | null {
   if (node.type !== "call_expression") return null;

@@ -1,13 +1,11 @@
-import type Parser from "web-tree-sitter";
-
-type Node = Parser.SyntaxNode;
+import type { Node } from "web-tree-sitter";
 
 export type WalkCallback = (node: Node) => void | "skip";
 
 export function walk(node: Node, cb: WalkCallback): void {
   const cursor = node.walk();
   const visit = (): void => {
-    const current = cursor.currentNode();
+    const current = cursor.currentNode;
     const result = cb(current);
     if (result === "skip") return;
     if (cursor.gotoFirstChild()) {

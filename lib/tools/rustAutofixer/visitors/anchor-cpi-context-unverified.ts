@@ -1,10 +1,8 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { ctxAccountsField, findFieldsForHandlerContext, isInsideProgramModule } from "./_anchor-helpers.js";
 import { walk } from "../walk.js";
-
-type Node = Parser.SyntaxNode;
 
 const CPI_CONTEXT_CTORS = new Set(["new", "new_with_signer"]);
 

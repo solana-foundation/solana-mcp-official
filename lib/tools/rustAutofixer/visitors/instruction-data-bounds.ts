@@ -1,11 +1,9 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
 import { getCallName } from "../walk.js";
 import { getMacroName } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const LEN_MACROS = new Set(["require_len", "require_size", "require_eq_len"]);
 const LEN_FNS = new Set(["require_len", "check_len", "verify_len"]);

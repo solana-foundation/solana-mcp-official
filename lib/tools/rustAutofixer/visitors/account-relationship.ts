@@ -1,11 +1,9 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
 import { getCallName } from "../walk.js";
 import { findEnclosingFunctionBody, getMethodCallName } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const TRANSFER_STRUCT_TYPES = new Set(["TransferChecked", "Transfer", "Burn", "MintTo", "Approve"]);
 const RELATIONSHIP_CHECK_FNS = new Set([

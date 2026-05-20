@@ -1,10 +1,8 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
 import { findEnclosingFunctionBody, getMethodCallName, getMethodReceiverRoot } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const BORROW_METHODS = new Set(["try_borrow_mut", "try_borrow_mut_data", "borrow_mut"]);
 

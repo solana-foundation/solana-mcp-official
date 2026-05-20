@@ -1,8 +1,6 @@
-import type Parser from "web-tree-sitter";
+import type { Node, Tree } from "web-tree-sitter";
 import type { TryFromBody } from "./visitors/_helpers.js";
 import type { AnchorContext } from "./visitors/_anchor-helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 export type Severity = "critical" | "high" | "medium" | "low";
 
@@ -43,7 +41,7 @@ export interface Visitor {
   severity: Severity;
   appliesTo: Framework[];
   /** Optional pre-pass: cache state on ctx, scan for prerequisites, etc. */
-  before?(tree: Parser.Tree, ctx: VisitorContext): void;
+  before?(tree: Tree, ctx: VisitorContext): void;
   /** Per-node-type handlers. Driver dispatches by node.type during a single tree walk. */
   enter?: Record<string, EnterHandler>;
   /** Optional finalize after the walk. */

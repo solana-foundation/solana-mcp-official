@@ -1,10 +1,8 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor, VisitorContext } from "../types.js";
 import { formatLocation } from "../types.js";
 import { ctxAccountsField, findFieldsForHandlerContext, isInsideProgramModule } from "./_anchor-helpers.js";
 import { getMethodCallName } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const MUTATING_METHODS = new Set([
   "set_lamports",

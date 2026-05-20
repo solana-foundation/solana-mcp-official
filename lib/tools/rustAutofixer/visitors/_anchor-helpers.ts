@@ -1,8 +1,5 @@
-import type Parser from "web-tree-sitter";
+import type { Node, Tree } from "web-tree-sitter";
 import { walk } from "../walk.js";
-
-type Node = Parser.SyntaxNode;
-type Tree = Parser.Tree;
 
 export interface ParsedAccountAttr {
   /** Bare keywords inside the macro body, e.g. `init`, `bump`, `signer`, `mut`. */
@@ -323,7 +320,7 @@ export function collectCtxAccountsAccesses(scope: Node): Set<string> {
   const out = new Set<string>();
   const cursor = scope.walk();
   const visit = (): void => {
-    const n = cursor.currentNode();
+    const n = cursor.currentNode;
     if (n.type === "field_expression") {
       const value = n.childForFieldName("value");
       const field = n.childForFieldName("field");

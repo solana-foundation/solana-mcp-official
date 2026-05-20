@@ -1,8 +1,5 @@
-import type Parser from "web-tree-sitter";
+import type { Node, Tree } from "web-tree-sitter";
 import { findAll, findFirst, getCallName, walk } from "../walk.js";
-
-type Node = Parser.SyntaxNode;
-type Tree = Parser.Tree;
 
 const SIGNER_NAMES = new Set(["admin", "authority", "owner", "signer", "payer", "delegate", "fee_payer"]);
 

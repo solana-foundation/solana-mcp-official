@@ -1,10 +1,8 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { VisitorContext } from "../types.js";
 import type { Visitor } from "../types.js";
 import { formatLocation, snippet } from "../types.js";
 import { getMacroName } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 const LOG_MACROS = new Set(["msg", "log", "sol_log"]);
 const EVENT_LOG_HINTS = new Set([

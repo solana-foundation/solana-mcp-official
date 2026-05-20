@@ -1,10 +1,8 @@
-import type Parser from "web-tree-sitter";
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
 import { findEnclosingFunctionBody, getMethodCallName, rootIdentifierOf } from "./_helpers.js";
-
-type Node = Parser.SyntaxNode;
 
 function isCreateAccountStruct(node: Node): boolean {
   if (node.type !== "struct_expression") return false;
