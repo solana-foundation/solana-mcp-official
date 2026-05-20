@@ -35,7 +35,7 @@
     "mcp-handler": "1.1.0",
     "redis": "^5.12.1",
     "tree-sitter-wasms": "^0.1.13",
-    "web-tree-sitter": "^0.21.0",
+    "web-tree-sitter": "^0.26.9",
     "zod": "^4.3.6"
   },
   "devDependencies": {
