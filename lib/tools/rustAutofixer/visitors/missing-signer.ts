@@ -1,6 +1,6 @@
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
-import { VERIFY_SIGNER_CALLS, bodyContainsVerifyFor, isSignerName } from "./_helpers.js";
+import { bodyContainsSignerValidationFor, isSignerName } from "./_helpers.js";
 
 export const missingSigner: Visitor = {
   name: "missing-signer",
@@ -10,7 +10,7 @@ export const missingSigner: Visitor = {
     for (const { body, destructured, implName } of ctx.tryFromBodies) {
       for (const account of destructured) {
         if (!isSignerName(account)) continue;
-        if (bodyContainsVerifyFor(body, VERIFY_SIGNER_CALLS, account)) continue;
+        if (bodyContainsSignerValidationFor(body, account)) continue;
         ctx.output.issues.push({
           severity: "critical",
           rule: "missing-signer",

@@ -8,6 +8,9 @@ import {
   getCallArgs,
   getMacroName,
   getMethodCallName,
+  inlineSignerGuardRoot,
+  isNegatedRejectingGuard,
+  isRejectingGuard,
   rootIdentifierOf,
 } from "./_helpers.js";
 
@@ -33,10 +36,13 @@ function verifiedSignersBefore(scope: Node, beforeIndex: number): Set<string> {
     if (n.type !== "call_expression") return;
     const fn = n.childForFieldName("function");
     const name = fn ? getCallName(fn) : null;
-    if (!name || !VERIFY_SIGNER_FNS.has(name)) return;
-    const signer = getCallArgs(n)[0];
-    const root = signer ? rootIdentifierOf(signer) : null;
-    if (root) signers.add(root);
+    if (name && VERIFY_SIGNER_FNS.has(name)) {
+      const signer = getCallArgs(n)[0];
+      const root = signer ? rootIdentifierOf(signer) : null;
+      if (root) signers.add(root);
+    }
+    const inlineRoot = inlineSignerGuardRoot(n);
+    if (inlineRoot) signers.add(inlineRoot);
   });
   return signers;
 }
@@ -54,78 +60,6 @@ function containsAuthorityField(node: Node, stateRoot: string, fieldName: string
     }
   });
   return found;
-}
-
-function nodeContainsErrorConstructor(node: Node): boolean {
-  let found = false;
-  walk(node, n => {
-    if (found) return "skip";
-    if (n.type === "call_expression") {
-      const fn = n.childForFieldName("function");
-      const name = fn ? getCallName(fn) : null;
-      if (name === "Err") {
-        found = true;
-        return "skip";
-      }
-    }
-    if (n.type === "macro_invocation") {
-      const name = getMacroName(n);
-      if (name === "err" || name === "require" || name === "require_keys_eq") {
-        found = true;
-        return "skip";
-      }
-    }
-  });
-  return found;
-}
-
-function branchRejects(ifNode: Node): boolean {
-  const consequence = ifNode.childForFieldName("consequence");
-  return !!consequence && nodeContainsErrorConstructor(consequence);
-}
-
-function nodeIsInIfCondition(node: Node, ifNode: Node): boolean {
-  const condition = ifNode.childForFieldName("condition") ?? ifNode.namedChild(0);
-  if (!condition) return false;
-  return node.startIndex >= condition.startIndex && node.endIndex <= condition.endIndex;
-}
-
-function isUnderNegationBefore(node: Node, ancestor: Node): boolean {
-  let cursor: Node | null = node.parent;
-  while (cursor && cursor.startIndex >= ancestor.startIndex && cursor.endIndex <= ancestor.endIndex) {
-    if (cursor.type === "unary_expression" && cursor.text.trim().startsWith("!")) return true;
-    if (
-      cursor.startIndex === ancestor.startIndex &&
-      cursor.endIndex === ancestor.endIndex &&
-      cursor.type === ancestor.type
-    ) {
-      break;
-    }
-    cursor = cursor.parent;
-  }
-  return false;
-}
-
-function isRejectingGuard(node: Node): boolean {
-  let cursor: Node | null = node.parent;
-  while (cursor) {
-    if (cursor.type === "if_expression") {
-      return nodeIsInIfCondition(node, cursor) && branchRejects(cursor);
-    }
-    cursor = cursor.parent;
-  }
-  return false;
-}
-
-function isNegatedRejectingGuard(node: Node): boolean {
-  let cursor: Node | null = node.parent;
-  while (cursor) {
-    if (cursor.type === "if_expression") {
-      return nodeIsInIfCondition(node, cursor) && branchRejects(cursor) && isUnderNegationBefore(node, cursor);
-    }
-    cursor = cursor.parent;
-  }
-  return false;
 }
 
 function mentionsAnySigner(node: Node, signers: ReadonlySet<string>): boolean {
