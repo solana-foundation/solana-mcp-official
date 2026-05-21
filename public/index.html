@@ -1,625 +1,1159 @@
-<!DOCTYPE html>
-<html lang="en" class="light">
-  <title>Solana Developer MCP</title>
+<!doctype html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>
-      Solana Developer MCP - AI-Powered Tools for Solana Developers
-    </title>
-
-    <!-- Meta Tags -->
+    <title>Solana Developer MCP</title>
     <meta
       name="description"
-      content="Set up Solana Developer MCP in your IDE to access real-time documentation, query accounts, analyze transactions, and generate CPI statements. Built for the Solana developer community."
+      content="Connect Solana Developer MCP to Codex, Claude Code, Cursor, Windsurf, or VS Code for current Solana documentation, canonical source retrieval, and Rust program checks."
     />
     <meta
       name="keywords"
-      content="Solana, blockchain development, MCP, developer tools, smart contracts, web3, cryptocurrency, DeFi"
+      content="Solana, MCP, Codex, Claude Code, Cursor, Windsurf, VS Code, Anchor, Pinocchio, Rust"
     />
-
-    <!-- Open Graph -->
-    <meta
-      property="og:title"
-      content="Solana Developer MCP - AI-Powered Tools for Solana Developers"
-    />
+    <meta property="og:title" content="Solana Developer MCP" />
     <meta
       property="og:description"
-      content="Access Solana blockchain development tools directly in your IDE with real-time documentation and program analysis capabilities."
+      content="Current Solana documentation and Rust program-safety tools for MCP-compatible AI coding clients."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://mcp.solana.com/" />
-    <meta property="og:image" content="https://mcp.solana.com/favicon.png" />
+    <meta property="og:image" content="https://mcp.solana.com/meta.png" />
     <meta property="og:site_name" content="Solana Developer MCP" />
-
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Solana Developer MCP" />
     <meta
       name="twitter:description"
-      content="AI-powered tools for Solana blockchain developers"
+      content="Current Solana documentation and Rust program-safety tools for MCP-compatible AI coding clients."
     />
     <meta name="twitter:image" content="https://mcp.solana.com/meta.png" />
-
-    <!-- Canonical URL -->
     <link rel="canonical" href="https://mcp.solana.com/" />
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Google Fonts -->
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-    />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <script>
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ["Inter", "sans-serif"],
-            },
-          },
-        },
-      };
-    </script>
     <style>
-      .tab-content {
+      :root {
+        --background: oklch(0.9826 0.002 286.25);
+        --foreground: oklch(0.2269 0.002 286.25);
+        --card: oklch(1 0 0);
+        --muted: oklch(0.9665 0.003 286.25);
+        --muted-foreground: oklch(0.4947 0.007 286.25);
+        --border: oklch(0.884 0.007 286.25);
+        --border-low: oklch(0.927 0.005 286.25);
+        --border-extra-low: oklch(0.9665 0.003 286.25);
+        --sand-100: oklch(0.9665 0.003 286.25);
+        --sand-200: oklch(0.927 0.005 286.25);
+        --sand-300: oklch(0.884 0.007 286.25);
+        --sand-1000: oklch(0.5438 0.008 286.25);
+        --sand-1100: oklch(0.4947 0.007 286.25);
+        --accent: #14f195;
+        --accent-foreground: #07130f;
+        --code-bg: oklch(0.18 0.001 286.25);
+        --code-text: oklch(0.9826 0.002 286.25);
+        --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        font-synthesis-weight: none;
+        font-synthesis-style: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        font-optical-sizing: auto;
+      }
+
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: var(--font-sans);
+        line-height: 1.5;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      .page {
+        min-height: 100dvh;
+      }
+
+      .shell {
+        width: min(1280px, calc(100% - 48px));
+        margin: 0 auto;
+      }
+
+      .app-header {
+        position: fixed;
+        inset: 0 0 auto;
+        z-index: 40;
+        border-bottom: 1px solid color-mix(in oklch, var(--border-low) 70%, transparent);
+        background: color-mix(in oklch, var(--background) 82%, transparent);
+        backdrop-filter: blur(12px);
+      }
+
+      .header-inner {
+        display: flex;
+        min-height: 72px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 0;
+      }
+
+      .brand-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+      }
+
+      .brand-link img {
+        width: 24px;
+        height: 24px;
+      }
+
+      .brand-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .nav a {
+        border-radius: 999px;
+        padding: 8px 12px;
+        color: var(--sand-1100);
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition:
+          background-color 160ms ease,
+          color 160ms ease;
+      }
+
+      .nav a:hover {
+        background: var(--sand-100);
+        color: var(--foreground);
+      }
+
+      .header-action {
+        display: inline-flex;
+        min-height: 36px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--card);
+        padding: 8px 14px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition:
+          background-color 160ms ease,
+          transform 160ms ease;
+      }
+
+      .header-action:hover {
+        background: var(--sand-100);
+      }
+
+      .header-action:active,
+      .button:active,
+      .tab:active {
+        transform: scale(0.98);
+      }
+
+      .hero {
+        padding: 128px 0 48px;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+        gap: 32px;
+        align-items: end;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--card);
+        padding: 6px 10px;
+        color: var(--sand-1100);
+        font-size: 0.8125rem;
+        font-weight: 600;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        flex: 0 0 8px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      h1 {
+        max-width: 820px;
+        margin-bottom: 16px;
+        font-size: clamp(2.75rem, 6vw, 5.5rem);
+        font-weight: 750;
+        letter-spacing: 0;
+        line-height: 0.92;
+      }
+
+      .lead {
+        max-width: 760px;
+        margin-bottom: 28px;
+        color: var(--muted-foreground);
+        font-size: clamp(1.05rem, 1.9vw, 1.25rem);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 40px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--card);
+        color: var(--foreground);
+        padding: 10px 16px;
+        font-size: 0.9375rem;
+        font-weight: 650;
+        text-decoration: none;
+        transition:
+          background-color 160ms ease,
+          transform 160ms ease;
+      }
+
+      .button.primary {
+        border-color: var(--foreground);
+        background: var(--foreground);
+        color: var(--background);
+      }
+
+      .button.primary:hover {
+        opacity: 0.88;
+      }
+
+      .button.secondary:hover {
+        background: var(--sand-100);
+      }
+
+      .status-card,
+      .setup-panel,
+      .tool-card,
+      .example-card,
+      .instruction-block {
+        border: 0;
+        border-radius: 16px;
+        background:
+          repeating-linear-gradient(
+              to right,
+              var(--sand-300) 0,
+              var(--sand-300) 6px,
+              transparent 6px,
+              transparent 12px
+            )
+            top/100% 1px no-repeat,
+          repeating-linear-gradient(
+              to right,
+              var(--sand-300) 0,
+              var(--sand-300) 6px,
+              transparent 6px,
+              transparent 12px
+            )
+            bottom/100% 1px no-repeat,
+          repeating-linear-gradient(
+              to bottom,
+              var(--sand-300) 0,
+              var(--sand-300) 6px,
+              transparent 6px,
+              transparent 12px
+            )
+            left/1px 100% no-repeat,
+          repeating-linear-gradient(
+              to bottom,
+              var(--sand-300) 0,
+              var(--sand-300) 6px,
+              transparent 6px,
+              transparent 12px
+            )
+            right/1px 100% no-repeat,
+          var(--card);
+      }
+
+      .status-card {
+        padding: 24px;
+      }
+
+      .status-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 22px;
+      }
+
+      .status-heading h2 {
+        margin-bottom: 0;
+        font-size: 1.0625rem;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--accent) 18%, white);
+        padding: 5px 9px;
+        color: var(--accent-foreground);
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+
+      .metric-grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .metric-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--sand-100);
+        padding-bottom: 14px;
+      }
+
+      .metric-row:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+
+      .metric-label {
+        color: var(--sand-1100);
+        font-size: 0.875rem;
+      }
+
+      .metric-value {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        font-family: var(--font-mono);
+        font-size: 0.875rem;
+        font-weight: 700;
+        text-align: right;
+      }
+
+      main {
+        padding: 0 0 64px;
+      }
+
+      section {
+        scroll-margin-top: 96px;
+        margin-top: 48px;
+      }
+
+      section:first-child {
+        margin-top: 0;
+      }
+
+      .section-heading {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 18px;
+      }
+
+      .section-heading h2 {
+        margin-bottom: 4px;
+        font-size: clamp(1.75rem, 3vw, 2.5rem);
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      .section-heading p {
+        max-width: 680px;
+        margin-bottom: 0;
+        color: var(--muted-foreground);
+      }
+
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .tab {
+        min-height: 38px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--sand-1100);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.875rem;
+        font-weight: 650;
+        padding: 8px 13px;
+        transition:
+          background-color 160ms ease,
+          color 160ms ease,
+          transform 160ms ease;
+      }
+
+      .tab:hover {
+        background: var(--sand-100);
+        color: var(--foreground);
+      }
+
+      .tab[aria-selected="true"] {
+        background: var(--sand-200);
+        color: var(--foreground);
+      }
+
+      .client-panel {
+        display: grid;
+        gap: 0;
+        padding: 0;
+      }
+
+      .client-panel[hidden] {
         display: none;
       }
-      .tab-content.active {
-        display: block;
+
+      .instruction-panel[hidden] {
+        display: none;
       }
-      .tab {
-        cursor: pointer;
-        padding: 8px 16px;
-        border-radius: 8px 8px 0 0;
-        transition: all 0.2s ease;
+
+      .step {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 16px;
+        padding: 24px;
+        border-bottom: 1px solid var(--sand-100);
       }
-      .tab.active {
-        /* background-color: #1f2937; */
-        background-color: #7c3aed;
-        color: white;
+
+      .step:last-child {
+        border-bottom: 0;
       }
-      .tab:not(.active) {
-        background-color: #f3f4f6;
-        color: #6b7280;
+
+      .step-number {
+        display: inline-flex;
+        width: 32px;
+        height: 32px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: var(--foreground);
+        color: var(--background);
+        font-family: var(--font-mono);
+        font-size: 0.8125rem;
+        font-weight: 700;
       }
-      .dark .tab:not(.active) {
-        background-color: #374151;
-        color: #9ca3af;
+
+      .step h3 {
+        margin-bottom: 6px;
+        font-size: 1.0625rem;
+        font-weight: 700;
       }
-  </style>
-  <!-- ... (previous body content until tabs section) ... -->
-  
-  <!-- Tabs -->
+
+      .step p {
+        margin-bottom: 12px;
+        color: var(--muted-foreground);
+      }
+
+      code {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--sand-200);
+        color: var(--foreground);
+        font-family: var(--font-mono);
+        font-size: 0.875em;
+        padding: 0.125rem 0.375rem;
+      }
+
+      pre {
+        margin: 0;
+        overflow-x: auto;
+        border-radius: 12px;
+        background: var(--code-bg);
+        color: var(--code-text);
+        padding: 16px;
+        font-family: var(--font-mono);
+        font-size: 0.875rem;
+        line-height: 1.55;
+      }
+
+      pre code {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        padding: 0;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .tool-card,
+      .example-card,
+      .instruction-block {
+        padding: 20px;
+      }
+
+      .tool-card h3,
+      .example-card h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-size: 1.0625rem;
+        font-weight: 700;
+      }
+
+      .tool-card p,
+      .example-card p {
+        margin-bottom: 0;
+        color: var(--muted-foreground);
+      }
+
+      .tool-card.featured {
+        background:
+          repeating-linear-gradient(
+              to right,
+              color-mix(in srgb, var(--accent) 54%, var(--sand-300)) 0,
+              color-mix(in srgb, var(--accent) 54%, var(--sand-300)) 6px,
+              transparent 6px,
+              transparent 12px
+            )
+            top/100% 1px no-repeat,
+          repeating-linear-gradient(
+              to right,
+              color-mix(in srgb, var(--accent) 54%, var(--sand-300)) 0,
+              color-mix(in srgb, var(--accent) 54%, var(--sand-300)) 6px,
+              transparent 6px,
+              transparent 12px
+            )
+            bottom/100% 1px no-repeat,
+          repeating-linear-gradient(
+              to bottom,
+              color-mix(in srgb, var(--accent) 54%, var(--sand-300)) 0,
+              color-mix(in srgb, var(--accent) 54%, var(--sand-300)) 6px,
+              transparent 6px,
+              transparent 12px
+            )
+            left/1px 100% no-repeat,
+          repeating-linear-gradient(
+              to bottom,
+              color-mix(in srgb, var(--accent) 54%, var(--sand-300)) 0,
+              color-mix(in srgb, var(--accent) 54%, var(--sand-300)) 6px,
+              transparent 6px,
+              transparent 12px
+            )
+            right/1px 100% no-repeat,
+          var(--card);
+      }
+
+      .tool-meta {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: var(--sand-100);
+        color: var(--sand-1100);
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+
+      .hint {
+        margin-bottom: 14px;
+        border-radius: 12px;
+        background: var(--sand-100);
+        padding: 14px 16px;
+        color: var(--muted-foreground);
+      }
+
+      footer {
+        border-top: 1px solid var(--border-low);
+        padding: 24px 0;
+        color: var(--muted-foreground);
+      }
+
+      @media (max-width: 920px) {
+        .hero-grid,
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          padding-top: 112px;
+        }
+
+        .section-heading {
+          align-items: start;
+          flex-direction: column;
+        }
+
+        .nav {
+          display: none;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .shell {
+          width: min(100% - 28px, 1280px);
+        }
+
+        .header-action {
+          display: none;
+        }
+
+        .actions,
+        .tabs {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .button,
+        .tab {
+          width: 100%;
+        }
+
+        .step {
+          grid-template-columns: 1fr;
+          padding: 20px;
+        }
+
+        .metric-row {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .metric-value {
+          text-align: left;
+        }
+      }
     </style>
   </head>
-  <body
-    class="bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-200"
-  >
-    <div class="min-h-screen">
-      <!-- Header -->
-      <header
-        class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white relative"
-      >
-        <div class="absolute right-4 top-4 flex items-center space-x-4">
-          <button
-            id="darkModeToggle"
-            class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-            aria-label="Toggle dark mode"
-          >
-            <svg
-              id="sunIcon"
-              class="w-6 h-6 hidden"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              aria-hidden="true"
-            >
-              <path
-                d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-              />
-            </svg>
-            <svg
-              id="moonIcon"
-              class="w-6 h-6"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              aria-hidden="true"
-            >
-              <path
-                d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
-              />
-            </svg>
-          </button>
-        </div>
-        <div class="container mx-auto px-6 py-16">
-          <div class="max-w-4xl mx-auto text-center">
-            <h1 class="text-4xl md:text-6xl font-bold mb-6">
-              Solana Developer MCP
-            </h1>
-            <p class="text-xl md:text-2xl text-purple-100">
-              Set up remote Solana Developer MCP in your IDE in minutes!
-            </p>
-          </div>
+  <body>
+    <div class="page">
+      <header class="app-header">
+        <div class="shell header-inner">
+          <a class="brand-link" href="#">
+            <img src="/favicon.svg" alt="" />
+            <span class="brand-title">Solana Developer MCP</span>
+          </a>
+          <nav class="nav" aria-label="Primary navigation">
+            <a href="#setup">Setup</a>
+            <a href="#tools">Tools</a>
+            <a href="#instructions">Instructions</a>
+            <a href="#examples">Examples</a>
+          </nav>
+          <a class="header-action" href="https://solana.com/ai" target="_blank" rel="noopener noreferrer">
+            Solana AI
+          </a>
         </div>
       </header>
 
-      <!-- Main Content -->
-      <main class="container mx-auto px-6 py-6">
-        <!-- Solana.com/ai Link -->
-        <div class="text-center mb-8">
-          <a
-            href="https://solana.com/ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center px-6 py-3 text-lg font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105"
-          >
-            <span>Explore Solana AI</span>
-            <svg
-              class="w-5 h-5 ml-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-              />
-            </svg>
-          </a>
+      <main>
+        <section class="hero" aria-labelledby="hero-title">
+        <div class="shell hero-grid">
+          <div>
+            <div class="eyebrow"><span class="status-dot"></span>Remote MCP server</div>
+            <h1 id="hero-title">Current Solana docs and Rust checks for coding agents</h1>
+            <p class="lead">
+              Connect your MCP client to live Solana documentation retrieval, semantic search, and the Rust autofixer
+              for Anchor and Pinocchio program checks.
+            </p>
+            <div class="actions">
+              <a class="button primary" href="#setup">Set up your client</a>
+              <a class="button secondary" href="#instructions">Add agent instructions</a>
+            </div>
+          </div>
+
+          <aside class="status-card" aria-label="Current MCP status">
+            <div class="status-heading">
+              <h2>Live endpoint</h2>
+              <span class="badge"><span class="status-dot"></span>Ready</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-row">
+                <span class="metric-label">Endpoint</span>
+                <span class="metric-value">https://mcp.solana.com/mcp</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Transport</span>
+                <span class="metric-value">Streamable HTTP</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Registered tools</span>
+                <span class="metric-value">5</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Rust autofixer</span>
+                <span class="metric-value">Anchor + Pinocchio</span>
+              </div>
+            </div>
+          </aside>
         </div>
+      </section>
 
-        <!-- Setup Guide -->
-        <div class="max-w-4xl mx-auto">
-          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-8">
-            <h2 class="text-3xl font-bold mb-6 text-gray-800 dark:text-white">
-              Quick Setup Guide
-            </h2>
+        <div class="shell">
+        <section id="setup" aria-labelledby="setup-title">
+          <div class="section-heading">
+            <div>
+              <h2 id="setup-title">Setup</h2>
+              <p>Use the direct HTTP endpoint when your client supports it. No API key is required.</p>
+            </div>
+          </div>
 
-            <div class="space-y-6">
-              <div>
-                  <p class="text-gray-600 dark:text-gray-300 mb-4">
-                    Add the following configuration to your project based on your IDE:
+          <div class="tabs" role="tablist" aria-label="MCP client setup options">
+            <button
+              class="tab"
+              id="tab-codex"
+              type="button"
+              role="tab"
+              aria-controls="panel-codex"
+              aria-selected="true"
+              data-tab="codex"
+            >
+              Codex
+            </button>
+            <button
+              class="tab"
+              id="tab-claude"
+              type="button"
+              role="tab"
+              aria-controls="panel-claude"
+              aria-selected="false"
+              data-tab="claude"
+            >
+              Claude Code
+            </button>
+            <button
+              class="tab"
+              id="tab-cursor"
+              type="button"
+              role="tab"
+              aria-controls="panel-cursor"
+              aria-selected="false"
+              data-tab="cursor"
+            >
+              Cursor
+            </button>
+            <button
+              class="tab"
+              id="tab-windsurf"
+              type="button"
+              role="tab"
+              aria-controls="panel-windsurf"
+              aria-selected="false"
+              data-tab="windsurf"
+            >
+              Windsurf
+            </button>
+            <button
+              class="tab"
+              id="tab-vscode"
+              type="button"
+              role="tab"
+              aria-controls="panel-vscode"
+              aria-selected="false"
+              data-tab="vscode"
+            >
+              VS Code
+            </button>
+          </div>
+
+          <div class="setup-panel">
+            <div class="client-panel" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex">
+              <div class="step">
+                <span class="step-number">1</span>
+                <div>
+                  <h3>Add the server</h3>
+                  <p>Run this in a terminal where the Codex CLI is installed:</p>
+                  <pre><code>codex mcp add solana-mcp --url https://mcp.solana.com/mcp</code></pre>
+                </div>
+              </div>
+              <div class="step">
+                <span class="step-number">2</span>
+                <div>
+                  <h3>Verify the connection</h3>
+                  <p>List configured MCP servers and confirm <code>solana-mcp</code> appears:</p>
+                  <pre><code>codex mcp list</code></pre>
+                </div>
+              </div>
+              <div class="step">
+                <span class="step-number">3</span>
+                <div>
+                  <h3>Add project instructions</h3>
+                  <p>
+                    Put the agent instructions below in <code>AGENTS.md</code> when you want Codex to route Solana
+                    work through this MCP server consistently.
                   </p>
+                </div>
+              </div>
+            </div>
 
-                <!-- Tabs -->
-                <div class="mb-2 flex border-b border-gray-600 mb-4">
-                    <button id="claudeTab" class="tab active text-purple-400 mr-0 border-1 border-purple-600">Claude Code</button>
-                    <button id="cursorTab" class="tab text-purple-400 border-1 border-purple-600">Cursor</button>
-                    <button id="windsurfTab" class="tab text-purple-400 border-1 border-purple-600">Windsurf</button>
-                    <button id="vsCodeTab" class="tab text-purple-400 border-1 border-purple-600">VS Code</button>
+            <div class="client-panel" id="panel-claude" role="tabpanel" aria-labelledby="tab-claude" hidden>
+              <div class="step">
+                <span class="step-number">1</span>
+                <div>
+                  <h3>Add the server</h3>
+                  <p>Claude Code supports remote HTTP MCP servers directly:</p>
+                  <pre><code>claude mcp add --transport http solana-mcp https://mcp.solana.com/mcp</code></pre>
                 </div>
-                
-                
-                <!-- Tab Contents -->
-                <div id="claudeContent" class="tab-content active">
-                  <div class="mb-6">
-                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
-                      Run the following command in your terminal
-                    </h4>
-                  <pre
-                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto mb-6"
-                  ><code>claude mcp add --transport http solana-mcp-server https://mcp.solana.com/mcp</code></pre>
-                  </div>
-                  
-                  <div class="mb-6">
-                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">2</span>
-                      Verify the connection
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-300 mb-4">
-                      Ask a question and you should see output like:
-                    </p>
-                  <div
-                    class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md mb-6"
-                  >
-                    <span class="text-gray-600 dark:text-gray-300">
-                      solana-mcp-server - Ask_Solana_Anchor_Framework_Expert (MCP)(question: "How are events implemented in Anchor framework version 0.31? What's the syntax for defining and emitting events?")<br>
-                    </span>
-                  </div>
-                  </div>
+              </div>
+              <div class="step">
+                <span class="step-number">2</span>
+                <div>
+                  <h3>Verify the connection</h3>
+                  <p>Open Claude Code and run <code>/mcp</code>. The server should list these tools:</p>
+                  <pre><code>list_sections
+get_documentation
+Solana_Documentation_Search
+Solana_Expert__Ask_For_Help
+rust_autofixer</code></pre>
                 </div>
-                <div id="cursorContent" class="tab-content">
-                  <div class="mb-6">
-                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
-                      Configure MCP Settings
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-300 mb-4">
-                      Add globally by opening the command palette (<code
-                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                        >Cmd/Ctrl + Shift + P</code
-                      >) and selecting
-                      <code
-                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                        >&gt; Cursor Settings &gt; MCP &gt; Add new global MCP
-                        server</code
-                      >:
-                    </p>
-                  <pre
-                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto mb-6"
-                  ><code>{
+              </div>
+            </div>
+
+            <div class="client-panel" id="panel-cursor" role="tabpanel" aria-labelledby="tab-cursor" hidden>
+              <div class="step">
+                <span class="step-number">1</span>
+                <div>
+                  <h3>Configure MCP</h3>
+                  <p>
+                    Add this to <code>~/.cursor/mcp.json</code> for global use, or <code>.cursor/mcp.json</code> inside
+                    one project:
+                  </p>
+                  <pre><code>{
   "mcpServers": {
     "solanaMcp": {
       "url": "https://mcp.solana.com/mcp"
     }
   }
 }</code></pre>
-                  </div>
-                  
-                  <div class="mb-6">
-                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">2</span>
-                      Verify the connection
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-300 mb-4">
-                      Open Agent Mode (<code
-                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                        >Cmd + I</code
-                      >) and ask "Make me an anchor escrow program". You should see a card in the composer sidebar:
-                    </p>
-                    <div
-                      class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md mb-6"
-                    >
-                      <span class="text-gray-400 dark:text-gray-400">
-                        &gt; Called MCP tool
-                        <code class="font-mono text-gray-400 dark:text-gray-400"
-                          >Ask_Solana_Anchor_Framework_Expert</code
-                        >
-                        ✓
-                      </span>
-                    </div>
-                  
-                  <div class="mb-6">
-                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">3</span>
-                      Configure User Rules <span class="text-sm font-normal text-gray-500 ml-2">(Optional)</span>
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-300 mb-4">
-                      Add the following to your user rules by going to the
-                      command palette (<code
-                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                        >Cmd/Ctrl + Shift + P</code
-                      >) and selecting
-                      <code
-                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                        >&gt; Settings &gt; Rules</code
-                      >:
-                    </p>
-                  <pre
-                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto"
-                  ><code>&lt;MCP_USE_GUIDELINE&gt;
-  &lt;INSTRUCTION&gt;
-    If you are working on a Solana-related project. Make frequent use of the following MCP tools to accomplish your goals.
-  &lt;/INSTRUCTION&gt;
-  &lt;TOOLS&gt;
-    The following Solana tools are at your disposal:
-    - "Solana Expert: Ask For Help": Use this tool to ask detailed questions about Solana (how-to, concepts, APIs, SDKs, errors). Provide as much context as possible when using it.
-    - "Solana Documentation Search": Use this tool to search the Solana documentation corpus for relevant information based on a query.
-    - "Ask Solana Anchor Framework Expert": Use this tool for any questions specific to the Anchor Framework, including its APIs, SDKs, and error handling.
-  &lt;/TOOLS&gt;
-&lt;/MCP_USE_GUIDELINE&gt;</code></pre>
-                    </div>
-                  </div>
                 </div>
-                <div id="windsurfContent" class="tab-content">
-                  <div class="mb-6">
-                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
-                      Configure MCP Settings
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-300 mb-4">
-                      Add the following configuration:
-                    </p>
-                  <pre
-                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto mb-6"
-                  ><code>{
+              </div>
+              <div class="step">
+                <span class="step-number">2</span>
+                <div>
+                  <h3>Verify in Agent chat</h3>
+                  <p>
+                    Open Cursor Agent, check the available MCP tools, and ask it to call <code>list_sections</code> for
+                    Solana documentation discovery.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="client-panel" id="panel-windsurf" role="tabpanel" aria-labelledby="tab-windsurf" hidden>
+              <div class="step">
+                <span class="step-number">1</span>
+                <div>
+                  <h3>Configure MCP</h3>
+                  <p>Add this to <code>~/.codeium/windsurf/mcp_config.json</code>:</p>
+                  <pre><code>{
   "mcpServers": {
     "solanaMcp": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://mcp.solana.com/mcp"]
+      "serverUrl": "https://mcp.solana.com/mcp"
     }
   }
 }</code></pre>
-                  </div>
-                  
-                  <div class="mb-6">
-                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">2</span>
-                      Verify the connection
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-300 mb-4">
-                      Open Agent Mode (<code
-                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                        >Cmd + I</code
-                      >) and ask "Make me an anchor escrow program". You should see a card in the composer sidebar:
-                    </p>
-                    <div
-                      class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md"
-                    >
-                    <span class="text-gray-400 dark:text-gray-400">
-                      &gt; Called MCP tool
-                      <code class="font-mono text-gray-400 dark:text-gray-400"
-                        >Ask_Solana_Anchor_Framework_Expert</code
-                      >
-                      ✓
-                    </span>
-                    </div>
                 </div>
+              </div>
+              <div class="step">
+                <span class="step-number">2</span>
+                <div>
+                  <h3>Verify in Cascade</h3>
+                  <p>
+                    Open Cascade MCP settings, confirm <code>solanaMcp</code> is connected, and enable the Solana tools
+                    you want available.
+                  </p>
                 </div>
+              </div>
+            </div>
 
-                <div id="vsCodeContent" class="tab-content">
-                  <div class="mb-6">
-                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
-                      Configure MCP Settings
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-300 mb-4">
-                      Add globally by opening the command palette (<code
-                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                        >Cmd/Ctrl + Shift + P</code
-                      >) and selecting
-                      <code
-                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                        >&gt; MCP: Open User Configuration</code
-                      >:
-                    </p>
-                    <pre
-                    class="bg-gray-900 text-purple-300 p-4 rounded-lg overflow-x-auto mb-6"
-                  ><code>{
+            <div class="client-panel" id="panel-vscode" role="tabpanel" aria-labelledby="tab-vscode" hidden>
+              <div class="step">
+                <span class="step-number">1</span>
+                <div>
+                  <h3>Open user configuration</h3>
+                  <p>In the Command Palette, run <code>MCP: Open User Configuration</code>, then add:</p>
+                  <pre><code>{
   "servers": {
     "solanaMcp": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://mcp.solana.com/mcp"]
+      "type": "http",
+      "url": "https://mcp.solana.com/mcp"
     }
   }
 }</code></pre>
-                  </div>
-                  <p class="text-gray-600 dark:text-gray-300 mb-4">Note: you have to <a class="underline text-purple-600 dark:text-purple-400" href="https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_enable-mcp-support-in-vs-code" target="_blank" rel="noopener noreferrer">enable MCP support in VS Code</a></p>
-                  <div class="mb-6">
-                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">2</span>
-                      Start Solana MCP Server
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-300 mb-4">
-                      Start the Solana mcp server in the extensions tab (<code
-                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                        >Cmd/Ctrl + Shift + X</code
-                      >), under the 'MCP SERVERS - INSTALLED' tab  and selecting
-                      <code
-                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                        >&gt; solanaMcp &gt; Start Server</code
-                      >
-                    </p>
-                    <div
-                      class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md mb-6"
-                    >
-                      <span class="text-gray-400 dark:text-gray-400">
-                        &gt; Starting server solanaMcp
-                      </span>
-                    </div>
-                  </div>
-                  <div class="mb-6">
-                    <h4 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-                      <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">3</span>
-                      Verify the connection
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-300 mb-4">
-                      Open GitHub Copilot (<code
-                        class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400"
-                        >Cmd/Ctrl + Alt + I</code
-                      >), set 'agent' mode and ask "What are the best practices for handling decimal values in Solana programs?". You should see a card in the sidebar:
-                    </p>
-                    <div
-                      class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md mb-6"
-                    >
-                      <span class="text-gray-400 dark:text-gray-400">
-                        &gt; Ran Solana_Documentation_Search - solanaMcp (MCP Server)
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
-
-              <div>
-                <h3
-                  class="text-xl font-semibold mb-3 text-gray-700 dark:text-gray-200"
-                >
-                  Example Queries:
-                </h3>
-              <ul
-              class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-2"
-            >                  
-                  <li>"How are CPI events implemented in Anchor 0.31?"</li>
-                  <li>"Build an AMM that supports token-2022 and older tokens."</li>
-                  <li>"How can I implement a staking mechanism with time-locked rewards?"</li>
-                  <li>"What are the best practices for handling decimal values in Solana programs?"</li>
-              </ul>
+              <div class="step">
+                <span class="step-number">2</span>
+                <div>
+                  <h3>Start and verify</h3>
+                  <p>
+                    Run <code>MCP: List Servers</code>, start <code>solanaMcp</code>, then use Copilot Agent mode to ask
+                    a Solana question that requires current docs.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
+        </section>
 
-          <!-- Features Section -->
-        </div>
-          <div class="grid md:grid-cols-2 gap-8 mt-4">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 ">
-              <h3
-                class="text-xl font-semibold mb-2 text-gray-800 dark:text-white"
-              >
-                🚀 Real-time Updates
-              </h3>
-              <p class="text-gray-600 dark:text-gray-300">
-                Get up-to-date information about Solana documentation right
-                inside your IDE
-              </p>
+        <section id="tools" aria-labelledby="tools-title">
+          <div class="section-heading">
+            <div>
+              <h2 id="tools-title">Tools</h2>
+              <p>The live server currently exposes these exact MCP tool names.</p>
             </div>
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-              <h3
-                class="text-xl font-semibold mb-2 text-gray-800 dark:text-white"
-              >
-                🔒 Secure Integration
-              </h3>
-              <p class="text-gray-600 dark:text-gray-300">
-                Built with security in mind, minimizing sensitive information
-                exposure
+          </div>
+          <div class="grid">
+            <article class="tool-card">
+              <h3><code>list_sections</code></h3>
+              <p>Lists indexed Solana documentation sources with section tags and use cases.</p>
+            </article>
+            <article class="tool-card">
+              <h3><code>get_documentation</code></h3>
+              <p>Fetches canonical docs by source id, section id, or an array of ids.</p>
+            </article>
+            <article class="tool-card">
+              <h3><code>Solana_Documentation_Search</code></h3>
+              <p>Runs semantic search over the Solana docs corpus for narrow questions.</p>
+            </article>
+            <article class="tool-card">
+              <h3><code>Solana_Expert__Ask_For_Help</code></h3>
+              <p>Answers Solana how-to and debugging questions with retrieved docs context.</p>
+            </article>
+            <article class="tool-card featured">
+              <h3><code>rust_autofixer</code><span class="tool-meta">New</span></h3>
+              <p>
+                Analyzes Solana program Rust for Anchor and Pinocchio security antipatterns and returns structured
+                issues plus fix suggestions.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="instructions" aria-labelledby="instructions-title">
+          <div class="section-heading">
+            <div>
+              <h2 id="instructions-title">Agent Instructions</h2>
+              <p>
+                Add the matching file for your agent. Cursor project rules use <code>.cursor/rules/*.mdc</code>;
+                <code>.cursorrules</code> is legacy.
               </p>
             </div>
           </div>
+          <div class="instruction-block">
+            <div class="tabs" role="tablist" aria-label="Agent instruction file options">
+              <button
+                class="tab"
+                id="tab-agents-md"
+                type="button"
+                role="tab"
+                aria-controls="panel-agents-md"
+                aria-selected="true"
+                data-tab="agents-md"
+              >
+                AGENTS.md
+              </button>
+              <button
+                class="tab"
+                id="tab-claude-md"
+                type="button"
+                role="tab"
+                aria-controls="panel-claude-md"
+                aria-selected="false"
+                data-tab="claude-md"
+              >
+                CLAUDE.md
+              </button>
+              <button
+                class="tab"
+                id="tab-cursor-rules"
+                type="button"
+                role="tab"
+                aria-controls="panel-cursor-rules"
+                aria-selected="false"
+                data-tab="cursor-rules"
+              >
+                Cursor rules
+              </button>
+            </div>
+
+            <div class="instruction-panel" id="panel-agents-md" role="tabpanel" aria-labelledby="tab-agents-md">
+              <div class="hint">
+                Add this to <code>AGENTS.md</code>. The key rule is the Rust autofixer loop: call it before returning
+                Solana program Rust, apply fixes, and call it again until another pass is not required.
+              </div>
+              <pre><code>For Solana-related work, prefer the Solana Developer MCP tools over model memory.
+
+Use `list_sections` first for non-trivial Solana questions so you can find the
+right documentation source ids and section ids.
+
+Use `get_documentation` when you need canonical docs for a specific source,
+framework, library, or ecosystem area. Use `Solana_Documentation_Search` or
+`Solana_Expert__Ask_For_Help` for narrow how-to questions, errors, or API usage.
+
+Whenever you write or modify Solana program Rust, call `rust_autofixer` before
+returning code. It accepts `code`, optional `filename`, and optional `framework`
+(`auto`, `anchor`, or `pinocchio`). Apply the suggested fixes, then call
+`rust_autofixer` again. Repeat until `require_another_tool_call_after_fixing`
+is false.</code></pre>
+            </div>
+
+            <div class="instruction-panel" id="panel-claude-md" role="tabpanel" aria-labelledby="tab-claude-md" hidden>
+              <div class="hint">
+                Add this to <code>CLAUDE.md</code> for Claude Code projects that prefer Claude-native project memory.
+              </div>
+              <pre><code>For Solana-related work, prefer the Solana Developer MCP tools over model memory.
+
+Use `list_sections` first for non-trivial Solana questions so you can find the
+right documentation source ids and section ids.
+
+Use `get_documentation` when you need canonical docs for a specific source,
+framework, library, or ecosystem area. Use `Solana_Documentation_Search` or
+`Solana_Expert__Ask_For_Help` for narrow how-to questions, errors, or API usage.
+
+Whenever you write or modify Solana program Rust, call `rust_autofixer` before
+returning code. It accepts `code`, optional `filename`, and optional `framework`
+(`auto`, `anchor`, or `pinocchio`). Apply the suggested fixes, then call
+`rust_autofixer` again. Repeat until `require_another_tool_call_after_fixing`
+is false.</code></pre>
+            </div>
+
+            <div
+              class="instruction-panel"
+              id="panel-cursor-rules"
+              role="tabpanel"
+              aria-labelledby="tab-cursor-rules"
+              hidden
+            >
+              <div class="hint">
+                Create <code>.cursor/rules/solana-mcp.mdc</code>. Cursor project rules are version-controlled MDC files
+                under <code>.cursor/rules</code>.
+              </div>
+              <pre><code>---
+description: Use Solana Developer MCP for current Solana docs and Rust program checks.
+globs:
+alwaysApply: true
+---
+
+For Solana-related work, prefer the Solana Developer MCP tools over model memory.
+
+Use `list_sections` first for non-trivial Solana questions so you can find the
+right documentation source ids and section ids.
+
+Use `get_documentation` when you need canonical docs for a specific source,
+framework, library, or ecosystem area. Use `Solana_Documentation_Search` or
+`Solana_Expert__Ask_For_Help` for narrow how-to questions, errors, or API usage.
+
+Whenever you write or modify Solana program Rust, call `rust_autofixer` before
+returning code. It accepts `code`, optional `filename`, and optional `framework`
+(`auto`, `anchor`, or `pinocchio`). Apply the suggested fixes, then call
+`rust_autofixer` again. Repeat until `require_another_tool_call_after_fixing`
+is false.</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <section id="examples" aria-labelledby="examples-title">
+          <div class="section-heading">
+            <div>
+              <h2 id="examples-title">Example Requests</h2>
+            </div>
+          </div>
+          <div class="grid">
+            <article class="example-card">
+              <h3>Canonical docs</h3>
+              <p>Use <code>list_sections</code>, then fetch the current Anchor docs for account constraints.</p>
+            </article>
+            <article class="example-card">
+              <h3>Semantic search</h3>
+              <p>Search the docs for Token-2022 transfer hook account requirements.</p>
+            </article>
+            <article class="example-card">
+              <h3>Solana debugging</h3>
+              <p>Ask for help with a failed transaction log and include the program error output.</p>
+            </article>
+            <article class="example-card">
+              <h3>Rust review</h3>
+              <p>Run <code>rust_autofixer</code> on this Pinocchio instruction before returning the patch.</p>
+            </article>
+          </div>
+        </section>
+        </div>
       </main>
+
+      <footer>
+        <div class="shell">
+          <span>Solana Developer MCP is served at <code>https://mcp.solana.com/mcp</code>.</span>
+        </div>
+      </footer>
     </div>
 
     <script>
-      // Dark mode toggle functionality
-      const darkModeToggle = document.getElementById("darkModeToggle");
-      const sunIcon = document.getElementById("sunIcon");
-      const moonIcon = document.getElementById("moonIcon");
-      const html = document.documentElement;
+      for (const tabList of document.querySelectorAll('[role="tablist"]')) {
+        const tabs = Array.from(tabList.querySelectorAll("[data-tab]"));
+        const panels = tabs.map(tab => document.getElementById(tab.getAttribute("aria-controls")));
 
-      // Check for saved dark mode preference
-      if (
-        localStorage.getItem("darkMode") === "true" ||
-        (!localStorage.getItem("darkMode") &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches)
-      ) {
-        html.classList.add("dark");
-        sunIcon.classList.remove("hidden");
-        moonIcon.classList.add("hidden");
+        const activateTab = activeTab => {
+          for (const tab of tabs) {
+            const selected = tab === activeTab;
+            tab.setAttribute("aria-selected", String(selected));
+          }
+          panels.forEach((panel, index) => {
+            if (panel) panel.hidden = tabs[index] !== activeTab;
+          });
+        };
+
+        for (const tab of tabs) {
+          tab.addEventListener("click", () => activateTab(tab));
+        }
       }
-
-      darkModeToggle.addEventListener("click", () => {
-        html.classList.toggle("dark");
-        sunIcon.classList.toggle("hidden");
-        moonIcon.classList.toggle("hidden");
-        localStorage.setItem("darkMode", html.classList.contains("dark"));
-      });
-      
-      // Tab functionality
-      const cursorTab = document.getElementById("cursorTab");
-      const windsurfTab = document.getElementById("windsurfTab");
-      const claudeTab = document.getElementById("claudeTab");
-      const vsCodeTab = document.getElementById("vsCodeTab");
-      const cursorContent = document.getElementById("cursorContent");
-      const windsurfContent = document.getElementById("windsurfContent");
-      const claudeContent = document.getElementById("claudeContent");
-      const vsCodeContent = document.getElementById("vsCodeContent");
-      
-      cursorTab.addEventListener("click", () => {
-        if (!cursorTab.className.includes("active")) {
-          cursorTab.classList.add("active");
-        }
-        if (windsurfTab.className.includes("active")) {
-          windsurfTab.classList.remove("active");
-        }
-        if (claudeTab.className.includes("active")) {
-          claudeTab.classList.remove("active");
-        }
-        if (vsCodeTab.className.includes("active")) {
-          vsCodeTab.classList.remove("active");
-        }
-        if (!cursorContent.className.includes("active")) {
-          cursorContent.classList.add("active");
-        }
-        if (windsurfContent.className.includes("active")) {
-          windsurfContent.classList.remove("active");
-        }
-        if (claudeContent.className.includes("active")) {
-          claudeContent.classList.remove("active");
-        }
-        if (vsCodeContent.className.includes("active")) {
-          vsCodeContent.classList.remove("active");
-        }
-      });
-      
-      windsurfTab.addEventListener("click", () => {
-        if (!windsurfTab.className.includes("active")) {
-          windsurfTab.classList.add("active");
-        }
-        if (cursorTab.className.includes("active")) {
-          cursorTab.classList.remove("active");
-        }
-        if (claudeTab.className.includes("active")) {
-          claudeTab.classList.remove("active");
-        }
-        if (vsCodeTab.className.includes("active")) {
-          vsCodeTab.classList.remove("active");
-        }
-        if (!windsurfContent.className.includes("active")) {
-          windsurfContent.classList.add("active");
-        }
-        if (cursorContent.className.includes("active")) {
-          cursorContent.classList.remove("active");
-        }
-        if (claudeContent.className.includes("active")) {
-          claudeContent.classList.remove("active");
-        }
-        if (vsCodeContent.className.includes("active")) {
-          vsCodeContent.classList.remove("active");
-        }
-      });
-      
-      claudeTab.addEventListener("click", () => {
-        if (!claudeTab.className.includes("active")) {
-          claudeTab.classList.add("active");
-        }
-        if (cursorTab.className.includes("active")) {
-          cursorTab.classList.remove("active");
-        }
-        if (windsurfTab.className.includes("active")) {
-          windsurfTab.classList.remove("active");
-        }
-        if (vsCodeTab.className.includes("active")) {
-          vsCodeTab.classList.remove("active");
-        }
-        if (!claudeContent.className.includes("active")) {
-          claudeContent.classList.add("active");
-        }
-        if (cursorContent.className.includes("active")) {
-          cursorContent.classList.remove("active");
-        }
-        if (windsurfContent.className.includes("active")) {
-          windsurfContent.classList.remove("active");
-        }
-        if (vsCodeContent.className.includes("active")) {
-          vsCodeContent.classList.remove("active");
-        }
-      });
-
-      vsCodeTab.addEventListener("click", () => {
-        if (!vsCodeTab.className.includes("active")) {
-          vsCodeTab.classList.add("active");
-        }
-        if (claudeTab.className.includes("active")) {
-          claudeTab.classList.remove("active");
-        }
-        if (cursorTab.className.includes("active")) {
-          cursorTab.classList.remove("active");
-        }
-        if (windsurfTab.className.includes("active")) {
-          windsurfTab.classList.remove("active");
-        }
-        if (!vsCodeContent.className.includes("active")) {
-          vsCodeContent.classList.add("active");
-        }
-        if (claudeContent.className.includes("active")) {
-          claudeContent.classList.remove("active");
-        }
-        if (cursorContent.className.includes("active")) {
-          cursorContent.classList.remove("active");
-        }
-        if (windsurfContent.className.includes("active")) {
-          windsurfContent.classList.remove("active");
-        }
-      });
     </script>
   </body>
 </html>
