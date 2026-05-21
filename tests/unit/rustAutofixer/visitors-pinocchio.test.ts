@@ -170,6 +170,39 @@ describe("rust_autofixer Pinocchio additional visitors", () => {
   );
 });
 
+describe("rust_autofixer Pinocchio suggestions", () => {
+  it("does not imply a writable flag in missing-signer guidance", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_MISSING_SIGNER, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "missing-signer");
+    expect(hit, "missing-signer should fire on vulnerable fixture").toBeDefined();
+
+    const suggestion = hit?.suggestion ?? "";
+    expect(suggestion).toContain(".is_signer()");
+    expect(suggestion).not.toMatch(/verify_signer\([^)]*,\s*false\)/);
+  }, 20_000);
+
+  it("uses real Pinocchio rent sysvar guidance without unwraps or local shims", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_RENT_EXEMPT, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "rent-exempt");
+    expect(hit, "rent-exempt should fire on vulnerable fixture").toBeDefined();
+
+    const suggestion = hit?.suggestion ?? "";
+    expect(suggestion).toContain("pinocchio::sysvars::{rent::Rent, Sysvar}");
+    expect(suggestion).toContain("Rent::get()?.try_minimum_balance(space as usize)?");
+    expect(suggestion).not.toContain("unwrap");
+  }, 20_000);
+
+  it("does not imply a writable flag in authority-escalation guidance", async () => {
+    const out = await runRustAutofixer({ code: VULNERABLE_AUTHORITY_ESC, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "authority-escalation");
+    expect(hit, "authority-escalation should fire on vulnerable fixture").toBeDefined();
+
+    const suggestion = hit?.suggestion ?? "";
+    expect(suggestion).toContain("verify_signer(<current_authority>)?");
+    expect(suggestion).not.toContain("verify_signer(<current_authority>, false)");
+  }, 20_000);
+});
+
 describe("rust_autofixer framework detection", () => {
   it("auto-detects pinocchio from imports", async () => {
     const out = await runRustAutofixer({ code: VULNERABLE_MISSING_SIGNER, framework: "auto" });

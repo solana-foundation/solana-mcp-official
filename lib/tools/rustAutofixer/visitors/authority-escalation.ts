@@ -216,7 +216,7 @@ export const authorityEscalation: Visitor = {
         title: `Write to ${field.text} without preceding signer check`,
         location: formatLocation(ctx.filename, node),
         description: `\`${left.text} = ...\` mutates an authority/admin field but no \`verify_signer\` call appears earlier in the same function. Without checking the current authority signed off, any caller can rotate the authority.`,
-        suggestion: `Before assigning a new ${field.text}, call \`verify_signer(<current_authority>, false)?;\` and assert \`<current_authority>.address() == &state.${field.text}\`.`,
+        suggestion: `Before assigning a new ${field.text}, verify the current authority signed with \`verify_signer(<current_authority>)?\` (or an explicit \`.is_signer()\` check) and assert \`<current_authority>.address() == &state.${field.text}\`.`,
         code_snippet: snippet(ctx.source, node, 80),
       });
     },

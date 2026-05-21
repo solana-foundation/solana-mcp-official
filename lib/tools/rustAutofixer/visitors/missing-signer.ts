@@ -16,8 +16,8 @@ export const missingSigner: Visitor = {
           rule: "missing-signer",
           title: `Missing signer check for ${account}`,
           location: formatLocation(ctx.filename, body),
-          description: `Account \`${account}\` in \`${implName}::try_from\` looks like an authority but has no \`verify_signer(${account}, ...)\` call. An unsigned account here lets anyone perform the action.`,
-          suggestion: `Add \`verify_signer(${account}, false)?;\` inside \`try_from\` before constructing the struct.`,
+          description: `Account \`${account}\` in \`${implName}::try_from\` looks like an authority but has no signer validation. An unsigned account here lets anyone perform the action.`,
+          suggestion: `Validate the signer before constructing the struct, e.g. \`if !${account}.is_signer() { return Err(ProgramError::MissingRequiredSignature); }\` or your codebase's single-purpose \`verify_signer(${account})?\` helper.`,
         });
       }
     }
