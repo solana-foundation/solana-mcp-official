@@ -142,6 +142,90 @@ export function bodyContainsVerifyFor(body: Node, names: ReadonlySet<string>, ac
   return findAll(body, n => isVerifyCallFor(n, names, accountName)).length > 0;
 }
 
+function nodeContainsErrorConstructor(node: Node): boolean {
+  let found = false;
+  walk(node, n => {
+    if (found) return "skip";
+    if (n.type === "call_expression") {
+      const fn = n.childForFieldName("function");
+      const name = fn ? getCallName(fn) : null;
+      if (name === "Err") {
+        found = true;
+        return "skip";
+      }
+    }
+    if (n.type === "macro_invocation") {
+      const name = getMacroName(n);
+      if (name === "err" || name === "require" || name === "require_keys_eq") {
+        found = true;
+        return "skip";
+      }
+    }
+  });
+  return found;
+}
+
+function branchRejects(ifNode: Node): boolean {
+  const consequence = ifNode.childForFieldName("consequence");
+  return !!consequence && nodeContainsErrorConstructor(consequence);
+}
+
+function nodeIsInIfCondition(node: Node, ifNode: Node): boolean {
+  const condition = ifNode.childForFieldName("condition") ?? ifNode.namedChild(0);
+  if (!condition) return false;
+  return node.startIndex >= condition.startIndex && node.endIndex <= condition.endIndex;
+}
+
+function isUnderNegationBefore(node: Node, ancestor: Node): boolean {
+  let cursor: Node | null = node.parent;
+  while (cursor && cursor.startIndex >= ancestor.startIndex && cursor.endIndex <= ancestor.endIndex) {
+    if (cursor.type === "unary_expression" && cursor.text.trim().startsWith("!")) return true;
+    if (
+      cursor.startIndex === ancestor.startIndex &&
+      cursor.endIndex === ancestor.endIndex &&
+      cursor.type === ancestor.type
+    ) {
+      break;
+    }
+    cursor = cursor.parent;
+  }
+  return false;
+}
+
+export function isRejectingGuard(node: Node): boolean {
+  let cursor: Node | null = node.parent;
+  while (cursor) {
+    if (cursor.type === "if_expression") {
+      return nodeIsInIfCondition(node, cursor) && branchRejects(cursor);
+    }
+    cursor = cursor.parent;
+  }
+  return false;
+}
+
+export function isNegatedRejectingGuard(node: Node): boolean {
+  let cursor: Node | null = node.parent;
+  while (cursor) {
+    if (cursor.type === "if_expression") {
+      return nodeIsInIfCondition(node, cursor) && branchRejects(cursor) && isUnderNegationBefore(node, cursor);
+    }
+    cursor = cursor.parent;
+  }
+  return false;
+}
+
+export function inlineSignerGuardRoot(node: Node): string | null {
+  if (node.type !== "call_expression") return null;
+  if (getMethodCallName(node) !== "is_signer") return null;
+  if (!isNegatedRejectingGuard(node)) return null;
+  return getMethodReceiverRoot(node);
+}
+
+export function bodyContainsSignerValidationFor(body: Node, accountName: string): boolean {
+  if (bodyContainsVerifyFor(body, VERIFY_SIGNER_CALLS, accountName)) return true;
+  return findAll(body, n => inlineSignerGuardRoot(n) === accountName).length > 0;
+}
+
 export {
   VERIFY_SIGNER_CALLS,
   VERIFY_OWNER_CALLS,

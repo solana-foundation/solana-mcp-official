@@ -44,7 +44,7 @@ export const rentExempt: Visitor = {
         title: `CreateAccount uses a hardcoded lamports value`,
         location: formatLocation(ctx.filename, lamportsExpr),
         description: `\`CreateAccount { lamports: ${lamportsExpr.text}, .. }\` hardcodes the lamports amount instead of computing rent-exempt minimum. If the rent rate changes or the account size is larger than expected, the new account will be subject to rent collection.`,
-        suggestion: `Compute lamports via \`Rent::get()?.try_minimum_balance(space).unwrap().max(1)\` (or your equivalent helper) and pass that value.`,
+        suggestion: `Use the real Pinocchio rent sysvar: import \`pinocchio::sysvars::{rent::Rent, Sysvar}\`, compute \`let lamports = Rent::get()?.try_minimum_balance(space as usize)?;\`, and pass that \`lamports\` value to \`CreateAccount\`. Do not create a local \`Rent\` shim or hardcode a fallback value.`,
         code_snippet: snippet(ctx.source, node, 100),
       });
     },
