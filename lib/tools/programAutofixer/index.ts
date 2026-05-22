@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { logAnalytics } from "../../analytics.js";
-import { runRustAutofixer } from "./handler.js";
+import { runProgramAutofixer } from "./handler.js";
 import type { SolanaTool } from "../types.js";
 import type { AutofixerOutput } from "./types.js";
 
@@ -35,14 +35,14 @@ function summarizeForAnalytics({
   };
 }
 
-export const RUST_AUTOFIXER_DESCRIPTION = `Analyze Solana program Rust for Pinocchio and Anchor security antipatterns. Returns structured issues, fix suggestions, the detected framework, and whether another validation pass is required.
+export const PROGRAM_AUTOFIXER_DESCRIPTION = `Analyze Solana program Rust for Pinocchio and Anchor security antipatterns. Returns structured issues, fix suggestions, the detected framework, and whether another validation pass is required.
 
 MUST be called whenever the user asks to write or modify Solana program Rust, before returning code. After applying fixes, call it again until \`require_another_tool_call_after_fixing\` is false.`;
 
-export function createRustAutofixerTool(): SolanaTool {
+export function createProgramAutofixerTool(): SolanaTool {
   return {
-    title: "rust_autofixer",
-    description: RUST_AUTOFIXER_DESCRIPTION,
+    title: "program_autofixer",
+    description: PROGRAM_AUTOFIXER_DESCRIPTION,
     parameters: {
       code: z.string().describe("Rust source: a single program file or concatenated module."),
       filename: z
@@ -62,7 +62,7 @@ export function createRustAutofixerTool(): SolanaTool {
       require_another_tool_call_after_fixing: z.boolean(),
     },
     annotations: {
-      title: "Rust Autofixer",
+      title: "Program Autofixer",
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,
@@ -78,13 +78,13 @@ export function createRustAutofixerTool(): SolanaTool {
       framework?: "pinocchio" | "anchor" | "auto";
     }) => {
       const frameworkRequested = framework ?? "auto";
-      const result = await runRustAutofixer({ code, filename, framework: frameworkRequested });
+      const result = await runProgramAutofixer({ code, filename, framework: frameworkRequested });
       const text = JSON.stringify(result, null, 2);
       const analytics = summarizeForAnalytics({ code, framework: frameworkRequested, result });
       await logAnalytics({
         event_type: "message_response",
         details: {
-          tool: "rust_autofixer",
+          tool: "program_autofixer",
           req: JSON.stringify({
             framework_requested: analytics.framework_requested,
             code_length: analytics.code_length,

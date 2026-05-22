@@ -700,7 +700,7 @@
             <div class="eyebrow"><span class="status-dot"></span>Remote MCP server</div>
             <h1 id="hero-title">Current Solana docs and Rust checks for coding agents</h1>
             <p class="lead">
-              Connect your MCP client to live Solana documentation retrieval, semantic search, and the Rust autofixer
+              Connect your MCP client to live Solana documentation retrieval, semantic search, and the Program autofixer
               for Anchor and Pinocchio program checks.
             </p>
             <div class="actions">
@@ -728,7 +728,7 @@
                 <span class="metric-value">5</span>
               </div>
               <div class="metric-row">
-                <span class="metric-label">Rust autofixer</span>
+                <span class="metric-label">Program autofixer</span>
                 <span class="metric-value">Anchor + Pinocchio</span>
               </div>
             </div>
@@ -851,7 +851,7 @@
 get_documentation
 Solana_Documentation_Search
 Solana_Expert__Ask_For_Help
-rust_autofixer</code></pre>
+program_autofixer</code></pre>
                 </div>
               </div>
             </div>
@@ -968,7 +968,7 @@ rust_autofixer</code></pre>
               <p>Answers Solana how-to and debugging questions with retrieved docs context.</p>
             </article>
             <article class="tool-card featured">
-              <h3><code>rust_autofixer</code><span class="tool-meta">New</span></h3>
+              <h3><code>program_autofixer</code><span class="tool-meta">New</span></h3>
               <p>
                 Analyzes Solana program Rust for Anchor and Pinocchio security antipatterns and returns structured
                 issues plus fix suggestions.
@@ -1026,7 +1026,7 @@ rust_autofixer</code></pre>
 
             <div class="instruction-panel" id="panel-agents-md" role="tabpanel" aria-labelledby="tab-agents-md">
               <div class="hint">
-                Add this to <code>AGENTS.md</code>. The key rule is the Rust autofixer loop: call it before returning
+                Add this to <code>AGENTS.md</code>. The key rule is the Program autofixer loop: call it before returning
                 Solana program Rust, apply fixes, and call it again until another pass is not required.
               </div>
               <pre><code>For Solana-related work, prefer the Solana Developer MCP tools over model memory.
@@ -1038,10 +1038,10 @@ Use `get_documentation` when you need canonical docs for a specific source,
 framework, library, or ecosystem area. Use `Solana_Documentation_Search` or
 `Solana_Expert__Ask_For_Help` for narrow how-to questions, errors, or API usage.
 
-Whenever you write or modify Solana program Rust, call `rust_autofixer` before
+Whenever you write or modify Solana program Rust, call `program_autofixer` before
 returning code. It accepts `code`, optional `filename`, and optional `framework`
 (`auto`, `anchor`, or `pinocchio`). Apply the suggested fixes, then call
-`rust_autofixer` again. Repeat until `require_another_tool_call_after_fixing`
+`program_autofixer` again. Repeat until `require_another_tool_call_after_fixing`
 is false.</code></pre>
             </div>
 
@@ -1058,10 +1058,10 @@ Use `get_documentation` when you need canonical docs for a specific source,
 framework, library, or ecosystem area. Use `Solana_Documentation_Search` or
 `Solana_Expert__Ask_For_Help` for narrow how-to questions, errors, or API usage.
 
-Whenever you write or modify Solana program Rust, call `rust_autofixer` before
+Whenever you write or modify Solana program Rust, call `program_autofixer` before
 returning code. It accepts `code`, optional `filename`, and optional `framework`
 (`auto`, `anchor`, or `pinocchio`). Apply the suggested fixes, then call
-`rust_autofixer` again. Repeat until `require_another_tool_call_after_fixing`
+`program_autofixer` again. Repeat until `require_another_tool_call_after_fixing`
 is false.</code></pre>
             </div>
 
@@ -1091,10 +1091,10 @@ Use `get_documentation` when you need canonical docs for a specific source,
 framework, library, or ecosystem area. Use `Solana_Documentation_Search` or
 `Solana_Expert__Ask_For_Help` for narrow how-to questions, errors, or API usage.
 
-Whenever you write or modify Solana program Rust, call `rust_autofixer` before
+Whenever you write or modify Solana program Rust, call `program_autofixer` before
 returning code. It accepts `code`, optional `filename`, and optional `framework`
 (`auto`, `anchor`, or `pinocchio`). Apply the suggested fixes, then call
-`rust_autofixer` again. Repeat until `require_another_tool_call_after_fixing`
+`program_autofixer` again. Repeat until `require_another_tool_call_after_fixing`
 is false.</code></pre>
             </div>
           </div>
@@ -1121,7 +1121,7 @@ is false.</code></pre>
             </article>
             <article class="example-card">
               <h3>Rust review</h3>
-              <p>Run <code>rust_autofixer</code> on this Pinocchio instruction before returning the patch.</p>
+              <p>Run <code>program_autofixer</code> on this Pinocchio instruction before returning the patch.</p>
             </article>
           </div>
         </section>

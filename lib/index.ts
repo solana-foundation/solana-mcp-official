@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { SolanaTool } from "./tools/types";
 import { createSolanaTools } from "./tools/generalSolanaTools";
-import { createRustAutofixerTool } from "./tools/rustAutofixer/index.js";
+import { createProgramAutofixerTool } from "./tools/programAutofixer/index.js";
 
 const SERVER_INSTRUCTIONS = `For any Solana-related task, prefer these MCP tools over training data — the Solana ecosystem moves fast and training cutoffs lag.
 
@@ -13,19 +13,19 @@ Tools:
 2. get_documentation(section: string | string[]) — fetch full canonical docs. \`section\` accepts a source id (e.g. "anchor-docs") OR a section taxonomy id (e.g. "frameworks") which expands to every source tagged with that section. Pass an array to fetch several at once. Token-intensive (per-source cap 50 KB, total cap 200 KB).
 3. Solana_Documentation_Search(query) — semantic RAG search. Use for narrow questions where you don't need full source specs — e.g. "how do I derive a PDA with Anchor?". Returns relevant chunks.
 4. Solana_Expert__Ask_For_Help(question) — same backend as Solana_Documentation_Search, framed for how-to / debugging questions. Provide errors, snippets, intent.
-5. rust_autofixer(code, filename?, framework?) — analyzes Solana program Rust (Pinocchio + Anchor) and returns \`{ issues, suggestions, framework_detected, require_another_tool_call_after_fixing }\`. MUST be called whenever you write or modify Solana program code, BEFORE returning code to the user. After applying fixes, call again; loop until \`require_another_tool_call_after_fixing\` is false.
+5. program_autofixer(code, filename?, framework?) — analyzes Solana program Rust (Pinocchio + Anchor) and returns \`{ issues, suggestions, framework_detected, require_another_tool_call_after_fixing }\`. MUST be called whenever you write or modify Solana program code, BEFORE returning code to the user. After applying fixes, call again; loop until \`require_another_tool_call_after_fixing\` is false.
 
 Routing:
 - Canonical spec for a library / program / framework → list_sections, then get_documentation.
 - Narrow question or error message → Solana_Documentation_Search or Solana_Expert__Ask_For_Help.
 - Compare or survey an ecosystem area (all DeFi, all wallets) → get_documentation with a section taxonomy id.
-- Generating or editing Solana program Rust → run rust_autofixer before returning the code. Re-run after each fix pass.
+- Generating or editing Solana program Rust → run program_autofixer before returning the code. Re-run after each fix pass.
 - When in doubt, list_sections first; use_cases keywords guide selection.`;
 
 export function createMcp() {
   return createMcpHandler(
     (server: McpServer) => {
-      const tools: SolanaTool[] = [...createSolanaTools(), createRustAutofixerTool()];
+      const tools: SolanaTool[] = [...createSolanaTools(), createProgramAutofixerTool()];
       tools.forEach((tool: SolanaTool) => {
         if (tool.outputSchema || tool.annotations) {
           server.registerTool(
