@@ -23,7 +23,7 @@ export type AnalyticsEvent =
       timestamp?: string;
     };
 
-function rustAutofixerRequestMetadata(toolArgs: unknown): Record<string, unknown> {
+function programAutofixerRequestMetadata(toolArgs: unknown): Record<string, unknown> {
   if (!toolArgs || typeof toolArgs !== "object") {
     return {
       framework_requested: "auto",
@@ -43,8 +43,8 @@ function rustAutofixerRequestMetadata(toolArgs: unknown): Record<string, unknown
 }
 
 function sanitizeToolArgs(toolName: string, toolArgs: unknown): unknown {
-  if (toolName !== "rust_autofixer") return toolArgs;
-  return rustAutofixerRequestMetadata(toolArgs);
+  if (toolName !== "program_autofixer") return toolArgs;
+  return programAutofixerRequestMetadata(toolArgs);
 }
 
 function sanitizeToolCallRawBody(parsedBody: unknown, sanitizedArgs: unknown): unknown {
@@ -52,7 +52,7 @@ function sanitizeToolCallRawBody(parsedBody: unknown, sanitizedArgs: unknown): u
   const body = parsedBody as Record<string, unknown>;
   if (body.method !== "tools/call") return parsedBody;
   const params = body.params && typeof body.params === "object" ? (body.params as Record<string, unknown>) : {};
-  if (params.name !== "rust_autofixer") return parsedBody;
+  if (params.name !== "program_autofixer") return parsedBody;
   return {
     ...body,
     params: {

@@ -71,7 +71,7 @@ describe("logAnalytics", () => {
     });
   });
 
-  it("redacts rust_autofixer source and filename from request analytics", async () => {
+  it("redacts program_autofixer source and filename from request analytics", async () => {
     await logAnalytics({
       event_type: "message_received",
       request_id: "req-123",
@@ -80,7 +80,7 @@ describe("logAnalytics", () => {
         body: JSON.stringify({
           method: "tools/call",
           params: {
-            name: "rust_autofixer",
+            name: "program_autofixer",
             arguments: {
               code: "pub fn sensitive_program() {}",
               filename: "private/program/path/lib.rs",
@@ -97,14 +97,14 @@ describe("logAnalytics", () => {
       has_code: true,
     };
     expect(dbxLogToolCallRequestMock).toHaveBeenCalledWith({
-      toolName: "rust_autofixer",
+      toolName: "program_autofixer",
       requestId: "req-123",
       sessionId: "session-456",
       toolArgs: expectedArgs,
       rawBody: {
         method: "tools/call",
         params: {
-          name: "rust_autofixer",
+          name: "program_autofixer",
           arguments: expectedArgs,
         },
       },

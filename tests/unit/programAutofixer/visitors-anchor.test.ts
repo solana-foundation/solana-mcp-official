@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { runRustAutofixer } from "../../../lib/tools/rustAutofixer/handler.js";
+import { runProgramAutofixer } from "../../../lib/tools/programAutofixer/handler.js";
 import {
   VULNERABLE_SEEDS_WITHOUT_BUMP,
   SECURE_SEEDS_WITH_BUMP,
@@ -70,11 +70,11 @@ const PAIRS: ReadonlyArray<{
   },
 ];
 
-describe("rust_autofixer Anchor visitors", () => {
+describe("program_autofixer Anchor visitors", () => {
   it.each(PAIRS)(
     "$rule fires on vulnerable Anchor fixture",
     async ({ rule, vulnerable }) => {
-      const out = await runRustAutofixer({ code: vulnerable, framework: "anchor" });
+      const out = await runProgramAutofixer({ code: vulnerable, framework: "anchor" });
       const hit = out.issues.find(i => i.rule === rule);
       expect(hit, `expected ${rule} to fire; got: ${JSON.stringify(out.issues.map(i => i.rule))}`).toBeDefined();
     },
@@ -84,7 +84,7 @@ describe("rust_autofixer Anchor visitors", () => {
   it.each(PAIRS)(
     "$rule silent on secure Anchor fixture",
     async ({ rule, secure }) => {
-      const out = await runRustAutofixer({ code: secure, framework: "anchor" });
+      const out = await runProgramAutofixer({ code: secure, framework: "anchor" });
       const hit = out.issues.find(i => i.rule === rule);
       expect(hit, `${rule} fired on secure fixture: ${hit?.title}`).toBeUndefined();
     },
@@ -92,13 +92,13 @@ describe("rust_autofixer Anchor visitors", () => {
   );
 
   it("auto-detects Anchor and runs Anchor visitors", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_INIT_WITHOUT_PAYER, framework: "auto" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_INIT_WITHOUT_PAYER, framework: "auto" });
     const hit = out.issues.find(i => i.rule === "anchor-init-without-payer");
     expect(hit, "auto-detect failed to identify Anchor + run Anchor visitors").toBeDefined();
   }, 20_000);
 
   it("collects Accounts derives nested inside modules", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_NESTED_INIT_WITHOUT_PAYER, framework: "anchor" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_NESTED_INIT_WITHOUT_PAYER, framework: "anchor" });
     const hit = out.issues.find(i => i.rule === "anchor-init-without-payer");
     expect(hit, "nested #[derive(Accounts)] struct was not analyzed").toBeDefined();
   }, 20_000);
@@ -119,7 +119,7 @@ describe("rust_autofixer Anchor visitors", () => {
   ])(
     "resolves duplicate account field names through handler Context<T> for $rule",
     async ({ rule, code }) => {
-      const out = await runRustAutofixer({ code, framework: "anchor" });
+      const out = await runProgramAutofixer({ code, framework: "anchor" });
       const hit = out.issues.find(i => i.rule === rule);
       expect(hit, `${rule} was masked by another Accounts struct with the same field name`).toBeDefined();
     },
@@ -127,25 +127,25 @@ describe("rust_autofixer Anchor visitors", () => {
   );
 
   it("does not treat local field mutations as ctx.accounts mutations", async () => {
-    const out = await runRustAutofixer({ code: SECURE_LOCAL_FIELD_MUTATION, framework: "anchor" });
+    const out = await runProgramAutofixer({ code: SECURE_LOCAL_FIELD_MUTATION, framework: "anchor" });
     const hit = out.issues.find(i => i.rule === "anchor-missing-mut");
     expect(hit, `local field mutation was reported as an account mutation: ${hit?.title}`).toBeUndefined();
   }, 20_000);
 
   it("flags missing mut when mutation goes through to_account_info()", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_MISSING_MUT_TO_ACCOUNT_INFO, framework: "anchor" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_MISSING_MUT_TO_ACCOUNT_INFO, framework: "anchor" });
     const hit = out.issues.find(i => i.rule === "anchor-missing-mut");
     expect(hit, "anchor-missing-mut missed a to_account_info() mutable borrow").toBeDefined();
   }, 20_000);
 
   it("resolves local program aliases before CpiContext::new", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_CPI_UNVERIFIED_ALIAS, framework: "anchor" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_CPI_UNVERIFIED_ALIAS, framework: "anchor" });
     const hit = out.issues.find(i => i.rule === "anchor-cpi-context-unverified");
     expect(hit, "anchor-cpi-context-unverified missed an aliased program account").toBeDefined();
   }, 20_000);
 
   it("does not require `space` for Anchor SPL mint initialization", async () => {
-    const out = await runRustAutofixer({ code: SECURE_SPL_MINT_INIT_WITHOUT_SPACE, framework: "anchor" });
+    const out = await runProgramAutofixer({ code: SECURE_SPL_MINT_INIT_WITHOUT_SPACE, framework: "anchor" });
     const hit = out.issues.find(i => i.rule === "anchor-init-without-space");
     expect(hit, `anchor-init-without-space flagged SPL init: ${hit?.title}`).toBeUndefined();
   }, 20_000);

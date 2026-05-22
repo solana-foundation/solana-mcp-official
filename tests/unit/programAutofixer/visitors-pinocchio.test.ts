@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { runRustAutofixer } from "../../../lib/tools/rustAutofixer/handler.js";
+import { runProgramAutofixer } from "../../../lib/tools/programAutofixer/handler.js";
 import {
   VULNERABLE_MISSING_SIGNER,
   SECURE_MISSING_SIGNER,
@@ -109,11 +109,11 @@ const EXTENDED_RULE_FIXTURES: ReadonlyArray<{
   { rule: "existing-lamports", vulnerable: VULNERABLE_EXISTING_LAMPORTS, secure: SECURE_EXISTING_LAMPORTS },
 ];
 
-describe("rust_autofixer Pinocchio visitors", () => {
+describe("program_autofixer Pinocchio visitors", () => {
   it.each(RULE_FIXTURES)(
     "$rule flags the vulnerable fixture",
     async ({ rule, vulnerable }) => {
-      const out = await runRustAutofixer({ code: vulnerable, framework: "pinocchio" });
+      const out = await runProgramAutofixer({ code: vulnerable, framework: "pinocchio" });
       const hit = out.issues.find(i => i.rule === rule);
       expect(hit, `expected ${rule} to fire on vulnerable fixture`).toBeDefined();
       expect(out.require_another_tool_call_after_fixing).toBe(true);
@@ -124,7 +124,7 @@ describe("rust_autofixer Pinocchio visitors", () => {
   it.each(RULE_FIXTURES)(
     "$rule stays silent on the secure fixture",
     async ({ rule, secure }) => {
-      const out = await runRustAutofixer({ code: secure, framework: "pinocchio" });
+      const out = await runProgramAutofixer({ code: secure, framework: "pinocchio" });
       const hit = out.issues.find(i => i.rule === rule);
       expect(hit, `${rule} fired on secure fixture: ${hit?.title}`).toBeUndefined();
     },
@@ -133,23 +133,23 @@ describe("rust_autofixer Pinocchio visitors", () => {
 
   it("sets require_another_tool_call_after_fixing to false on clean code", async () => {
     const clean = `pub fn add(a: u64, b: u64) -> u64 { a.checked_add(b).unwrap_or(0) }`;
-    const out = await runRustAutofixer({ code: clean, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: clean, framework: "pinocchio" });
     expect(out.issues).toEqual([]);
     expect(out.suggestions).toEqual([]);
     expect(out.require_another_tool_call_after_fixing).toBe(false);
   });
 
   it("reports parse-error issue for non-Rust input gracefully", async () => {
-    const out = await runRustAutofixer({ code: "this is not rust @#$%^&", framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: "this is not rust @#$%^&", framework: "pinocchio" });
     expect(out.require_another_tool_call_after_fixing).toBe(true);
   });
 });
 
-describe("rust_autofixer Pinocchio additional visitors", () => {
+describe("program_autofixer Pinocchio additional visitors", () => {
   it.each(EXTENDED_RULE_FIXTURES)(
     "$rule fires on vulnerable fixture",
     async ({ rule, vulnerable }) => {
-      const out = await runRustAutofixer({ code: vulnerable, framework: "pinocchio" });
+      const out = await runProgramAutofixer({ code: vulnerable, framework: "pinocchio" });
       const hit = out.issues.find(i => i.rule === rule);
       expect(
         hit,
@@ -162,7 +162,7 @@ describe("rust_autofixer Pinocchio additional visitors", () => {
   it.each(EXTENDED_RULE_FIXTURES)(
     "$rule stays silent on the secure fixture",
     async ({ rule, secure }) => {
-      const out = await runRustAutofixer({ code: secure, framework: "pinocchio" });
+      const out = await runProgramAutofixer({ code: secure, framework: "pinocchio" });
       const hit = out.issues.find(i => i.rule === rule);
       expect(hit, `${rule} fired on secure fixture: ${hit?.title}`).toBeUndefined();
     },
@@ -170,7 +170,7 @@ describe("rust_autofixer Pinocchio additional visitors", () => {
   );
 });
 
-describe("rust_autofixer Pinocchio suggestions", () => {
+describe("program_autofixer Pinocchio suggestions", () => {
   it("accepts inline is_signer guards for missing-signer", async () => {
     const code = `use pinocchio::account_view::AccountView;
 use pinocchio::program_error::ProgramError;
@@ -188,7 +188,7 @@ impl<'a> InitAccounts<'a> {
   }
 }
 `;
-    const out = await runRustAutofixer({ code, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "missing-signer");
     expect(hit, `missing-signer fired after inline signer guard: ${hit?.title}`).toBeUndefined();
   }, 20_000);
@@ -212,13 +212,13 @@ pub fn rotate(
   Ok(())
 }
 `;
-    const out = await runRustAutofixer({ code, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "authority-escalation");
     expect(hit, `authority-escalation fired after inline signer guard: ${hit?.title}`).toBeUndefined();
   }, 20_000);
 
   it("does not imply a writable flag in missing-signer guidance", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_MISSING_SIGNER, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_MISSING_SIGNER, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "missing-signer");
     expect(hit, "missing-signer should fire on vulnerable fixture").toBeDefined();
 
@@ -228,7 +228,7 @@ pub fn rotate(
   }, 20_000);
 
   it("uses real Pinocchio rent sysvar guidance without unwraps or local shims", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_RENT_EXEMPT, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_RENT_EXEMPT, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "rent-exempt");
     expect(hit, "rent-exempt should fire on vulnerable fixture").toBeDefined();
 
@@ -239,7 +239,7 @@ pub fn rotate(
   }, 20_000);
 
   it("does not imply a writable flag in authority-escalation guidance", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_AUTHORITY_ESC, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_AUTHORITY_ESC, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "authority-escalation");
     expect(hit, "authority-escalation should fire on vulnerable fixture").toBeDefined();
 
@@ -249,52 +249,52 @@ pub fn rotate(
   }, 20_000);
 });
 
-describe("rust_autofixer framework detection", () => {
+describe("program_autofixer framework detection", () => {
   it("auto-detects pinocchio from imports", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_MISSING_SIGNER, framework: "auto" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_MISSING_SIGNER, framework: "auto" });
     expect(out.issues.some(i => i.rule === "missing-signer")).toBe(true);
   });
 });
 
-describe("rust_autofixer regression cases (no regex fallbacks)", () => {
+describe("program_autofixer regression cases (no regex fallbacks)", () => {
   it("does not flag pda-validation when validation uses `.ne()` method", async () => {
-    const out = await runRustAutofixer({ code: SECURE_PDA_NE_METHOD, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: SECURE_PDA_NE_METHOD, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "pda-validation");
     expect(hit, `pda-validation fired on .ne() validation: ${hit?.title}`).toBeUndefined();
   }, 20_000);
 
   it("flags pda-validation when validation uses `assert_ne!`", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_PDA_ASSERT_NE, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_PDA_ASSERT_NE, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "pda-validation");
     expect(hit, "pda-validation missed assert_ne! rejecting the real PDA").toBeDefined();
   }, 20_000);
 
   it("flags pda-validation when the PDA is compared to an unrelated key", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_PDA_ASSERT_EQ_UNRELATED, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_PDA_ASSERT_EQ_UNRELATED, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "pda-validation");
     expect(hit, "pda-validation accepted an unrelated Pubkey comparison").toBeDefined();
   }, 20_000);
 
   it("flags arbitrary-cpi when a different program account was verified", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_CPI_MISMATCHED_VERIFY, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_CPI_MISMATCHED_VERIFY, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
     expect(hit, "arbitrary-cpi missed invoke using an unverified program account").toBeDefined();
   }, 20_000);
 
   it("flags arbitrary-cpi when only one program-shaped account was verified", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_CPI_PARTIAL_VERIFY, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_CPI_PARTIAL_VERIFY, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
     expect(hit, "arbitrary-cpi missed invoke with a partially verified program account list").toBeDefined();
   }, 20_000);
 
   it("does not flag unchecked-arithmetic on account-layout `len()` math", async () => {
-    const out = await runRustAutofixer({ code: SECURE_ARITHMETIC_LEN_MATH, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: SECURE_ARITHMETIC_LEN_MATH, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "unchecked-arithmetic");
     expect(hit, `unchecked-arithmetic fired on len() math: ${hit?.code_snippet}`).toBeUndefined();
   }, 20_000);
 
   it("does flag unchecked-arithmetic on lamport math", async () => {
-    const out = await runRustAutofixer({
+    const out = await runProgramAutofixer({
       code: VULNERABLE_ARITHMETIC_LAMPORTS,
       framework: "pinocchio",
     });
@@ -303,7 +303,7 @@ describe("rust_autofixer regression cases (no regex fallbacks)", () => {
   }, 20_000);
 
   it("does not treat local try_from bindings as account destructures", async () => {
-    const out = await runRustAutofixer({
+    const out = await runProgramAutofixer({
       code: SECURE_TRY_FROM_WITH_LOCAL_BINDING,
       framework: "pinocchio",
     });
@@ -314,33 +314,33 @@ describe("rust_autofixer regression cases (no regex fallbacks)", () => {
 
 describe("unsafe-unwrap noise suppression (infallible try_into patterns)", () => {
   it("suppresses `data[0..N].try_into().unwrap()` with literal range", async () => {
-    const out = await runRustAutofixer({ code: SECURE_UNWRAP_FIXED_SLICE_LITERAL, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: SECURE_UNWRAP_FIXED_SLICE_LITERAL, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "unsafe-unwrap");
     expect(hit, `unsafe-unwrap fired on literal fixed slice: ${hit?.code_snippet}`).toBeUndefined();
   }, 20_000);
 
   it("suppresses `data[offset..offset + N].try_into().unwrap()`", async () => {
-    const out = await runRustAutofixer({ code: SECURE_UNWRAP_FIXED_SLICE_OFFSET, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: SECURE_UNWRAP_FIXED_SLICE_OFFSET, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "unsafe-unwrap");
     expect(hit, `unsafe-unwrap fired on offset+literal slice: ${hit?.code_snippet}`).toBeUndefined();
   }, 20_000);
 
   it("suppresses `value.to_le_bytes().try_into().unwrap()`", async () => {
-    const out = await runRustAutofixer({ code: SECURE_UNWRAP_TO_LE_BYTES, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: SECURE_UNWRAP_TO_LE_BYTES, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "unsafe-unwrap");
     expect(hit, `unsafe-unwrap fired on to_le_bytes round-trip: ${hit?.code_snippet}`).toBeUndefined();
   }, 20_000);
 
   it("still flags `from_utf8(attacker_bytes).unwrap()`", async () => {
-    const out = await runRustAutofixer({ code: VULNERABLE_UNWRAP_FROM_UTF8, framework: "pinocchio" });
+    const out = await runProgramAutofixer({ code: VULNERABLE_UNWRAP_FROM_UTF8, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "unsafe-unwrap");
     expect(hit, "unsafe-unwrap missed from_utf8 panic site").toBeDefined();
   }, 20_000);
 });
 
-describe("rust_autofixer Pinocchio cross-check regression cases", () => {
+describe("program_autofixer Pinocchio cross-check regression cases", () => {
   it("reports at most one event-via-cpi finding per file", async () => {
-    const out = await runRustAutofixer({
+    const out = await runProgramAutofixer({
       code: VULNERABLE_EVENT_VIA_CPI_MULTIPLE_LOGS,
       framework: "pinocchio",
     });
@@ -349,7 +349,7 @@ describe("rust_autofixer Pinocchio cross-check regression cases", () => {
   }, 20_000);
 
   it("does not flag diagnostic msg logs as event-via-cpi", async () => {
-    const out = await runRustAutofixer({
+    const out = await runProgramAutofixer({
       code: SECURE_EVENT_VIA_CPI_DEBUG_LOGS,
       framework: "pinocchio",
     });
@@ -358,7 +358,7 @@ describe("rust_autofixer Pinocchio cross-check regression cases", () => {
   }, 20_000);
 
   it("does not count nested function borrows against the outer function", async () => {
-    const out = await runRustAutofixer({
+    const out = await runProgramAutofixer({
       code: SECURE_ACCOUNT_BORROW_NESTED_FN,
       framework: "pinocchio",
     });
@@ -367,7 +367,7 @@ describe("rust_autofixer Pinocchio cross-check regression cases", () => {
   }, 20_000);
 
   it("flags authority writes when only an unrelated signer was verified", async () => {
-    const out = await runRustAutofixer({
+    const out = await runProgramAutofixer({
       code: VULNERABLE_AUTHORITY_ESC_UNRELATED_SIGNER,
       framework: "pinocchio",
     });
@@ -376,7 +376,7 @@ describe("rust_autofixer Pinocchio cross-check regression cases", () => {
   }, 20_000);
 
   it("flags authority writes when the signer comparison is not a rejecting guard", async () => {
-    const out = await runRustAutofixer({
+    const out = await runProgramAutofixer({
       code: VULNERABLE_AUTHORITY_ESC_PASSIVE_COMPARE,
       framework: "pinocchio",
     });
@@ -385,7 +385,7 @@ describe("rust_autofixer Pinocchio cross-check regression cases", () => {
   }, 20_000);
 
   it("flags CreateAccount when only an unrelated lamports balance was checked", async () => {
-    const out = await runRustAutofixer({
+    const out = await runProgramAutofixer({
       code: VULNERABLE_REINIT_UNRELATED_LAMPORTS,
       framework: "pinocchio",
     });
@@ -394,7 +394,7 @@ describe("rust_autofixer Pinocchio cross-check regression cases", () => {
   }, 20_000);
 
   it("does not require idempotent fallback when the existing-lamports branch rejects", async () => {
-    const out = await runRustAutofixer({
+    const out = await runProgramAutofixer({
       code: SECURE_EXISTING_LAMPORTS_REJECTS,
       framework: "pinocchio",
     });
@@ -403,7 +403,7 @@ describe("rust_autofixer Pinocchio cross-check regression cases", () => {
   }, 20_000);
 
   it("does not treat a zero-lamports branch as an existing-account branch", async () => {
-    const out = await runRustAutofixer({
+    const out = await runProgramAutofixer({
       code: SECURE_EXISTING_LAMPORTS_ZERO_BRANCH,
       framework: "pinocchio",
     });

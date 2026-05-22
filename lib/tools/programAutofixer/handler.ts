@@ -155,7 +155,7 @@ export interface RunAutofixerArgs {
   framework?: Framework | "auto";
 }
 
-export async function runRustAutofixer({
+export async function runProgramAutofixer({
   code,
   filename = "input.rs",
   framework = "auto",
