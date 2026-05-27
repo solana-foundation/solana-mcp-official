@@ -15,7 +15,7 @@ variables:
   schema:
     description: Schema inside the catalog (combined path becomes `${catalog}.${schema}`).
   warehouse_id:
-    description: SQL warehouse id for analytics inserts.
+    description: SQL warehouse id for SQL docs lookup and dashboards.
   vs_endpoint:
     description: Vector Search endpoint name.
   vs_index:
