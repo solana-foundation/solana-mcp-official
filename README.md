@@ -28,7 +28,7 @@ Production runs on Cloud Run (mcp.solana.com → [`server/cloudrun.ts`](server/c
 The Databricks side ([`databricks.yml`](databricks.yml)) deploys two resources via `just deploy`:
 
 - the daily ingestion job (`crawl_and_index.py` notebook) — crawls sources, MERGEs into Delta, syncs the Vector Search index;
-- the Lakeview dashboard. Analytics source files now land in S3 first and need downstream ingestion before dashboard consumption.
+- the Lakeview dashboard. Analytics source files land in S3 and require downstream ingestion before dashboard consumption.
 
 Per-environment values (catalog, warehouse, index) live in the gitignored `prod.yml` (see template inline in `databricks.yml`).
 
