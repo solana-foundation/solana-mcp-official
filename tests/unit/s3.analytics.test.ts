@@ -48,7 +48,7 @@ describe("S3 analytics service", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-27T14:31:22.123Z"));
     sendMock.mockResolvedValue({});
-    process.env.ANALYTICS_S3_URI = "s3://lz-solana-raw-data/mcp_analytics/";
+    process.env.ANALYTICS_S3_URI = "s3://example-analytics-bucket/mcp_analytics/";
     process.env.AWS_REGION = "us-east-1";
   });
 
@@ -100,7 +100,7 @@ describe("S3 analytics service", () => {
 
     expect(sendMock).toHaveBeenCalledTimes(1);
     const input = putObjectInput();
-    expect(input.Bucket).toBe("lz-solana-raw-data");
+    expect(input.Bucket).toBe("example-analytics-bucket");
     expect(input.Key).toMatch(
       /^mcp_analytics\/mcp_initializations\/dt=2026-05-27\/hour=14\/2026-05-27T14-31-22-123Z_[a-f0-9]{8}_000001\.jsonl$/,
     );
