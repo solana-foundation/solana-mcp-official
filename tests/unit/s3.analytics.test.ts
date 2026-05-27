@@ -102,7 +102,7 @@ describe("S3 analytics service", () => {
     const input = putObjectInput();
     expect(input.Bucket).toBe("example-analytics-bucket");
     expect(input.Key).toMatch(
-      /^mcp_analytics\/mcp_initializations\/dt=2026-05-27\/hour=14\/2026-05-27T14-31-22-123Z_[a-f0-9]{8}_000001\.jsonl$/,
+      /^mcp_analytics\/mcp_initializations\/dt=2026-05-27\/2026-05-27T14-31-22-123Z_[a-f0-9]{8}_000001\.jsonl$/,
     );
     expect(input.ContentType).toBe("application/x-ndjson");
     expect(jsonlRows(input)).toEqual([

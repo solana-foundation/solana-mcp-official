@@ -19,7 +19,6 @@ interface S3Target {
 interface FlushChunk {
   partition: {
     date: string;
-    hour: string;
   };
   rows: BufferedRow[];
 }
@@ -147,11 +146,10 @@ function requeueRows(table: AnalyticsTable, rows: BufferedRow[]): void {
   trimBuffer(table, "newest");
 }
 
-function partitionFor(timestamp: string): { date: string; hour: string } {
+function partitionFor(timestamp: string): { date: string } {
   const iso = new Date(timestamp).toISOString();
   return {
     date: iso.slice(0, 10),
-    hour: iso.slice(11, 13),
   };
 }
 
@@ -162,8 +160,7 @@ function buildFlushChunks(rows: BufferedRow[]): FlushChunk[] {
 
   for (const row of rows) {
     const partition = partitionFor(row.timestamp);
-    const partitionChanged =
-      current && (current.partition.date !== partition.date || current.partition.hour !== partition.hour);
+    const partitionChanged = current && current.partition.date !== partition.date;
     if (!current || current.rows.length >= limit || partitionChanged) {
       current = { partition, rows: [] };
       chunks.push(current);
@@ -185,7 +182,7 @@ function nextSequence(): string {
 
 function objectKey(target: S3Target, table: AnalyticsTable, chunk: FlushChunk): string {
   const fileName = `${objectTimestamp()}_${INSTANCE_ID}_${nextSequence()}.jsonl`;
-  const key = `${table}/dt=${chunk.partition.date}/hour=${chunk.partition.hour}/${fileName}`;
+  const key = `${table}/dt=${chunk.partition.date}/${fileName}`;
   return target.prefix ? `${target.prefix}/${key}` : key;
 }
 
