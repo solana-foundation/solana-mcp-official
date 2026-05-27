@@ -82,9 +82,15 @@ jobs:
             DATABRICKS_TOKEN=${{ env.DATABRICKS_TOKEN }}
             DATABRICKS_VS_INDEX=${{ env.DATABRICKS_VS_INDEX }}
             DATABRICKS_WAREHOUSE_ID=${{ env.DATABRICKS_WAREHOUSE_ID }}
-            DATABRICKS_ANALYTICS_SCHEMA=${{ env.DATABRICKS_ANALYTICS_SCHEMA }}
             DATABRICKS_RERANKER_ENDPOINT=${{ env.DATABRICKS_RERANKER_ENDPOINT }}
             REDIS_URL=${{ env.REDIS_URL }}
+            ANALYTICS_S3_URI=${{ env.ANALYTICS_S3_URI }}
+            ANALYTICS_S3_BATCH_SIZE=${{ env.ANALYTICS_S3_BATCH_SIZE }}
+            ANALYTICS_S3_MAX_RECORD_AGE_MS=${{ env.ANALYTICS_S3_MAX_RECORD_AGE_MS }}
+            ANALYTICS_S3_MAX_BUFFERED_ROWS=${{ env.ANALYTICS_S3_MAX_BUFFERED_ROWS }}
+            AWS_REGION=${{ env.AWS_REGION }}
+            AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_ACCESS_KEY }}
           env_vars_update_strategy: overwrite
           flags: >-
             --service-account=${{ env.GCP_RUNTIME_SERVICE_ACCOUNT }}

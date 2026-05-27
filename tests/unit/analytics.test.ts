@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { dbxLogInitializationMock, dbxLogToolCallRequestMock, dbxLogToolCallResponseMock } = vi.hoisted(() => ({
-  dbxLogInitializationMock: vi.fn(),
-  dbxLogToolCallRequestMock: vi.fn(),
-  dbxLogToolCallResponseMock: vi.fn(),
+const { s3LogInitializationMock, s3LogToolCallRequestMock, s3LogToolCallResponseMock } = vi.hoisted(() => ({
+  s3LogInitializationMock: vi.fn(),
+  s3LogToolCallRequestMock: vi.fn(),
+  s3LogToolCallResponseMock: vi.fn(),
 }));
 
-vi.mock("../../lib/services/databricks/analytics", () => ({
-  logInitialization: dbxLogInitializationMock,
-  logToolCallRequest: dbxLogToolCallRequestMock,
-  logToolCallResponse: dbxLogToolCallResponseMock,
+vi.mock("../../lib/services/s3/analytics", () => ({
+  logInitialization: s3LogInitializationMock,
+  logToolCallRequest: s3LogToolCallRequestMock,
+  logToolCallResponse: s3LogToolCallResponseMock,
 }));
 
 import { logAnalytics } from "../../lib/analytics.js";
@@ -17,12 +17,12 @@ import { logAnalytics } from "../../lib/analytics.js";
 describe("logAnalytics", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    dbxLogInitializationMock.mockResolvedValue(undefined);
-    dbxLogToolCallRequestMock.mockResolvedValue(undefined);
-    dbxLogToolCallResponseMock.mockReturnValue(undefined);
+    s3LogInitializationMock.mockReturnValue(undefined);
+    s3LogToolCallRequestMock.mockReturnValue(undefined);
+    s3LogToolCallResponseMock.mockReturnValue(undefined);
   });
 
-  it("routes initialize to databricks logInitialization with parsed params", async () => {
+  it("routes initialize to S3 logInitialization with parsed params", async () => {
     await logAnalytics({
       event_type: "message_received",
       details: {
@@ -37,7 +37,7 @@ describe("logAnalytics", () => {
       },
     });
 
-    expect(dbxLogInitializationMock).toHaveBeenCalledWith({
+    expect(s3LogInitializationMock).toHaveBeenCalledWith({
       protocolVersion: "2025-03-26",
       capabilities: { roots: { listChanged: true } },
       clientName: "codex",
@@ -46,7 +46,7 @@ describe("logAnalytics", () => {
     });
   });
 
-  it("routes tools/call to databricks logToolCallRequest with request metadata", async () => {
+  it("routes tools/call to S3 logToolCallRequest with request metadata", async () => {
     await logAnalytics({
       event_type: "message_received",
       request_id: "req-123",
@@ -62,7 +62,7 @@ describe("logAnalytics", () => {
       },
     });
 
-    expect(dbxLogToolCallRequestMock).toHaveBeenCalledWith({
+    expect(s3LogToolCallRequestMock).toHaveBeenCalledWith({
       toolName: "Solana_Documentation_Search",
       requestId: "req-123",
       sessionId: "session-456",
@@ -96,7 +96,7 @@ describe("logAnalytics", () => {
       code_length: "pub fn sensitive_program() {}".length,
       has_code: true,
     };
-    expect(dbxLogToolCallRequestMock).toHaveBeenCalledWith({
+    expect(s3LogToolCallRequestMock).toHaveBeenCalledWith({
       toolName: "program_autofixer",
       requestId: "req-123",
       sessionId: "session-456",
@@ -109,11 +109,11 @@ describe("logAnalytics", () => {
         },
       },
     });
-    expect(JSON.stringify(dbxLogToolCallRequestMock.mock.calls[0][0])).not.toContain("sensitive_program");
-    expect(JSON.stringify(dbxLogToolCallRequestMock.mock.calls[0][0])).not.toContain("private/program/path");
+    expect(JSON.stringify(s3LogToolCallRequestMock.mock.calls[0][0])).not.toContain("sensitive_program");
+    expect(JSON.stringify(s3LogToolCallRequestMock.mock.calls[0][0])).not.toContain("private/program/path");
   });
 
-  it("routes message_response to databricks logToolCallResponse", async () => {
+  it("routes message_response to S3 logToolCallResponse", async () => {
     await logAnalytics({
       event_type: "message_response",
       details: {
@@ -123,7 +123,7 @@ describe("logAnalytics", () => {
       },
     });
 
-    expect(dbxLogToolCallResponseMock).toHaveBeenCalledWith({
+    expect(s3LogToolCallResponseMock).toHaveBeenCalledWith({
       tool: "Solana_Documentation_Search",
       req: "find docs",
       res: '{"content":[]}',
@@ -139,8 +139,8 @@ describe("logAnalytics", () => {
       details: { body: "{invalid-json" },
     });
 
-    expect(dbxLogInitializationMock).not.toHaveBeenCalled();
-    expect(dbxLogToolCallRequestMock).not.toHaveBeenCalled();
+    expect(s3LogInitializationMock).not.toHaveBeenCalled();
+    expect(s3LogToolCallRequestMock).not.toHaveBeenCalled();
     expect(errorSpy).toHaveBeenCalledWith("[logAnalytics] Could not parse JSON body:", "{invalid-json");
     errorSpy.mockRestore();
   });
@@ -153,8 +153,8 @@ describe("logAnalytics", () => {
       details: { body: JSON.stringify({ method: "unknown/method" }) },
     });
 
-    expect(dbxLogInitializationMock).not.toHaveBeenCalled();
-    expect(dbxLogToolCallRequestMock).not.toHaveBeenCalled();
+    expect(s3LogInitializationMock).not.toHaveBeenCalled();
+    expect(s3LogToolCallRequestMock).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalledWith("[logAnalytics] Skipping method:", "unknown/method");
     warnSpy.mockRestore();
   });

@@ -1,4 +1,4 @@
-import * as databricksAnalytics from "./services/databricks/analytics";
+import * as s3Analytics from "./services/s3/analytics";
 
 export type EventType = "message_received" | "message_response" | "tool_call" | "tool_response";
 
@@ -78,7 +78,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
       switch (parsedBody.method) {
         case "initialize": {
           const { protocolVersion, capabilities, clientInfo } = parsedBody.params || {};
-          await databricksAnalytics.logInitialization({
+          s3Analytics.logInitialization({
             protocolVersion,
             capabilities,
             clientName: clientInfo?.name || "",
@@ -92,7 +92,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
           const { name, arguments: toolArgs } = parsedBody.params || {};
           const toolName = typeof name === "string" ? name : "";
           const sanitizedArgs = sanitizeToolArgs(toolName, toolArgs);
-          await databricksAnalytics.logToolCallRequest({
+          s3Analytics.logToolCallRequest({
             toolName,
             requestId: event.request_id ?? null,
             sessionId: event.session_id ?? null,
@@ -108,9 +108,13 @@ export async function logAnalytics(event: AnalyticsEvent) {
       }
     } else if (event.event_type === "message_response") {
       const { tool, req, res } = event.details;
-      databricksAnalytics.logToolCallResponse({ tool, req, res, rawBody: event.details });
+      s3Analytics.logToolCallResponse({ tool, req, res, rawBody: event.details });
     }
   } catch (err) {
     console.error("[logAnalytics] Unexpected error:", err);
   }
+}
+
+export async function flushAnalytics(): Promise<void> {
+  await s3Analytics.flushAnalytics();
 }
