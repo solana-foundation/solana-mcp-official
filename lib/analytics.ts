@@ -78,7 +78,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
       switch (parsedBody.method) {
         case "initialize": {
           const { protocolVersion, capabilities, clientInfo } = parsedBody.params || {};
-          await databricksAnalytics.logInitialization({
+          databricksAnalytics.logInitialization({
             protocolVersion,
             capabilities,
             clientName: clientInfo?.name || "",
@@ -92,7 +92,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
           const { name, arguments: toolArgs } = parsedBody.params || {};
           const toolName = typeof name === "string" ? name : "";
           const sanitizedArgs = sanitizeToolArgs(toolName, toolArgs);
-          await databricksAnalytics.logToolCallRequest({
+          databricksAnalytics.logToolCallRequest({
             toolName,
             requestId: event.request_id ?? null,
             sessionId: event.session_id ?? null,

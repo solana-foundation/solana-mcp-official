@@ -63,7 +63,7 @@ describe("databricks analytics service", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
       const { logInitialization } = await import("../../lib/services/databricks/analytics.js");
 
-      await logInitialization({
+      logInitialization({
         protocolVersion: "2025-03-26",
         capabilities: {},
         clientName: "codex",
@@ -81,7 +81,7 @@ describe("databricks analytics service", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
       const { logInitialization } = await import("../../lib/services/databricks/analytics.js");
 
-      await logInitialization({
+      logInitialization({
         protocolVersion: "2025-03-26",
         capabilities: {},
         clientName: "codex",
@@ -97,7 +97,7 @@ describe("databricks analytics service", () => {
       const { bufferedAnalyticsRowCount, flushAnalytics, logInitialization } =
         await import("../../lib/services/databricks/analytics.js");
 
-      await logInitialization({
+      logInitialization({
         protocolVersion: "2025-03-26",
         capabilities: { roots: { listChanged: true } },
         clientName: "codex",
@@ -129,7 +129,7 @@ describe("databricks analytics service", () => {
       process.env.DATABRICKS_ANALYTICS_BATCH_SIZE = "2";
       const { logInitialization } = await import("../../lib/services/databricks/analytics.js");
 
-      await logInitialization({
+      logInitialization({
         protocolVersion: "2025-03-26",
         capabilities: {},
         clientName: "codex",
@@ -138,7 +138,7 @@ describe("databricks analytics service", () => {
       });
       expect(fetchMock).not.toHaveBeenCalled();
 
-      await logInitialization({
+      logInitialization({
         protocolVersion: "2025-03-26",
         capabilities: {},
         clientName: "cursor",
@@ -161,7 +161,7 @@ describe("databricks analytics service", () => {
       const { logInitialization } = await import("../../lib/services/databricks/analytics.js");
 
       for (const clientName of ["codex", "cursor", "claude"]) {
-        await logInitialization({
+        logInitialization({
           protocolVersion: "2025-03-26",
           capabilities: {},
           clientName,
@@ -183,7 +183,7 @@ describe("databricks analytics service", () => {
       const { flushAnalytics, logToolCallRequest } = await import("../../lib/services/databricks/analytics.js");
 
       for (const toolName of ["tool-a", "tool-b", "tool-c"]) {
-        await logToolCallRequest({
+        logToolCallRequest({
           toolName,
           requestId: null,
           sessionId: null,
@@ -210,7 +210,7 @@ describe("databricks analytics service", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
       const { logToolCallRequest } = await import("../../lib/services/databricks/analytics.js");
 
-      await logToolCallRequest({
+      logToolCallRequest({
         toolName: "Solana_Documentation_Search",
         requestId: "req-1",
         sessionId: "sess-1",
@@ -225,7 +225,7 @@ describe("databricks analytics service", () => {
     it("buffers and flushes a request row with tool metadata", async () => {
       const { flushAnalytics, logToolCallRequest } = await import("../../lib/services/databricks/analytics.js");
 
-      await logToolCallRequest({
+      logToolCallRequest({
         toolName: "Solana_Documentation_Search",
         requestId: "req-123",
         sessionId: "session-456",
@@ -251,7 +251,7 @@ describe("databricks analytics service", () => {
     it("allows null requestId and sessionId", async () => {
       const { flushAnalytics, logToolCallRequest } = await import("../../lib/services/databricks/analytics.js");
 
-      await logToolCallRequest({
+      logToolCallRequest({
         toolName: "Solana_Expert__Ask_For_Help",
         requestId: null,
         sessionId: null,
@@ -329,17 +329,21 @@ describe("databricks analytics service", () => {
 
     it("preserves failed rows over newer rows when requeue exceeds the buffer limit", async () => {
       process.env.DATABRICKS_ANALYTICS_MAX_BUFFERED_ROWS = "2";
+      let resolveFirstFlush: (response: Response) => void = () => undefined;
+      const firstFlushResponse = new Promise<Response>(resolve => {
+        resolveFirstFlush = resolve;
+      });
       let failFirstFlush = true;
       fetchMock.mockImplementation(() => {
         if (failFirstFlush) {
           failFirstFlush = false;
-          return Promise.resolve(new Response("boom", { status: 400 }));
+          return firstFlushResponse;
         }
         return Promise.resolve(jsonResponse({ status: { state: "SUCCEEDED" } }));
       });
       const { flushAnalytics, logToolCallRequest } = await import("../../lib/services/databricks/analytics.js");
 
-      await logToolCallRequest({
+      logToolCallRequest({
         toolName: "failed-row",
         requestId: null,
         sessionId: null,
@@ -348,14 +352,15 @@ describe("databricks analytics service", () => {
       });
 
       const firstFlush = flushAnalytics();
-      await logToolCallRequest({
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      logToolCallRequest({
         toolName: "newer-row",
         requestId: null,
         sessionId: null,
         toolArgs: {},
         rawBody: {},
       });
-      await logToolCallRequest({
+      logToolCallRequest({
         toolName: "newest-row",
         requestId: null,
         sessionId: null,
@@ -363,6 +368,7 @@ describe("databricks analytics service", () => {
         rawBody: {},
       });
 
+      resolveFirstFlush(new Response("boom", { status: 400 }));
       await expect(firstFlush).rejects.toBeInstanceOf(Error);
       fetchMock.mockClear();
 

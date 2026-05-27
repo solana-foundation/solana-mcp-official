@@ -330,13 +330,13 @@ function stringify(value: unknown): string {
   return JSON.stringify(value ?? null);
 }
 
-export async function logInitialization(params: {
+export function logInitialization(params: {
   protocolVersion: string;
   capabilities: unknown;
   clientName: string;
   clientVersion: string;
   rawBody: unknown;
-}): Promise<void> {
+}): void {
   enqueueNamedInsert("mcp_initializations", {
     method: "initialize",
     protocol_version: params.protocolVersion,
@@ -347,13 +347,13 @@ export async function logInitialization(params: {
   });
 }
 
-export async function logToolCallRequest(params: {
+export function logToolCallRequest(params: {
   toolName: string;
   requestId: string | null;
   sessionId: string | null;
   toolArgs: unknown;
   rawBody: unknown;
-}): Promise<void> {
+}): void {
   enqueueNamedInsert("mcp_tool_calls", {
     row_type: "request",
     tool_name: params.toolName,
