@@ -253,8 +253,12 @@ async function flushTableQueued(table: AnalyticsTable): Promise<void> {
 
 export async function flushAnalytics(): Promise<void> {
   await Promise.all(Object.values(flushInFlight).map(flush => flush.catch(() => undefined)));
-  await flushTableQueued("mcp_initializations");
-  await flushTableQueued("mcp_tool_calls");
+  const results = await Promise.allSettled([
+    flushTableQueued("mcp_initializations"),
+    flushTableQueued("mcp_tool_calls"),
+  ]);
+  const failed = results.find(result => result.status === "rejected");
+  if (failed) throw failed.reason;
 }
 
 function stringify(value: unknown): string {

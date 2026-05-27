@@ -210,6 +210,34 @@ describe("S3 analytics service", () => {
     expect(bufferedAnalyticsRowCount()).toBe(0);
   });
 
+  it("attempts both table flushes before rejecting on shutdown upload failure", async () => {
+    sendMock.mockRejectedValueOnce(new Error("s3 unavailable")).mockResolvedValue({});
+    const { bufferedAnalyticsRowCount, flushAnalytics, logInitialization, logToolCallRequest } =
+      await import("../../lib/services/s3/analytics.js");
+
+    logInitialization({
+      protocolVersion: "2025-03-26",
+      capabilities: {},
+      clientName: "codex",
+      clientVersion: "1.0.0",
+      rawBody: {},
+    });
+    logToolCallRequest({
+      toolName: "list_sections",
+      requestId: "req-1",
+      sessionId: "sess-1",
+      toolArgs: {},
+      rawBody: {},
+    });
+
+    await expect(flushAnalytics()).rejects.toThrow("s3 unavailable");
+
+    expect(sendMock).toHaveBeenCalledTimes(2);
+    expect(putObjectInput(0).Key).toContain("/mcp_initializations/");
+    expect(putObjectInput(1).Key).toContain("/mcp_tool_calls/");
+    expect(bufferedAnalyticsRowCount()).toBe(1);
+  });
+
   it("preserves failed rows over newer rows when requeue exceeds the buffer limit", async () => {
     process.env.ANALYTICS_S3_MAX_BUFFERED_ROWS = "2";
     let rejectFirstFlush: (reason: Error) => void = () => undefined;
