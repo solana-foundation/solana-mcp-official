@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { join } from "node:path";
 
-import { flushAnalytics } from "../lib/analytics";
 import { handleMcpRequest } from "../lib/handler";
 
 const PORT = Number(process.env.PORT ?? 8080);
@@ -167,14 +166,8 @@ function shutdown(signal: NodeJS.Signals): void {
       process.exit(1);
       return;
     }
-    void flushAnalytics()
-      .catch((flushErr: unknown) => {
-        console.warn("[cloudrun] analytics flush failed during shutdown:", flushErr);
-      })
-      .finally(() => {
-        console.warn("[cloudrun] drained, exiting cleanly");
-        process.exit(0);
-      });
+    console.warn("[cloudrun] drained, exiting cleanly");
+    process.exit(0);
   });
   server.closeIdleConnections();
 }

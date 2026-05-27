@@ -78,7 +78,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
       switch (parsedBody.method) {
         case "initialize": {
           const { protocolVersion, capabilities, clientInfo } = parsedBody.params || {};
-          databricksAnalytics.logInitialization({
+          await databricksAnalytics.logInitialization({
             protocolVersion,
             capabilities,
             clientName: clientInfo?.name || "",
@@ -92,7 +92,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
           const { name, arguments: toolArgs } = parsedBody.params || {};
           const toolName = typeof name === "string" ? name : "";
           const sanitizedArgs = sanitizeToolArgs(toolName, toolArgs);
-          databricksAnalytics.logToolCallRequest({
+          await databricksAnalytics.logToolCallRequest({
             toolName,
             requestId: event.request_id ?? null,
             sessionId: event.session_id ?? null,
@@ -113,8 +113,4 @@ export async function logAnalytics(event: AnalyticsEvent) {
   } catch (err) {
     console.error("[logAnalytics] Unexpected error:", err);
   }
-}
-
-export async function flushAnalytics(): Promise<void> {
-  await databricksAnalytics.flushAnalytics();
 }
