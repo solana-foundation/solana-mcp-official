@@ -37,7 +37,7 @@ describe("databricks analytics service", () => {
     vi.resetModules();
     vi.clearAllMocks();
     vi.stubGlobal("fetch", fetchMock);
-    fetchMock.mockResolvedValue(jsonResponse({ status: { state: "SUCCEEDED" } }));
+    fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ status: { state: "SUCCEEDED" } })));
     process.env.DATABRICKS_HOST = HOST;
     process.env.DATABRICKS_TOKEN = TOKEN;
     process.env.DATABRICKS_WAREHOUSE_ID = WAREHOUSE;
@@ -52,6 +52,8 @@ describe("databricks analytics service", () => {
     delete process.env.DATABRICKS_ANALYTICS_SCHEMA;
     delete process.env.DATABRICKS_ANALYTICS_BATCH_SIZE;
     delete process.env.DATABRICKS_ANALYTICS_FLUSH_INTERVAL_MS;
+    delete process.env.DATABRICKS_ANALYTICS_INSERT_CHUNK_BYTE_LIMIT;
+    delete process.env.DATABRICKS_ANALYTICS_INSERT_CHUNK_ROW_LIMIT;
     delete process.env.DATABRICKS_ANALYTICS_MAX_BUFFERED_ROWS;
   });
 
@@ -149,6 +151,56 @@ describe("databricks analytics service", () => {
       expect(req.body.parameters).toHaveLength(14);
       expect(findParam(req, "r0_client_name")).toBe("codex");
       expect(findParam(req, "r1_client_name")).toBe("cursor");
+    });
+  });
+
+  describe("flush chunking", () => {
+    it("keeps the flush threshold separate from the insert row limit", async () => {
+      process.env.DATABRICKS_ANALYTICS_BATCH_SIZE = "3";
+      process.env.DATABRICKS_ANALYTICS_INSERT_CHUNK_ROW_LIMIT = "2";
+      const { logInitialization } = await import("../../lib/services/databricks/analytics.js");
+
+      for (const clientName of ["codex", "cursor", "claude"]) {
+        await logInitialization({
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientName,
+          clientVersion: "1.0.0",
+          rawBody: {},
+        });
+      }
+
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      const firstReq = recordedRequest(fetchMock.mock.calls[0] as [string, RequestInit]);
+      const secondReq = recordedRequest(fetchMock.mock.calls[1] as [string, RequestInit]);
+      expect(findParam(firstReq, "r0_client_name")).toBe("codex");
+      expect(findParam(firstReq, "r1_client_name")).toBe("cursor");
+      expect(findParam(secondReq, "r0_client_name")).toBe("claude");
+    });
+
+    it("splits inserts by serialized request byte limit", async () => {
+      process.env.DATABRICKS_ANALYTICS_INSERT_CHUNK_BYTE_LIMIT = "1";
+      const { flushAnalytics, logToolCallRequest } = await import("../../lib/services/databricks/analytics.js");
+
+      for (const toolName of ["tool-a", "tool-b", "tool-c"]) {
+        await logToolCallRequest({
+          toolName,
+          requestId: null,
+          sessionId: null,
+          toolArgs: { query: "accounts" },
+          rawBody: { method: "tools/call", params: { name: toolName } },
+        });
+      }
+
+      await flushAnalytics();
+
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      for (const call of fetchMock.mock.calls) {
+        const req = recordedRequest(call as [string, RequestInit]);
+        expect(req.body.statement).toContain("mcp_tool_calls");
+        expect(req.body.parameters.filter(p => p.name.startsWith("r0_"))).toHaveLength(8);
+        expect(req.body.parameters.some(p => p.name.startsWith("r1_"))).toBe(false);
+      }
     });
   });
 

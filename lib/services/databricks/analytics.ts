@@ -38,8 +38,15 @@ interface BufferedRow {
   values: RowValues;
 }
 
+interface InsertChunk {
+  rows: BufferedRow[];
+  request: SqlExecuteRequest;
+}
+
 const DEFAULT_BATCH_SIZE = 1_000;
 const DEFAULT_FLUSH_INTERVAL_MS = 60 * 60 * 1_000;
+const DEFAULT_INSERT_CHUNK_BYTE_LIMIT = 24 * 1_024;
+const DEFAULT_INSERT_CHUNK_ROW_LIMIT = 20;
 const DEFAULT_MAX_BUFFERED_ROWS = 10_000;
 const STATEMENT_TIMEOUT = "30s";
 const POLL_MAX_ATTEMPTS = 6;
@@ -87,6 +94,14 @@ function batchSize(): number {
 
 function flushIntervalMs(): number {
   return readPositiveInt("DATABRICKS_ANALYTICS_FLUSH_INTERVAL_MS", DEFAULT_FLUSH_INTERVAL_MS);
+}
+
+function insertChunkByteLimit(): number {
+  return readPositiveInt("DATABRICKS_ANALYTICS_INSERT_CHUNK_BYTE_LIMIT", DEFAULT_INSERT_CHUNK_BYTE_LIMIT);
+}
+
+function insertChunkRowLimit(): number {
+  return readPositiveInt("DATABRICKS_ANALYTICS_INSERT_CHUNK_ROW_LIMIT", DEFAULT_INSERT_CHUNK_ROW_LIMIT);
 }
 
 function maxBufferedRows(): number {
@@ -184,21 +199,55 @@ function buildInsertRequest(
   };
 }
 
-async function executeBatchInsert(table: AnalyticsTable, rows: BufferedRow[]): Promise<void> {
-  const schema = analyticsSchema();
-  if (!schema) {
-    warnOnce("missing-schema", "[analytics] DATABRICKS_ANALYTICS_SCHEMA not set — analytics disabled");
-    return;
-  }
-  const warehouseId = resolveWarehouse();
-  if (!warehouseId) {
-    warnOnce("missing-databricks", "[analytics] Databricks env not set — analytics disabled");
-    return;
+function requestByteLength(request: SqlExecuteRequest): number {
+  return Buffer.byteLength(JSON.stringify(request), "utf8");
+}
+
+function buildInsertChunks(
+  table: AnalyticsTable,
+  rows: BufferedRow[],
+  warehouseId: string,
+  schema: string,
+): InsertChunk[] {
+  const chunks: InsertChunk[] = [];
+  const byteLimit = insertChunkByteLimit();
+  const rowLimit = insertChunkRowLimit();
+  let chunkRows: BufferedRow[] = [];
+  let chunkRequest: SqlExecuteRequest | null = null;
+
+  for (const row of rows) {
+    const candidateRows = [...chunkRows, row];
+    const candidateRequest = buildInsertRequest(table, candidateRows, warehouseId, schema);
+    const candidateTooLarge = requestByteLength(candidateRequest) > byteLimit || candidateRows.length > rowLimit;
+
+    if (chunkRows.length > 0 && candidateTooLarge) {
+      chunks.push({
+        rows: chunkRows,
+        request: chunkRequest ?? buildInsertRequest(table, chunkRows, warehouseId, schema),
+      });
+      chunkRows = [row];
+      chunkRequest = buildInsertRequest(table, chunkRows, warehouseId, schema);
+      continue;
+    }
+
+    chunkRows = candidateRows;
+    chunkRequest = candidateRequest;
   }
 
+  if (chunkRows.length > 0) {
+    chunks.push({
+      rows: chunkRows,
+      request: chunkRequest ?? buildInsertRequest(table, chunkRows, warehouseId, schema),
+    });
+  }
+
+  return chunks;
+}
+
+async function executeInsertRequest(request: SqlExecuteRequest): Promise<void> {
   let res = await dbxFetch<SqlExecuteResponse>("/api/2.0/sql/statements", {
     method: "POST",
-    body: JSON.stringify(buildInsertRequest(table, rows, warehouseId, schema)),
+    body: JSON.stringify(request),
   });
 
   for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS && isPending(res.status?.state); attempt++) {
@@ -214,6 +263,20 @@ async function executeBatchInsert(table: AnalyticsTable, rows: BufferedRow[]): P
   }
 }
 
+function resolveFlushTarget(): { schema: string; warehouseId: string } | null {
+  const schema = analyticsSchema();
+  if (!schema) {
+    warnOnce("missing-schema", "[analytics] DATABRICKS_ANALYTICS_SCHEMA not set — analytics disabled");
+    return null;
+  }
+  const warehouseId = resolveWarehouse();
+  if (!warehouseId) {
+    warnOnce("missing-databricks", "[analytics] Databricks env not set — analytics disabled");
+    return null;
+  }
+  return { schema, warehouseId };
+}
+
 function isPending(state: string | undefined): boolean {
   return state === "PENDING" || state === "RUNNING";
 }
@@ -226,16 +289,22 @@ function requeueRows(table: AnalyticsTable, rows: BufferedRow[]): void {
 async function flushTable(table: AnalyticsTable): Promise<void> {
   const rows = buffers[table].splice(0, buffers[table].length);
   if (rows.length === 0) return;
+  const target = resolveFlushTarget();
+  if (!target) {
+    requeueRows(table, rows);
+    return;
+  }
 
-  const size = batchSize();
-  for (let start = 0; start < rows.length; start += size) {
-    const chunk = rows.slice(start, start + size);
+  const chunks = buildInsertChunks(table, rows, target.warehouseId, target.schema);
+  let rowStart = 0;
+  for (const chunk of chunks) {
     try {
-      await executeBatchInsert(table, chunk);
+      await executeInsertRequest(chunk.request);
     } catch (err) {
-      requeueRows(table, rows.slice(start));
+      requeueRows(table, rows.slice(rowStart));
       throw err;
     }
+    rowStart += chunk.rows.length;
   }
 }
 
