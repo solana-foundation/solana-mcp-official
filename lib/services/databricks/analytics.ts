@@ -1,4 +1,5 @@
 import { dbxFetch, isDatabricksConfigured } from "./client.js";
+import { sleep } from "./utils.js";
 
 // Schema hosting the analytics tables. Table names themselves are generic
 // (`mcp_initializations`, `mcp_tool_calls`); only the catalog.schema prefix
@@ -23,11 +24,40 @@ interface SqlExecuteRequest {
   wait_timeout: string;
 }
 
-interface InsertColumn {
-  col: string;
-  param: string;
-  value: string | null;
+interface SqlExecuteResponse {
+  status?: { state?: string; error?: { message?: string } };
+  statement_id?: string;
 }
+
+type AnalyticsTable = "mcp_initializations" | "mcp_tool_calls";
+
+type RowValues = Record<string, string | null>;
+
+interface BufferedRow {
+  timestamp: string;
+  values: RowValues;
+}
+
+const DEFAULT_BATCH_SIZE = 1_000;
+const DEFAULT_FLUSH_INTERVAL_MS = 60 * 60 * 1_000;
+const DEFAULT_MAX_BUFFERED_ROWS = 10_000;
+const STATEMENT_TIMEOUT = "30s";
+const POLL_MAX_ATTEMPTS = 6;
+const POLL_BACKOFF_MS = [500, 1000, 2000, 4000, 8000, 8000];
+
+const TABLE_COLUMNS: Record<AnalyticsTable, readonly string[]> = {
+  mcp_initializations: ["method", "protocol_version", "capabilities", "client_name", "client_version", "raw_body"],
+  mcp_tool_calls: ["row_type", "tool_name", "request_id", "session_id", "arguments", "response_text", "raw_body"],
+};
+
+const buffers: Record<AnalyticsTable, BufferedRow[]> = {
+  mcp_initializations: [],
+  mcp_tool_calls: [],
+};
+
+let flushTimer: NodeJS.Timeout | null = null;
+let flushInFlight: Promise<void> | null = null;
+const warningKeys = new Set<string>();
 
 function resolveWarehouse(): string | null {
   if (!isDatabricksConfigured()) return null;
@@ -44,58 +74,182 @@ function assertIdent(kind: string, value: string): void {
   }
 }
 
-async function executeNamedInsert(table: string, columns: InsertColumn[]): Promise<void> {
+function readPositiveInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function batchSize(): number {
+  return readPositiveInt("DATABRICKS_ANALYTICS_BATCH_SIZE", DEFAULT_BATCH_SIZE);
+}
+
+function flushIntervalMs(): number {
+  return readPositiveInt("DATABRICKS_ANALYTICS_FLUSH_INTERVAL_MS", DEFAULT_FLUSH_INTERVAL_MS);
+}
+
+function maxBufferedRows(): number {
+  return readPositiveInt("DATABRICKS_ANALYTICS_MAX_BUFFERED_ROWS", DEFAULT_MAX_BUFFERED_ROWS);
+}
+
+function warnOnce(key: string, message: string): void {
+  if (warningKeys.has(key)) return;
+  warningKeys.add(key);
+  console.warn(message);
+}
+
+function enqueueNamedInsert(table: AnalyticsTable, values: RowValues): void {
   const schema = analyticsSchema();
   if (!schema) {
-    console.warn("[analytics] DATABRICKS_ANALYTICS_SCHEMA not set — analytics disabled");
+    warnOnce("missing-schema", "[analytics] DATABRICKS_ANALYTICS_SCHEMA not set — analytics disabled");
     return;
   }
   const warehouseId = resolveWarehouse();
   if (!warehouseId) {
-    console.warn("[analytics] Databricks env not set — analytics disabled");
+    warnOnce("missing-databricks", "[analytics] Databricks env not set — analytics disabled");
     return;
   }
 
   assertIdent("table", table);
-  for (const c of columns) {
-    assertIdent("column", c.col);
-    assertIdent("param", c.param);
+  for (const col of TABLE_COLUMNS[table]) {
+    assertIdent("column", col);
   }
 
-  const colList = ["timestamp", ...columns.map(c => c.col)].join(", ");
-  const placeholders = ["CAST(:timestamp AS TIMESTAMP)", ...columns.map(c => `:${c.param}`)].join(", ");
+  buffers[table].push({ timestamp: new Date().toISOString(), values });
+  trimBuffer(table);
+  ensureFlushTimer();
+
+  if (bufferedAnalyticsRowCount() >= batchSize()) {
+    void flushAnalytics().catch((err: unknown) => {
+      console.error("[analytics] Error flushing batch:", err);
+    });
+  }
+}
+
+function trimBuffer(table: AnalyticsTable): void {
+  const limit = maxBufferedRows();
+  const overflow = buffers[table].length - limit;
+  if (overflow <= 0) return;
+  buffers[table].splice(0, overflow);
+  console.warn(`[analytics] dropped ${overflow} buffered ${table} rows after reaching max buffer size`);
+}
+
+function ensureFlushTimer(): void {
+  if (flushTimer) return;
+  flushTimer = setInterval(() => {
+    void flushAnalytics().catch((err: unknown) => {
+      console.error("[analytics] Error flushing batch:", err);
+    });
+  }, flushIntervalMs());
+  flushTimer.unref();
+}
+
+function buildInsertRequest(
+  table: AnalyticsTable,
+  rows: BufferedRow[],
+  warehouseId: string,
+  schema: string,
+): SqlExecuteRequest {
+  const columns = ["timestamp", ...TABLE_COLUMNS[table]];
+  const colList = columns.join(", ");
+  const rowPlaceholders = rows.map((_, rowIndex) => {
+    const placeholders = columns.map(col => {
+      const param = `r${rowIndex}_${col}`;
+      return col === "timestamp" ? `CAST(:${param} AS TIMESTAMP)` : `:${param}`;
+    });
+    return `(${placeholders.join(", ")})`;
+  });
+
   const statement = `
     INSERT INTO ${schema}.${table}
       (${colList})
     VALUES
-      (${placeholders})
+      ${rowPlaceholders.join(",\n      ")}
   `;
 
-  const parameters: SqlParam[] = [
-    { name: "timestamp", value: new Date().toISOString(), type: "STRING" },
-    ...columns.map(c => ({ name: c.param, value: c.value, type: "STRING" as const })),
-  ];
+  const parameters: SqlParam[] = rows.flatMap((row, rowIndex) =>
+    columns.map(col => ({
+      name: `r${rowIndex}_${col}`,
+      value: col === "timestamp" ? row.timestamp : (row.values[col] ?? null),
+      type: "STRING" as const,
+    })),
+  );
 
-  const body: SqlExecuteRequest = {
+  return {
     warehouse_id: warehouseId,
     statement,
     parameters,
-    wait_timeout: "30s",
+    wait_timeout: STATEMENT_TIMEOUT,
   };
+}
 
-  const res = await dbxFetch<{
-    status?: { state?: string; error?: { message?: string } };
-    statement_id?: string;
-  }>("/api/2.0/sql/statements", {
+async function executeBatchInsert(table: AnalyticsTable, rows: BufferedRow[]): Promise<void> {
+  const schema = analyticsSchema();
+  if (!schema) {
+    warnOnce("missing-schema", "[analytics] DATABRICKS_ANALYTICS_SCHEMA not set — analytics disabled");
+    return;
+  }
+  const warehouseId = resolveWarehouse();
+  if (!warehouseId) {
+    warnOnce("missing-databricks", "[analytics] Databricks env not set — analytics disabled");
+    return;
+  }
+
+  let res = await dbxFetch<SqlExecuteResponse>("/api/2.0/sql/statements", {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify(buildInsertRequest(table, rows, warehouseId, schema)),
   });
+
+  for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS && isPending(res.status?.state); attempt++) {
+    if (!res.statement_id) break;
+    await sleep(POLL_BACKOFF_MS[attempt] ?? POLL_BACKOFF_MS[POLL_BACKOFF_MS.length - 1]);
+    res = await dbxFetch<SqlExecuteResponse>(`/api/2.0/sql/statements/${encodeURIComponent(res.statement_id)}`);
+  }
 
   const state = res.status?.state;
   if (state !== "SUCCEEDED") {
     const err = res.status?.error?.message ?? "(no error message)";
     throw new Error(`SQL statement ${res.statement_id ?? "?"} ended in state ${state ?? "?"}: ${err}`);
   }
+}
+
+function isPending(state: string | undefined): boolean {
+  return state === "PENDING" || state === "RUNNING";
+}
+
+function requeueRows(table: AnalyticsTable, rows: BufferedRow[]): void {
+  buffers[table] = [...rows, ...buffers[table]];
+  trimBuffer(table);
+}
+
+async function flushTable(table: AnalyticsTable): Promise<void> {
+  const rows = buffers[table].splice(0, buffers[table].length);
+  if (rows.length === 0) return;
+
+  const size = batchSize();
+  for (let start = 0; start < rows.length; start += size) {
+    const chunk = rows.slice(start, start + size);
+    try {
+      await executeBatchInsert(table, chunk);
+    } catch (err) {
+      requeueRows(table, rows.slice(start));
+      throw err;
+    }
+  }
+}
+
+export async function flushAnalytics(): Promise<void> {
+  if (flushInFlight) return flushInFlight;
+  flushInFlight = (async () => {
+    try {
+      await flushTable("mcp_initializations");
+      await flushTable("mcp_tool_calls");
+    } finally {
+      flushInFlight = null;
+    }
+  })();
+  return flushInFlight;
 }
 
 function stringify(value: unknown): string {
@@ -109,14 +263,14 @@ export async function logInitialization(params: {
   clientVersion: string;
   rawBody: unknown;
 }): Promise<void> {
-  await executeNamedInsert("mcp_initializations", [
-    { col: "method", param: "method", value: "initialize" },
-    { col: "protocol_version", param: "protocolVersion", value: params.protocolVersion },
-    { col: "capabilities", param: "capabilities", value: stringify(params.capabilities) },
-    { col: "client_name", param: "clientName", value: params.clientName },
-    { col: "client_version", param: "clientVersion", value: params.clientVersion },
-    { col: "raw_body", param: "rawBody", value: stringify(params.rawBody) },
-  ]);
+  enqueueNamedInsert("mcp_initializations", {
+    method: "initialize",
+    protocol_version: params.protocolVersion,
+    capabilities: stringify(params.capabilities),
+    client_name: params.clientName,
+    client_version: params.clientVersion,
+    raw_body: stringify(params.rawBody),
+  });
 }
 
 export async function logToolCallRequest(params: {
@@ -126,24 +280,33 @@ export async function logToolCallRequest(params: {
   toolArgs: unknown;
   rawBody: unknown;
 }): Promise<void> {
-  await executeNamedInsert("mcp_tool_calls", [
-    { col: "row_type", param: "rowType", value: "request" },
-    { col: "tool_name", param: "toolName", value: params.toolName },
-    { col: "request_id", param: "requestId", value: params.requestId },
-    { col: "session_id", param: "sessionId", value: params.sessionId },
-    { col: "arguments", param: "arguments", value: stringify(params.toolArgs) },
-    { col: "raw_body", param: "rawBody", value: stringify(params.rawBody) },
-  ]);
+  enqueueNamedInsert("mcp_tool_calls", {
+    row_type: "request",
+    tool_name: params.toolName,
+    request_id: params.requestId,
+    session_id: params.sessionId,
+    arguments: stringify(params.toolArgs),
+    response_text: null,
+    raw_body: stringify(params.rawBody),
+  });
 }
 
 export function logToolCallResponse(params: { tool: string; req: string; res: string; rawBody: unknown }): void {
-  executeNamedInsert("mcp_tool_calls", [
-    { col: "row_type", param: "rowType", value: "response" },
-    { col: "tool_name", param: "toolName", value: params.tool },
-    { col: "arguments", param: "arguments", value: stringify(params.req) },
-    { col: "response_text", param: "responseText", value: params.res },
-    { col: "raw_body", param: "rawBody", value: stringify(params.rawBody) },
-  ]).catch((err: unknown) => {
-    console.error("[logToolCallResponse] Error inserting tool response:", err);
-  });
+  try {
+    enqueueNamedInsert("mcp_tool_calls", {
+      row_type: "response",
+      tool_name: params.tool,
+      request_id: null,
+      session_id: null,
+      arguments: stringify(params.req),
+      response_text: params.res,
+      raw_body: stringify(params.rawBody),
+    });
+  } catch (err) {
+    console.error("[logToolCallResponse] Error buffering tool response:", err);
+  }
+}
+
+export function bufferedAnalyticsRowCount(): number {
+  return Object.values(buffers).reduce((total, rows) => total + rows.length, 0);
 }

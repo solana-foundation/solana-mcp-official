@@ -114,3 +114,7 @@ export async function logAnalytics(event: AnalyticsEvent) {
     console.error("[logAnalytics] Unexpected error:", err);
   }
 }
+
+export async function flushAnalytics(): Promise<void> {
+  await databricksAnalytics.flushAnalytics();
+}

@@ -50,6 +50,9 @@ describe("databricks analytics service", () => {
     delete process.env.DATABRICKS_TOKEN;
     delete process.env.DATABRICKS_WAREHOUSE_ID;
     delete process.env.DATABRICKS_ANALYTICS_SCHEMA;
+    delete process.env.DATABRICKS_ANALYTICS_BATCH_SIZE;
+    delete process.env.DATABRICKS_ANALYTICS_FLUSH_INTERVAL_MS;
+    delete process.env.DATABRICKS_ANALYTICS_MAX_BUFFERED_ROWS;
   });
 
   describe("logInitialization", () => {
@@ -88,8 +91,9 @@ describe("databricks analytics service", () => {
       warnSpy.mockRestore();
     });
 
-    it("POSTs SQL statement with correct parameters", async () => {
-      const { logInitialization } = await import("../../lib/services/databricks/analytics.js");
+    it("buffers initialization rows until flush", async () => {
+      const { bufferedAnalyticsRowCount, flushAnalytics, logInitialization } =
+        await import("../../lib/services/databricks/analytics.js");
 
       await logInitialization({
         protocolVersion: "2025-03-26",
@@ -99,18 +103,52 @@ describe("databricks analytics service", () => {
         rawBody: { method: "initialize" },
       });
 
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(bufferedAnalyticsRowCount()).toBe(1);
+
+      await flushAnalytics();
+
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const req = recordedRequest(fetchMock.mock.calls[0] as [string, RequestInit]);
       expect(req.url).toBe(`${HOST}/api/2.0/sql/statements`);
       expect(req.body.warehouse_id).toBe(WAREHOUSE);
       expect(req.body.statement).toContain("mcp_initializations");
 
-      expect(findParam(req, "method")).toBe("initialize");
-      expect(findParam(req, "protocolVersion")).toBe("2025-03-26");
-      expect(findParam(req, "clientName")).toBe("codex");
-      expect(findParam(req, "clientVersion")).toBe("1.2.3");
-      expect(findParam(req, "capabilities")).toBe(JSON.stringify({ roots: { listChanged: true } }));
-      expect(findParam(req, "rawBody")).toBe(JSON.stringify({ method: "initialize" }));
+      expect(findParam(req, "r0_method")).toBe("initialize");
+      expect(findParam(req, "r0_protocol_version")).toBe("2025-03-26");
+      expect(findParam(req, "r0_client_name")).toBe("codex");
+      expect(findParam(req, "r0_client_version")).toBe("1.2.3");
+      expect(findParam(req, "r0_capabilities")).toBe(JSON.stringify({ roots: { listChanged: true } }));
+      expect(findParam(req, "r0_raw_body")).toBe(JSON.stringify({ method: "initialize" }));
+      expect(bufferedAnalyticsRowCount()).toBe(0);
+    });
+
+    it("flushes automatically when the batch size is reached", async () => {
+      process.env.DATABRICKS_ANALYTICS_BATCH_SIZE = "2";
+      const { logInitialization } = await import("../../lib/services/databricks/analytics.js");
+
+      await logInitialization({
+        protocolVersion: "2025-03-26",
+        capabilities: {},
+        clientName: "codex",
+        clientVersion: "1.0.0",
+        rawBody: { id: 1 },
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      await logInitialization({
+        protocolVersion: "2025-03-26",
+        capabilities: {},
+        clientName: "cursor",
+        clientVersion: "2.0.0",
+        rawBody: { id: 2 },
+      });
+
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      const req = recordedRequest(fetchMock.mock.calls[0] as [string, RequestInit]);
+      expect(req.body.parameters).toHaveLength(14);
+      expect(findParam(req, "r0_client_name")).toBe("codex");
+      expect(findParam(req, "r1_client_name")).toBe("cursor");
     });
   });
 
@@ -132,8 +170,8 @@ describe("databricks analytics service", () => {
       warnSpy.mockRestore();
     });
 
-    it("POSTs a request row with tool metadata", async () => {
-      const { logToolCallRequest } = await import("../../lib/services/databricks/analytics.js");
+    it("buffers and flushes a request row with tool metadata", async () => {
+      const { flushAnalytics, logToolCallRequest } = await import("../../lib/services/databricks/analytics.js");
 
       await logToolCallRequest({
         toolName: "Solana_Documentation_Search",
@@ -143,18 +181,23 @@ describe("databricks analytics service", () => {
         rawBody: { method: "tools/call" },
       });
 
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      await flushAnalytics();
+
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const req = recordedRequest(fetchMock.mock.calls[0] as [string, RequestInit]);
       expect(req.body.statement).toContain("mcp_tool_calls");
-      expect(findParam(req, "rowType")).toBe("request");
-      expect(findParam(req, "toolName")).toBe("Solana_Documentation_Search");
-      expect(findParam(req, "requestId")).toBe("req-123");
-      expect(findParam(req, "sessionId")).toBe("session-456");
-      expect(findParam(req, "arguments")).toBe(JSON.stringify({ query: "accounts" }));
+      expect(findParam(req, "r0_row_type")).toBe("request");
+      expect(findParam(req, "r0_tool_name")).toBe("Solana_Documentation_Search");
+      expect(findParam(req, "r0_request_id")).toBe("req-123");
+      expect(findParam(req, "r0_session_id")).toBe("session-456");
+      expect(findParam(req, "r0_arguments")).toBe(JSON.stringify({ query: "accounts" }));
+      expect(findParam(req, "r0_response_text")).toBeNull();
     });
 
     it("allows null requestId and sessionId", async () => {
-      const { logToolCallRequest } = await import("../../lib/services/databricks/analytics.js");
+      const { flushAnalytics, logToolCallRequest } = await import("../../lib/services/databricks/analytics.js");
 
       await logToolCallRequest({
         toolName: "Solana_Expert__Ask_For_Help",
@@ -164,9 +207,11 @@ describe("databricks analytics service", () => {
         rawBody: {},
       });
 
+      await flushAnalytics();
+
       const req = recordedRequest(fetchMock.mock.calls[0] as [string, RequestInit]);
-      expect(findParam(req, "requestId")).toBeNull();
-      expect(findParam(req, "sessionId")).toBeNull();
+      expect(findParam(req, "r0_request_id")).toBeNull();
+      expect(findParam(req, "r0_session_id")).toBeNull();
     });
   });
 
@@ -188,8 +233,8 @@ describe("databricks analytics service", () => {
       warnSpy.mockRestore();
     });
 
-    it("fires a response-row insert without awaiting", async () => {
-      const { logToolCallResponse } = await import("../../lib/services/databricks/analytics.js");
+    it("buffers a response row without awaiting Databricks", async () => {
+      const { flushAnalytics, logToolCallResponse } = await import("../../lib/services/databricks/analytics.js");
 
       logToolCallResponse({
         tool: "Solana_Documentation_Search",
@@ -198,22 +243,26 @@ describe("databricks analytics service", () => {
         rawBody: { tool: "Solana_Documentation_Search" },
       });
 
-      await new Promise(resolve => process.nextTick(resolve));
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      await flushAnalytics();
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const req = recordedRequest(fetchMock.mock.calls[0] as [string, RequestInit]);
       expect(req.body.statement).toContain("mcp_tool_calls");
-      expect(findParam(req, "rowType")).toBe("response");
-      expect(findParam(req, "toolName")).toBe("Solana_Documentation_Search");
-      expect(findParam(req, "responseText")).toBe('{"content":[]}');
-      expect(findParam(req, "arguments")).toBe(JSON.stringify("find docs"));
+      expect(findParam(req, "r0_row_type")).toBe("response");
+      expect(findParam(req, "r0_tool_name")).toBe("Solana_Documentation_Search");
+      expect(findParam(req, "r0_response_text")).toBe('{"content":[]}');
+      expect(findParam(req, "r0_arguments")).toBe(JSON.stringify("find docs"));
+      expect(findParam(req, "r0_request_id")).toBeNull();
+      expect(findParam(req, "r0_session_id")).toBeNull();
     });
 
-    it("logs an error when the insert fails", async () => {
+    it("requeues rows when a flush fails", async () => {
       fetchMock.mockReset();
       fetchMock.mockResolvedValue(new Response("boom", { status: 400 }));
-      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
-      const { logToolCallResponse } = await import("../../lib/services/databricks/analytics.js");
+      const { bufferedAnalyticsRowCount, flushAnalytics, logToolCallResponse } =
+        await import("../../lib/services/databricks/analytics.js");
 
       logToolCallResponse({
         tool: "Solana_Documentation_Search",
@@ -222,11 +271,8 @@ describe("databricks analytics service", () => {
         rawBody: {},
       });
 
-      await new Promise(resolve => setImmediate(resolve));
-      await new Promise(resolve => setImmediate(resolve));
-
-      expect(errorSpy).toHaveBeenCalledWith("[logToolCallResponse] Error inserting tool response:", expect.any(Error));
-      errorSpy.mockRestore();
+      await expect(flushAnalytics()).rejects.toBeInstanceOf(Error);
+      expect(bufferedAnalyticsRowCount()).toBe(1);
     });
   });
 });
