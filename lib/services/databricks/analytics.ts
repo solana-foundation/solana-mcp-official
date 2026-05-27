@@ -30,6 +30,7 @@ interface SqlExecuteResponse {
 }
 
 type AnalyticsTable = "mcp_initializations" | "mcp_tool_calls";
+type BufferTrimSide = "newest" | "oldest";
 
 type RowValues = Record<string, string | null>;
 
@@ -132,7 +133,7 @@ function enqueueNamedInsert(table: AnalyticsTable, values: RowValues): void {
   }
 
   buffers[table].push({ timestamp: new Date().toISOString(), values });
-  trimBuffer(table);
+  trimBuffer(table, "oldest");
   ensureFlushTimer();
 
   if (bufferedAnalyticsRowCount() >= batchSize()) {
@@ -142,11 +143,15 @@ function enqueueNamedInsert(table: AnalyticsTable, values: RowValues): void {
   }
 }
 
-function trimBuffer(table: AnalyticsTable): void {
+function trimBuffer(table: AnalyticsTable, side: BufferTrimSide): void {
   const limit = maxBufferedRows();
   const overflow = buffers[table].length - limit;
   if (overflow <= 0) return;
-  buffers[table].splice(0, overflow);
+  if (side === "oldest") {
+    buffers[table].splice(0, overflow);
+  } else {
+    buffers[table].splice(-overflow, overflow);
+  }
   console.warn(`[analytics] dropped ${overflow} buffered ${table} rows after reaching max buffer size`);
 }
 
@@ -283,7 +288,7 @@ function isPending(state: string | undefined): boolean {
 
 function requeueRows(table: AnalyticsTable, rows: BufferedRow[]): void {
   buffers[table] = [...rows, ...buffers[table]];
-  trimBuffer(table);
+  trimBuffer(table, "newest");
 }
 
 async function flushTable(table: AnalyticsTable): Promise<void> {

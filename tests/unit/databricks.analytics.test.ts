@@ -326,5 +326,53 @@ describe("databricks analytics service", () => {
       await expect(flushAnalytics()).rejects.toBeInstanceOf(Error);
       expect(bufferedAnalyticsRowCount()).toBe(1);
     });
+
+    it("preserves failed rows over newer rows when requeue exceeds the buffer limit", async () => {
+      process.env.DATABRICKS_ANALYTICS_MAX_BUFFERED_ROWS = "2";
+      let failFirstFlush = true;
+      fetchMock.mockImplementation(() => {
+        if (failFirstFlush) {
+          failFirstFlush = false;
+          return Promise.resolve(new Response("boom", { status: 400 }));
+        }
+        return Promise.resolve(jsonResponse({ status: { state: "SUCCEEDED" } }));
+      });
+      const { flushAnalytics, logToolCallRequest } = await import("../../lib/services/databricks/analytics.js");
+
+      await logToolCallRequest({
+        toolName: "failed-row",
+        requestId: null,
+        sessionId: null,
+        toolArgs: {},
+        rawBody: {},
+      });
+
+      const firstFlush = flushAnalytics();
+      await logToolCallRequest({
+        toolName: "newer-row",
+        requestId: null,
+        sessionId: null,
+        toolArgs: {},
+        rawBody: {},
+      });
+      await logToolCallRequest({
+        toolName: "newest-row",
+        requestId: null,
+        sessionId: null,
+        toolArgs: {},
+        rawBody: {},
+      });
+
+      await expect(firstFlush).rejects.toBeInstanceOf(Error);
+      fetchMock.mockClear();
+
+      await flushAnalytics();
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const req = recordedRequest(fetchMock.mock.calls[0] as [string, RequestInit]);
+      expect(findParam(req, "r0_tool_name")).toBe("failed-row");
+      expect(findParam(req, "r1_tool_name")).toBe("newer-row");
+      expect(req.body.parameters.some(p => p.value === "newest-row")).toBe(false);
+    });
   });
 });
