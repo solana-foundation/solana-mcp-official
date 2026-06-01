@@ -92,7 +92,7 @@ resources:
           value:
             double_value: 0
         notification:
-          retrigger_seconds: 1
+          retrigger_seconds: 518400
           subscriptions:
             - user_email: ${var.alert_email}
       schedule:
