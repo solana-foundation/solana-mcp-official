@@ -28,7 +28,7 @@ You can also configure Codex directly in `~/.codex/config.toml`:
 url = "https://mcp.solana.com/mcp"
 ```
 
-For local development against the Cloud Run server, use the local MCP endpoint:
+For local development (server running locally at `localhost:8080`), use the local MCP endpoint:
 
 ```toml
 [mcp_servers.solana-mcp]
