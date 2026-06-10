@@ -126,6 +126,17 @@ function rhsContainsLamportsCall(node: Node): boolean {
   return hit;
 }
 
+// Crediting a real lamport balance cannot overflow u64 (bounded by total supply);
+// debits stay flagged because they underflow-panic on insufficient balance.
+function lhsIsLamportsBalance(node: Node): boolean {
+  let hit = false;
+  walk(node, n => {
+    if (hit) return "skip";
+    if ((n.type === "identifier" || n.type === "field_identifier") && n.text.includes("lamports")) hit = true;
+  });
+  return hit;
+}
+
 function subtractionGuardedInBody(node: Node, left: Node, right: Node): boolean {
   const body = findEnclosingFunctionBody(node);
   if (!body) return false;
@@ -151,7 +162,7 @@ function handleArithmetic(node: Node, ctx: import("../types.js").VisitorContext)
   if (isInsideCheckedCall(node)) return;
   if (isInsideIndexExpression(node)) return;
   if (exprInvolvesLength(left) || exprInvolvesLength(right)) return;
-  if (isCompound && baseOp === "+" && rhsContainsLamportsCall(right)) return;
+  if (isCompound && baseOp === "+" && (rhsContainsLamportsCall(right) || lhsIsLamportsBalance(left))) return;
 
   if (!exprMentionsBalance(left) && !exprMentionsBalance(right)) return;
   if (baseOp === "-" && subtractionGuardedInBody(node, left, right)) return;

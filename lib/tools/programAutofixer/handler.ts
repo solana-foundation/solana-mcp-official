@@ -116,7 +116,9 @@ function buildDispatch(visitors: readonly Visitor[]): Map<string, Array<{ visito
 
 function runVisitorPipeline(tree: Tree, ctx: VisitorContext): void {
   const active = allVisitors.filter(v =>
-    ctx.framework === "unknown" ? v.appliesTo.length > 1 : v.appliesTo.includes(ctx.framework),
+    ctx.framework === "unknown"
+      ? v.appliesTo.includes("pinocchio") && v.appliesTo.includes("anchor")
+      : v.appliesTo.includes(ctx.framework),
   );
 
   for (const v of active) {

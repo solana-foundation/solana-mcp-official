@@ -382,3 +382,68 @@ describe("program_autofixer Pinocchio cross-check regression cases", () => {
     expect(hit, `existing-lamports flagged a fresh-account branch: ${hit?.title}`).toBeUndefined();
   }, 20_000);
 });
+
+describe("program_autofixer suppression soundness", () => {
+  it("does not let a key compare waive the signer requirement without PDA evidence", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub struct A<'a> { pub admin: &'a AccountView }
+impl<'a> A<'a> {
+  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+    let [admin] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
+    if admin.key() != &EXPECTED_ADMIN { return Err(ProgramError::IllegalOwner); }
+    Ok(Self { admin })
+  }
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "missing-signer")).toBe(true);
+  }, 20_000);
+
+  it("accepts an owner check on the account behind a borrowed data buffer", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub fn process(vault: &AccountView) -> Result<(), ProgramError> {
+  if !vault.is_owned_by(&crate::ID) { return Err(ProgramError::IllegalOwner); }
+  let data = vault.try_borrow_data()?;
+  let _state = Vault::from_bytes(&data)?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "missing-owner");
+    expect(hit, `missing-owner fired despite owner guard on buffer source: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+
+  it("does not suppress missing-owner via a check in an unrelated sibling function", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub fn safe(account: &AccountView) -> Result<(), ProgramError> {
+  if !account.is_owned_by(&crate::ID) { return Err(ProgramError::IllegalOwner); }
+  let _s = State::from_bytes(account.data())?;
+  Ok(())
+}
+pub fn unsafe_fn(account: &AccountView) -> Result<(), ProgramError> {
+  let _s = State::from_bytes(account.data())?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "missing-owner")).toBe(true);
+  }, 20_000);
+
+  it("skips discriminator-check when the program has no discriminator scheme", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub fn process(vault: &AccountView) -> Result<(), ProgramError> {
+  if !vault.is_owned_by(&crate::ID) { return Err(ProgramError::IllegalOwner); }
+  let data = vault.try_borrow_data()?;
+  let _state = Vault::from_bytes(&data)?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "discriminator-check");
+    expect(hit, `discriminator-check fired without a discriminator scheme: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+});

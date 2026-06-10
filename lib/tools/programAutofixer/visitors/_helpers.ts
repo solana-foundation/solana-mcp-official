@@ -270,6 +270,7 @@ function mentionsMarker(node: Node, markers: readonly string[]): boolean {
  *   if <cond mentioning account + marker> { return Err(...) }   (or Err(...)? / err-macro)
  *   match <expr mentioning account + marker> { ... Err ... }
  *   assert!/require!-family macros mentioning account + marker
+ *   <account>.<marker>(...).then_some(()).ok_or(Err)?   (and similar ok_or chains)
  * Markers are lowercase substrings matched against identifiers (e.g. "is_signer", "owner", "key").
  */
 export function bodyContainsRejectingCheckFor(body: Node, accountName: string, markers: readonly string[]): boolean {
@@ -300,10 +301,24 @@ export function bodyContainsRejectingCheckFor(body: Node, accountName: string, m
       }
       return;
     }
+    if (n.type === "try_expression") {
+      const inner = n.namedChild(0);
+      if (
+        inner &&
+        containsIdentifier(inner, accountName) &&
+        mentionsMarker(inner, markers) &&
+        mentionsMarker(inner, OK_OR_CHAIN_MARKERS)
+      ) {
+        found = true;
+      }
+      return;
+    }
     if (macroChecksAccount(n, accountName, markers)) found = true;
   });
   return found;
 }
+
+const OK_OR_CHAIN_MARKERS = ["ok_or"];
 
 export {
   VERIFY_SIGNER_CALLS,

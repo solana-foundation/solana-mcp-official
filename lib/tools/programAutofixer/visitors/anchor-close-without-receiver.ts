@@ -8,7 +8,7 @@ import {
   isInsideProgramModule,
 } from "./_anchor-helpers.js";
 import { findEnclosingFunctionBody, getMethodCallName } from "./_helpers.js";
-import { walk } from "../walk.js";
+import { findFirst, walk } from "../walk.js";
 
 function isZeroLiteral(node: Node): boolean {
   if (node.type === "integer_literal") return node.text === "0";
@@ -51,6 +51,20 @@ function lhsDrainsLamportsViaAccountInfo(left: Node): boolean {
   return containsMethodCall(left, "to_account_info") || containsMethodCall(left, "borrow_mut");
 }
 
+function letBindingMentionsField(body: Node, name: string, fieldName: string): boolean {
+  let found = false;
+  walk(body, n => {
+    if (found) return "skip";
+    if (n.type !== "let_declaration") return;
+    const pattern = n.childForFieldName("pattern");
+    const bound = pattern ? findFirst(pattern, x => x.type === "identifier")?.text : null;
+    if (bound !== name) return;
+    const value = n.childForFieldName("value");
+    if (value && collectCtxAccountsAccesses(value).has(fieldName)) found = true;
+  });
+  return found;
+}
+
 function bodyManuallyClosesAccount(body: Node, fieldName: string): boolean {
   let found = false;
   walk(body, n => {
@@ -60,7 +74,9 @@ function bodyManuallyClosesAccount(body: Node, fieldName: string): boolean {
     if (method !== "assign" && method !== "realloc") return;
     const fn = n.childForFieldName("function");
     const receiver = fn?.childForFieldName("value");
-    if (receiver && ctxAccountsField(receiver) === fieldName) found = true;
+    if (!receiver) return;
+    if (ctxAccountsField(receiver) === fieldName) found = true;
+    else if (receiver.type === "identifier" && letBindingMentionsField(body, receiver.text, fieldName)) found = true;
   });
   return found;
 }

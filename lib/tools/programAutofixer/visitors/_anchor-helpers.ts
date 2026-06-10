@@ -163,10 +163,12 @@ function firstTypeArgument(args: Node): Node | null {
   return null;
 }
 
-const CHECK_DOC_COMMENT_RE = /^(\/\/\/|\/\/!)\s*check\b/i;
+const CHECK_DOC_COMMENT_RE = /^(\/\/\/|\/\/!).*\bcheck\b/i;
 
 function isCheckDocComment(node: Node): boolean {
-  return node.type === "line_comment" && CHECK_DOC_COMMENT_RE.test(node.text);
+  if (node.type === "line_comment") return CHECK_DOC_COMMENT_RE.test(node.text);
+  if (node.type === "block_comment") return node.text.startsWith("/**") && /\bcheck\b/i.test(node.text);
+  return false;
 }
 
 function mergeAccountAttrs(base: ParsedAccountAttr, extra: ParsedAccountAttr): ParsedAccountAttr {

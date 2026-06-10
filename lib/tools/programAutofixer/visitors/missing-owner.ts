@@ -1,8 +1,9 @@
 import type { Node } from "web-tree-sitter";
-import type { Visitor } from "../types.js";
+import type { Visitor, VisitorContext } from "../types.js";
 import { formatLocation } from "../types.js";
 import { findFirst, getCallName, walk } from "../walk.js";
 import {
+  FROM_BYTES_NAMES,
   OWNER_MARKERS,
   VERIFY_OWNER_CALLS,
   bodyContainsRejectingCheckFor,
@@ -64,6 +65,72 @@ export function localFromBytesImplChecks(node: Node, markers: readonly string[])
   return false;
 }
 
+const DATA_BORROW_METHODS = new Set([
+  "data",
+  "borrow_data",
+  "try_borrow_data",
+  "borrow_mut_data",
+  "try_borrow_mut_data",
+  "borrow_data_unchecked",
+  "borrow_mut_data_unchecked",
+]);
+
+function isAccountNameNode(n: Node): boolean {
+  if (n.type === "identifier") return !FROM_BYTES_NAMES.has(n.text);
+  if (n.type === "field_identifier") return !DATA_BORROW_METHODS.has(n.text) && !FROM_BYTES_NAMES.has(n.text);
+  return false;
+}
+
+function dataBufferAliasSources(scope: Node, bufferName: string): string[] {
+  const sources: string[] = [];
+  walk(scope, n => {
+    if (n.type !== "let_declaration") return;
+    const pattern = n.childForFieldName("pattern");
+    const bound = pattern ? findFirst(pattern, x => x.type === "identifier")?.text : null;
+    if (bound !== bufferName) return;
+    const value = n.childForFieldName("value");
+    if (!value) return;
+    walk(value, v => {
+      if (isAccountNameNode(v) && v.text !== bufferName) sources.push(v.text);
+    });
+  });
+  return sources;
+}
+
+function fromBytesAccountCandidates(node: Node, scope: Node): string[] {
+  const candidates = new Set<string>();
+  const arg = getCallArgs(node)[0];
+  if (arg) {
+    walk(arg, n => {
+      if (isAccountNameNode(n)) candidates.add(n.text);
+    });
+  }
+  for (const name of [...candidates]) {
+    for (const source of dataBufferAliasSources(scope, name)) candidates.add(source);
+  }
+  return [...candidates];
+}
+
+export function fromBytesTargetValidated(
+  node: Node,
+  ctx: VisitorContext,
+  calls: ReadonlySet<string>,
+  markers: readonly string[],
+): boolean {
+  const scope = findEnclosingFunctionBody(node);
+  if (!scope) return true;
+  const candidates = fromBytesAccountCandidates(node, scope);
+  const scopes = [scope, ...ctx.tryFromBodies.map(tf => tf.body)];
+  for (const candidate of candidates) {
+    for (const s of scopes) {
+      if (bodyContainsVerifyFor(s, calls, candidate)) return true;
+      if (bodyContainsRejectingCheckFor(s, candidate, markers)) return true;
+    }
+    if (accountCreatedEarlierIn(scope, node, candidate)) return true;
+  }
+  return localFromBytesImplChecks(node, markers);
+}
+
 export const missingOwner: Visitor = {
   name: "missing-owner",
   severity: "high",
@@ -72,13 +139,7 @@ export const missingOwner: Visitor = {
     call_expression(node, ctx) {
       const info = isFromBytesCall(node);
       if (!info || !info.receiver) return;
-      const scope = findEnclosingFunctionBody(node);
-      if (!scope) return;
-      const root = node.tree.rootNode;
-      if (bodyContainsVerifyFor(root, VERIFY_OWNER_CALLS, info.receiver)) return;
-      if (bodyContainsRejectingCheckFor(root, info.receiver, OWNER_MARKERS)) return;
-      if (localFromBytesImplChecks(node, OWNER_MARKERS)) return;
-      if (accountCreatedEarlierIn(scope, node, info.receiver)) return;
+      if (fromBytesTargetValidated(node, ctx, VERIFY_OWNER_CALLS, OWNER_MARKERS)) return;
       ctx.output.issues.push({
         severity: "high",
         rule: "missing-owner",

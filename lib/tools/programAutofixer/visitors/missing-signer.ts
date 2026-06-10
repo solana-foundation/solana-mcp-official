@@ -48,16 +48,28 @@ function validatedByLocalHelper(tree: Tree, body: Node, account: string): boolea
   return false;
 }
 
+function fileDerivesPda(tree: Tree): boolean {
+  return !!findFirst(tree.rootNode, n => {
+    if (n.type !== "call_expression") return false;
+    const fn = n.childForFieldName("function");
+    const name = fn ? getCallName(fn) : null;
+    return !!name && name.endsWith("program_address");
+  });
+}
+
 export const missingSigner: Visitor = {
   name: "missing-signer",
   severity: "critical",
   appliesTo: ["pinocchio"],
   before(tree, ctx) {
+    // A key compare only waives the signer requirement when the account can be a PDA
+    // (PDAs cannot sign); without derivation evidence a matching pubkey proves nothing.
+    const pdaEvidence = fileDerivesPda(tree);
     for (const { body, destructured, implName } of ctx.tryFromBodies) {
       for (const account of destructured) {
         if (!isSignerName(account)) continue;
         if (bodyContainsSignerValidationFor(tree.rootNode, account)) continue;
-        if (bodyContainsRejectingCheckFor(tree.rootNode, account, KEY_MARKERS)) continue;
+        if (pdaEvidence && bodyContainsRejectingCheckFor(tree.rootNode, account, KEY_MARKERS)) continue;
         if (validatedByLocalHelper(tree, body, account)) continue;
         ctx.output.issues.push({
           severity: "critical",

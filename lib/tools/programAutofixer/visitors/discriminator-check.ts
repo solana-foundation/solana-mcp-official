@@ -1,14 +1,18 @@
+import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
-import {
-  DISCRIMINATOR_CALLS,
-  DISCRIMINATOR_MARKERS,
-  bodyContainsRejectingCheckFor,
-  bodyContainsVerifyFor,
-  findEnclosingFunctionBody,
-  isFromBytesCall,
-} from "./_helpers.js";
-import { accountCreatedEarlierIn, localFromBytesImplChecks } from "./missing-owner.js";
+import { findFirst } from "../walk.js";
+import { DISCRIMINATOR_CALLS, DISCRIMINATOR_MARKERS, isFromBytesCall } from "./_helpers.js";
+import { fromBytesTargetValidated } from "./missing-owner.js";
+
+// Discriminators distinguish account types within one program; foreign accounts are the
+// owner check's job. A program with no discriminator scheme has nothing to validate against.
+function fileHasDiscriminatorScheme(root: Node): boolean {
+  return !!findFirst(root, n => {
+    if (n.type !== "identifier" && n.type !== "field_identifier") return false;
+    return n.text.toLowerCase().includes("discriminator");
+  });
+}
 
 export const discriminatorCheck: Visitor = {
   name: "discriminator-check",
@@ -18,13 +22,8 @@ export const discriminatorCheck: Visitor = {
     call_expression(node, ctx) {
       const info = isFromBytesCall(node);
       if (!info || !info.receiver) return;
-      const scope = findEnclosingFunctionBody(node);
-      if (!scope) return;
-      const root = node.tree.rootNode;
-      if (bodyContainsVerifyFor(root, DISCRIMINATOR_CALLS, info.receiver)) return;
-      if (bodyContainsRejectingCheckFor(root, info.receiver, DISCRIMINATOR_MARKERS)) return;
-      if (localFromBytesImplChecks(node, DISCRIMINATOR_MARKERS)) return;
-      if (accountCreatedEarlierIn(scope, node, info.receiver)) return;
+      if (!fileHasDiscriminatorScheme(node.tree.rootNode)) return;
+      if (fromBytesTargetValidated(node, ctx, DISCRIMINATOR_CALLS, DISCRIMINATOR_MARKERS)) return;
       ctx.output.issues.push({
         severity: "high",
         rule: "discriminator-check",
