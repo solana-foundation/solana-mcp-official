@@ -447,3 +447,84 @@ pub fn process(vault: &AccountView) -> Result<(), ProgramError> {
     expect(hit, `discriminator-check fired without a discriminator scheme: ${hit?.title}`).toBeUndefined();
   }, 20_000);
 });
+
+describe("program_autofixer suppression ordering and polarity", () => {
+  it("flags missing-owner when the ownership check is after the deserialization sink", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub fn process(vault: &AccountView) -> Result<(), ProgramError> {
+  let _s = Vault::from_bytes(vault.data())?;
+  verify_current_program_account(vault)?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "missing-owner")).toBe(true);
+  }, 20_000);
+
+  it("does not let a key compare to an arbitrary constant waive missing-signer", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+use pinocchio::pubkey::find_program_address;
+pub struct A<'a> { pub admin: &'a AccountView }
+impl<'a> A<'a> {
+  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+    let [admin] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
+    let (_unrelated, _b) = find_program_address(&[b"x"], &crate::ID);
+    if admin.key() != &EXPECTED_ADMIN { return Err(ProgramError::IllegalOwner); }
+    Ok(Self { admin })
+  }
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "missing-signer")).toBe(true);
+  }, 20_000);
+
+  it("waives missing-signer when the account key is compared to a derived PDA", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+use pinocchio::pubkey::find_program_address;
+pub struct A<'a> { pub authority: &'a AccountView }
+impl<'a> A<'a> {
+  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+    let [authority] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
+    let (expected, _b) = find_program_address(&[b"auth"], &crate::ID);
+    if authority.key() != &expected { return Err(ProgramError::InvalidSeeds); }
+    Ok(Self { authority })
+  }
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "missing-signer")).toBe(false);
+  }, 20_000);
+
+  it("flags an inverted then_some validation chain (wrong polarity)", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub struct A<'a> { pub admin: &'a AccountView }
+impl<'a> A<'a> {
+  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+    let [admin] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
+    (!admin.is_signer()).then_some(()).ok_or(ProgramError::MissingRequiredSignature)?;
+    Ok(Self { admin })
+  }
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "missing-signer")).toBe(true);
+  }, 20_000);
+
+  it("accepts a correctly-oriented then_some ownership chain", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub fn process(vault: &AccountView) -> Result<(), ProgramError> {
+  vault.is_owned_by(&crate::ID).then_some(()).ok_or(ProgramError::IllegalOwner)?;
+  let _s = Vault::from_bytes(vault.data())?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "missing-owner");
+    expect(hit, `missing-owner fired despite valid then_some chain: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+});

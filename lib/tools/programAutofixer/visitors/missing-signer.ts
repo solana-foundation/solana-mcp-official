@@ -1,14 +1,13 @@
 import type { Node, Tree } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
-import { findAll, findFirst, getCallName } from "../walk.js";
+import { findAll, findFirst, getCallName, walk } from "../walk.js";
 import {
-  KEY_MARKERS,
-  bodyContainsRejectingCheckFor,
   bodyContainsSignerValidationFor,
   findFunctionByName,
   getCallArgs,
   isSignerName,
+  rejectingKeyCheckAgainst,
   rootIdentifierOf,
 } from "./_helpers.js";
 
@@ -48,13 +47,23 @@ function validatedByLocalHelper(tree: Tree, body: Node, account: string): boolea
   return false;
 }
 
-function fileDerivesPda(tree: Tree): boolean {
-  return !!findFirst(tree.rootNode, n => {
-    if (n.type !== "call_expression") return false;
-    const fn = n.childForFieldName("function");
-    const name = fn ? getCallName(fn) : null;
-    return !!name && name.endsWith("program_address");
+function pdaDerivedVars(tree: Tree): Set<string> {
+  const vars = new Set<string>();
+  walk(tree.rootNode, n => {
+    if (n.type !== "let_declaration") return;
+    const value = n.childForFieldName("value");
+    if (!value) return;
+    const derives = !!findFirst(value, c => {
+      if (c.type !== "call_expression") return false;
+      const fn = c.childForFieldName("function");
+      const name = fn ? getCallName(fn) : null;
+      return !!name && name.endsWith("program_address");
+    });
+    if (!derives) return;
+    const pattern = n.childForFieldName("pattern");
+    if (pattern) walk(pattern, p => void (p.type === "identifier" && vars.add(p.text)));
   });
+  return vars;
 }
 
 export const missingSigner: Visitor = {
@@ -62,14 +71,14 @@ export const missingSigner: Visitor = {
   severity: "critical",
   appliesTo: ["pinocchio"],
   before(tree, ctx) {
-    // A key compare only waives the signer requirement when the account can be a PDA
-    // (PDAs cannot sign); without derivation evidence a matching pubkey proves nothing.
-    const pdaEvidence = fileDerivesPda(tree);
+    // A key compare only waives the signer requirement when the account is compared against a
+    // derived PDA (PDAs cannot sign); a compare to an arbitrary constant proves nothing.
+    const pdaVars = pdaDerivedVars(tree);
     for (const { body, destructured, implName } of ctx.tryFromBodies) {
       for (const account of destructured) {
         if (!isSignerName(account)) continue;
         if (bodyContainsSignerValidationFor(tree.rootNode, account)) continue;
-        if (pdaEvidence && bodyContainsRejectingCheckFor(tree.rootNode, account, KEY_MARKERS)) continue;
+        if (rejectingKeyCheckAgainst(tree.rootNode, account, pdaVars)) continue;
         if (validatedByLocalHelper(tree, body, account)) continue;
         ctx.output.issues.push({
           severity: "critical",

@@ -265,6 +265,48 @@ function mentionsMarker(node: Node, markers: readonly string[]): boolean {
   return found;
 }
 
+function markerIsNegated(scope: Node, markers: readonly string[]): boolean {
+  let negated = false;
+  walk(scope, c => {
+    if (negated) return "skip";
+    if (c.type !== "identifier" && c.type !== "field_identifier") return;
+    if (!markers.some(m => c.text.toLowerCase().includes(m))) return;
+    let cursor: Node | null = c.parent;
+    while (cursor && cursor.startIndex >= scope.startIndex && cursor.endIndex <= scope.endIndex) {
+      if (cursor.type === "unary_expression" && cursor.text.trimStart().startsWith("!")) {
+        negated = true;
+        return "skip";
+      }
+      cursor = cursor.parent;
+    }
+  });
+  return negated;
+}
+
+/**
+ * Recognizes a rejecting guard on `accountName` whose condition compares the account's
+ * key/address to one of `targetVars` — used to confirm a key check is against a derived
+ * PDA rather than an arbitrary constant.
+ */
+export function rejectingKeyCheckAgainst(body: Node, accountName: string, targetVars: ReadonlySet<string>): boolean {
+  if (targetVars.size === 0) return false;
+  let found = false;
+  walk(body, n => {
+    if (found) return "skip";
+    if (n.type !== "if_expression") return;
+    const condition = n.childForFieldName("condition") ?? n.namedChild(0);
+    if (!condition || !branchRejects(n)) return;
+    if (!containsIdentifier(condition, accountName) || !mentionsMarker(condition, KEY_MARKERS)) return;
+    for (const v of targetVars) {
+      if (containsIdentifier(condition, v)) {
+        found = true;
+        break;
+      }
+    }
+  });
+  return found;
+}
+
 /**
  * Recognizes inline validation shapes for `accountName` anywhere in `body`:
  *   if <cond mentioning account + marker> { return Err(...) }   (or Err(...)? / err-macro)
@@ -272,11 +314,19 @@ function mentionsMarker(node: Node, markers: readonly string[]): boolean {
  *   assert!/require!-family macros mentioning account + marker
  *   <account>.<marker>(...).then_some(()).ok_or(Err)?   (and similar ok_or chains)
  * Markers are lowercase substrings matched against identifiers (e.g. "is_signer", "owner", "key").
+ * When `beforeIndex` is set, only checks that start before that source offset count — used to
+ * enforce that a guard precedes the sink it is meant to protect.
  */
-export function bodyContainsRejectingCheckFor(body: Node, accountName: string, markers: readonly string[]): boolean {
+export function bodyContainsRejectingCheckFor(
+  body: Node,
+  accountName: string,
+  markers: readonly string[],
+  beforeIndex?: number,
+): boolean {
   let found = false;
   walk(body, n => {
     if (found) return "skip";
+    if (beforeIndex !== undefined && n.startIndex >= beforeIndex) return "skip";
     if (n.type === "if_expression") {
       const condition = n.childForFieldName("condition") ?? n.namedChild(0);
       if (
@@ -307,7 +357,8 @@ export function bodyContainsRejectingCheckFor(body: Node, accountName: string, m
         inner &&
         containsIdentifier(inner, accountName) &&
         mentionsMarker(inner, markers) &&
-        mentionsMarker(inner, OK_OR_CHAIN_MARKERS)
+        mentionsMarker(inner, OK_OR_CHAIN_MARKERS) &&
+        !markerIsNegated(inner, markers)
       ) {
         found = true;
       }

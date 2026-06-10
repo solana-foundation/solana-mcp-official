@@ -13,6 +13,7 @@ import {
   findFunctionByName,
   getCallArgs,
   isFromBytesCall,
+  precedingCallsContain,
   rootIdentifierOf,
 } from "./_helpers.js";
 
@@ -120,13 +121,17 @@ export function fromBytesTargetValidated(
   const scope = findEnclosingFunctionBody(node);
   if (!scope) return true;
   const candidates = fromBytesAccountCandidates(node, scope);
-  const scopes = [scope, ...ctx.tryFromBodies.map(tf => tf.body)];
   for (const candidate of candidates) {
-    for (const s of scopes) {
-      if (bodyContainsVerifyFor(s, calls, candidate)) return true;
-      if (bodyContainsRejectingCheckFor(s, candidate, markers)) return true;
-    }
+    // Same function: the check must precede the deserialization sink.
+    if (precedingCallsContain(scope, node, calls, candidate)) return true;
+    if (bodyContainsRejectingCheckFor(scope, candidate, markers, node.startIndex)) return true;
     if (accountCreatedEarlierIn(scope, node, candidate)) return true;
+    // A separate try_from body runs before the processing function, so position is irrelevant.
+    for (const tf of ctx.tryFromBodies) {
+      if (tf.body.id === scope.id) continue;
+      if (bodyContainsVerifyFor(tf.body, calls, candidate)) return true;
+      if (bodyContainsRejectingCheckFor(tf.body, candidate, markers)) return true;
+    }
   }
   return localFromBytesImplChecks(node, markers);
 }
