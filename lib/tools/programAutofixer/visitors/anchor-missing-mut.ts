@@ -30,11 +30,13 @@ function emitIfFieldLacksMut(node: Node, fieldName: string, ctx: VisitorContext)
   // Conservative: only fire when EVERY matching field lacks `mut`. Avoids cross-struct ambiguity FPs.
   const anyMut = candidates.some(f => f.attribute?.keywords.has("mut"));
   if (anyMut) return;
-  // `init` / `init_if_needed` / `close` implicitly grant mutability — Anchor doesn't require explicit `mut`.
+  // `init` / `init_if_needed` / `zero` / `close` implicitly grant mutability — Anchor doesn't require explicit `mut`.
   const anyImplicitMut = candidates.some(
     f =>
       f.attribute?.keywords.has("init") ||
       f.attribute?.keywords.has("init_if_needed") ||
+      f.attribute?.keywords.has("zero") ||
+      f.attribute?.keywords.has("zeroed") ||
       f.attribute?.kvPairs.has("close"),
   );
   if (anyImplicitMut) return;

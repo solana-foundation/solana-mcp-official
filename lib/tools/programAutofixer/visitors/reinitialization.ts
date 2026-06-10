@@ -1,8 +1,18 @@
 import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
-import { walk } from "../walk.js";
-import { findEnclosingFunctionBody, getMethodCallName, rootIdentifierOf } from "./_helpers.js";
+import { getCallName, walk } from "../walk.js";
+import {
+  bodyContainsRejectingCheckFor,
+  findEnclosingFunctionBody,
+  getCallArgs,
+  getMethodCallName,
+  getMethodReceiverRoot,
+  rootIdentifierOf,
+} from "./_helpers.js";
+
+const INIT_GUARD_MARKERS = ["data_len", "data_is_empty", "discriminator", "is_initialized", "lamports"];
+const VALIDATION_FN_RE = /check|ensure|verify|assert/i;
 
 function isCreateAccountStruct(node: Node): boolean {
   if (node.type !== "struct_expression") return false;
@@ -31,6 +41,11 @@ function getFieldInitValue(struct: Node, fieldName: string): Node | null {
 
 function isZeroLiteral(node: Node | null): boolean {
   return node?.type === "integer_literal" && node.text === "0";
+}
+
+function fieldNameOf(node: Node): string | null {
+  if (node.type !== "field_expression") return null;
+  return node.childForFieldName("field")?.text ?? null;
 }
 
 function lamportsReceiverRoot(node: Node): string | null {
@@ -68,9 +83,25 @@ function scopeChecksExistingLamports(scope: Node, beforeIndex: number, target: s
   return found;
 }
 
+function precedingValidationCall(scope: Node, beforeIndex: number, target: string): boolean {
+  let found = false;
+  walk(scope, n => {
+    if (found) return "skip";
+    if (n.startIndex >= beforeIndex) return "skip";
+    if (n.type !== "call_expression") return;
+    const fn = n.childForFieldName("function");
+    const name = fn ? getCallName(fn) : null;
+    if (!name || !VALIDATION_FN_RE.test(name)) return;
+    if (getCallArgs(n).some(a => rootIdentifierOf(a) === target) || getMethodReceiverRoot(n) === target) {
+      found = true;
+    }
+  });
+  return found;
+}
+
 export const reinitialization: Visitor = {
   name: "reinitialization",
-  severity: "critical",
+  severity: "medium",
   appliesTo: ["pinocchio"],
   enter: {
     struct_expression(node, ctx) {
@@ -78,10 +109,23 @@ export const reinitialization: Visitor = {
       const scope = findEnclosingFunctionBody(node);
       if (!scope) return;
       const to = getFieldInitValue(node, "to");
-      const target = to ? rootIdentifierOf(to) : null;
-      if (target && scopeChecksExistingLamports(scope, node.startIndex, target)) return;
+      const target = to ? (rootIdentifierOf(to) ?? fieldNameOf(to)) : null;
+      if (target) {
+        if (scopeChecksExistingLamports(scope, node.startIndex, target)) return;
+        if (bodyContainsRejectingCheckFor(scope, target, INIT_GUARD_MARKERS)) return;
+        if (
+          ctx.tryFromBodies.some(
+            tf =>
+              bodyContainsRejectingCheckFor(tf.body, target, INIT_GUARD_MARKERS) ||
+              tf.destructured.some(name => bodyContainsRejectingCheckFor(tf.body, name, INIT_GUARD_MARKERS)),
+          )
+        ) {
+          return;
+        }
+        if (precedingValidationCall(scope, node.startIndex, target)) return;
+      }
       ctx.output.issues.push({
-        severity: "critical",
+        severity: "medium",
         rule: "reinitialization",
         title: `CreateAccount used without checking existing lamports`,
         location: formatLocation(ctx.filename, node),

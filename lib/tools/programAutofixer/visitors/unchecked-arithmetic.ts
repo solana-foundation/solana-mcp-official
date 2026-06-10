@@ -2,7 +2,13 @@ import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation, snippet } from "../types.js";
 import { walk } from "../walk.js";
-import { CHECKED_ARITHMETIC_METHODS } from "./_helpers.js";
+import {
+  CHECKED_ARITHMETIC_METHODS,
+  bodyContainsRejectingCheckFor,
+  findEnclosingFunctionBody,
+  getMethodCallName,
+  rootIdentifierOf,
+} from "./_helpers.js";
 
 const RISKY_OPS = new Set(["+", "-", "*"]);
 const COMPOUND_OPS = new Set(["+=", "-=", "*="]);
@@ -58,19 +64,6 @@ function exprMentionsBalance(node: Node): boolean {
   return hit;
 }
 
-function enclosingFunctionMentionsBalance(node: Node): boolean {
-  let cursor: Node | null = node.parent;
-  while (cursor) {
-    if (cursor.type === "function_item") {
-      const nameNode = cursor.childForFieldName("name");
-      if (nameNode && nameLooksLikeBalance(nameNode.text)) return true;
-      return false;
-    }
-    cursor = cursor.parent;
-  }
-  return false;
-}
-
 function getOperator(binaryNode: Node): string | null {
   return binaryNode.childForFieldName("operator")?.text ?? null;
 }
@@ -104,6 +97,58 @@ function isInsideCheckedCall(node: Node, maxDepth = 4): boolean {
   return false;
 }
 
+function isInsideIndexExpression(node: Node): boolean {
+  let cursor: Node | null = node.parent;
+  while (cursor) {
+    if (cursor.type === "index_expression") return true;
+    if (cursor.type === "function_item") return false;
+    cursor = cursor.parent;
+  }
+  return false;
+}
+
+function exprInvolvesLength(node: Node): boolean {
+  let hit = false;
+  walk(node, n => {
+    if (hit) return "skip";
+    if (n.type === "call_expression" && getMethodCallName(n) === "len") hit = true;
+    if (n.type === "identifier" && n.text === "size_of") hit = true;
+  });
+  return hit;
+}
+
+function rhsContainsLamportsCall(node: Node): boolean {
+  let hit = false;
+  walk(node, n => {
+    if (hit) return "skip";
+    if (n.type === "call_expression" && getMethodCallName(n) === "lamports") hit = true;
+  });
+  return hit;
+}
+
+// Crediting a real lamport balance cannot overflow u64 (bounded by total supply);
+// debits stay flagged because they underflow-panic on insufficient balance.
+function lhsIsLamportsBalance(node: Node): boolean {
+  let hit = false;
+  walk(node, n => {
+    if (hit) return "skip";
+    if ((n.type === "identifier" || n.type === "field_identifier") && n.text.includes("lamports")) hit = true;
+  });
+  return hit;
+}
+
+function subtractionGuardedInBody(node: Node, left: Node, right: Node): boolean {
+  const body = findEnclosingFunctionBody(node);
+  if (!body) return false;
+  const leftRoot = rootIdentifierOf(left);
+  const rightRoot = rootIdentifierOf(right);
+  if (!leftRoot || !rightRoot) return false;
+  return (
+    bodyContainsRejectingCheckFor(body, leftRoot, [rightRoot.toLowerCase()], node.startIndex) ||
+    bodyContainsRejectingCheckFor(body, rightRoot, [leftRoot.toLowerCase()], node.startIndex)
+  );
+}
+
 function handleArithmetic(node: Node, ctx: import("../types.js").VisitorContext): void {
   const op = getOperator(node);
   if (!op) return;
@@ -115,11 +160,12 @@ function handleArithmetic(node: Node, ctx: import("../types.js").VisitorContext)
   if (!left || !right) return;
   if (isLiteralOnly(left) && isLiteralOnly(right)) return;
   if (isInsideCheckedCall(node)) return;
+  if (isInsideIndexExpression(node)) return;
+  if (exprInvolvesLength(left) || exprInvolvesLength(right)) return;
+  if (isCompound && baseOp === "+" && (rhsContainsLamportsCall(right) || lhsIsLamportsBalance(left))) return;
 
-  const leftLooksBalance = exprMentionsBalance(left);
-  const rightLooksBalance = exprMentionsBalance(right);
-  const enclosingMentionsBalance = enclosingFunctionMentionsBalance(node);
-  if (!leftLooksBalance && !rightLooksBalance && !enclosingMentionsBalance) return;
+  if (!exprMentionsBalance(left) && !exprMentionsBalance(right)) return;
+  if (baseOp === "-" && subtractionGuardedInBody(node, left, right)) return;
 
   const opName = baseOp === "+" ? "add" : baseOp === "-" ? "sub" : "mul";
   ctx.output.issues.push({

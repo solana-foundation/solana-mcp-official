@@ -1,7 +1,14 @@
 import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
-import { collectCtxAccountsAccesses, findFieldsForHandlerContext, isInsideProgramModule } from "./_anchor-helpers.js";
+import {
+  collectCtxAccountsAccesses,
+  ctxAccountsField,
+  findFieldsForHandlerContext,
+  isInsideProgramModule,
+} from "./_anchor-helpers.js";
+import { findEnclosingFunctionBody, getMethodCallName } from "./_helpers.js";
+import { findFirst, walk } from "../walk.js";
 
 function isZeroLiteral(node: Node): boolean {
   if (node.type === "integer_literal") return node.text === "0";
@@ -12,23 +19,65 @@ function isZeroLiteral(node: Node): boolean {
   return false;
 }
 
-function lhsTouchesLamports(left: Node): boolean {
+function containsMethodCall(root: Node, methodName: string): boolean {
   let found = false;
-  const cursor = left.walk();
-  const visit = (): void => {
-    const n = cursor.currentNode;
-    if (found) return;
-    if (n.type === "field_identifier" && n.text === "lamports") found = true;
-    if (n.type === "identifier" && n.text === "lamports") found = true;
-    if (!found && cursor.gotoFirstChild()) {
-      do {
-        visit();
-      } while (cursor.gotoNextSibling());
-      cursor.gotoParent();
+  walk(root, n => {
+    if (found) return "skip";
+    if (n.type === "call_expression" && getMethodCallName(n) === methodName) {
+      found = true;
+      return "skip";
     }
-  };
-  visit();
-  cursor.delete();
+  });
+  return found;
+}
+
+function containsLamportsField(root: Node): boolean {
+  let found = false;
+  walk(root, n => {
+    if (found) return "skip";
+    if ((n.type === "field_identifier" || n.type === "identifier") && n.text === "lamports") {
+      found = true;
+      return "skip";
+    }
+  });
+  return found;
+}
+
+// Only the AccountInfo lamports API counts — a plain `ctx.accounts.x.lamports`
+// field access on `Account<T>` is Borsh state, not a lamport drain.
+function lhsDrainsLamportsViaAccountInfo(left: Node): boolean {
+  if (containsMethodCall(left, "try_borrow_mut_lamports")) return true;
+  if (!containsLamportsField(left)) return false;
+  return containsMethodCall(left, "to_account_info") || containsMethodCall(left, "borrow_mut");
+}
+
+function letBindingMentionsField(body: Node, name: string, fieldName: string): boolean {
+  let found = false;
+  walk(body, n => {
+    if (found) return "skip";
+    if (n.type !== "let_declaration") return;
+    const pattern = n.childForFieldName("pattern");
+    const bound = pattern ? findFirst(pattern, x => x.type === "identifier")?.text : null;
+    if (bound !== name) return;
+    const value = n.childForFieldName("value");
+    if (value && collectCtxAccountsAccesses(value).has(fieldName)) found = true;
+  });
+  return found;
+}
+
+function bodyManuallyClosesAccount(body: Node, fieldName: string): boolean {
+  let found = false;
+  walk(body, n => {
+    if (found) return "skip";
+    if (n.type !== "call_expression") return;
+    const method = getMethodCallName(n);
+    if (method !== "assign" && method !== "realloc") return;
+    const fn = n.childForFieldName("function");
+    const receiver = fn?.childForFieldName("value");
+    if (!receiver) return;
+    if (ctxAccountsField(receiver) === fieldName) found = true;
+    else if (receiver.type === "identifier" && letBindingMentionsField(body, receiver.text, fieldName)) found = true;
+  });
   return found;
 }
 
@@ -43,15 +92,17 @@ export const anchorCloseWithoutReceiver: Visitor = {
       const right = node.childForFieldName("right");
       if (!left || !right) return;
       if (!isZeroLiteral(right)) return;
-      if (!lhsTouchesLamports(left)) return;
+      if (!lhsDrainsLamportsViaAccountInfo(left)) return;
       // Find ctx.accounts.X mentions inside the LHS chain (or its statement neighborhood) to identify the account.
       const fields = collectCtxAccountsAccesses(left);
       if (fields.size === 0) return;
+      const body = findEnclosingFunctionBody(node);
       for (const fieldName of fields) {
         const candidates = findFieldsForHandlerContext(ctx.anchor, node, fieldName);
         if (candidates.length === 0) continue;
         const hasClose = candidates.some(f => f.attribute?.kvPairs.has("close"));
         if (hasClose) continue;
+        if (body && bodyManuallyClosesAccount(body, fieldName)) continue;
         ctx.output.issues.push({
           severity: "critical",
           rule: "anchor-close-without-receiver",

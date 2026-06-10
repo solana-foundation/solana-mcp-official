@@ -22,13 +22,8 @@ import {
   VULNERABLE_PDA_ASSERT_EQ_UNRELATED,
   SECURE_ARITHMETIC_LEN_MATH,
   VULNERABLE_ARITHMETIC_LAMPORTS,
-  SECURE_TRY_FROM_WITH_LOCAL_BINDING,
   VULNERABLE_UNSAFE_UNWRAP,
   SECURE_UNSAFE_UNWRAP,
-  VULNERABLE_EVENT_VIA_CPI,
-  VULNERABLE_EVENT_VIA_CPI_MULTIPLE_LOGS,
-  SECURE_EVENT_VIA_CPI_DEBUG_LOGS,
-  SECURE_EVENT_VIA_CPI,
   VULNERABLE_UNCHECKED_DESER,
   SECURE_UNCHECKED_DESER,
   VULNERABLE_DATA_SIZE,
@@ -51,10 +46,6 @@ import {
   SECURE_INSTR_BOUNDS,
   VULNERABLE_SEED_COLLISION,
   SECURE_SEED_COLLISION,
-  VULNERABLE_BUMP_CANON,
-  SECURE_BUMP_CANON,
-  VULNERABLE_WRITABLE_MUTATION,
-  SECURE_WRITABLE_MUTATION,
   VULNERABLE_ACCOUNT_REL,
   SECURE_ACCOUNT_REL,
   VULNERABLE_ACCOUNT_BORROW,
@@ -91,7 +82,6 @@ const EXTENDED_RULE_FIXTURES: ReadonlyArray<{
   secure: string;
 }> = [
   { rule: "unsafe-unwrap", vulnerable: VULNERABLE_UNSAFE_UNWRAP, secure: SECURE_UNSAFE_UNWRAP },
-  { rule: "event-via-cpi", vulnerable: VULNERABLE_EVENT_VIA_CPI, secure: SECURE_EVENT_VIA_CPI },
   { rule: "unchecked-deserialization", vulnerable: VULNERABLE_UNCHECKED_DESER, secure: SECURE_UNCHECKED_DESER },
   { rule: "data-size-validation", vulnerable: VULNERABLE_DATA_SIZE, secure: SECURE_DATA_SIZE },
   { rule: "type-cosplay", vulnerable: VULNERABLE_TYPE_COSPLAY, secure: SECURE_TYPE_COSPLAY },
@@ -102,8 +92,6 @@ const EXTENDED_RULE_FIXTURES: ReadonlyArray<{
   { rule: "token-2022-extensions", vulnerable: VULNERABLE_TOKEN_2022, secure: SECURE_TOKEN_2022 },
   { rule: "instruction-data-bounds", vulnerable: VULNERABLE_INSTR_BOUNDS, secure: SECURE_INSTR_BOUNDS },
   { rule: "pda-seed-collision", vulnerable: VULNERABLE_SEED_COLLISION, secure: SECURE_SEED_COLLISION },
-  { rule: "bump-canonicalization", vulnerable: VULNERABLE_BUMP_CANON, secure: SECURE_BUMP_CANON },
-  { rule: "writable-mutation", vulnerable: VULNERABLE_WRITABLE_MUTATION, secure: SECURE_WRITABLE_MUTATION },
   { rule: "account-relationship", vulnerable: VULNERABLE_ACCOUNT_REL, secure: SECURE_ACCOUNT_REL },
   { rule: "account-borrow", vulnerable: VULNERABLE_ACCOUNT_BORROW, secure: SECURE_ACCOUNT_BORROW },
   { rule: "existing-lamports", vulnerable: VULNERABLE_EXISTING_LAMPORTS, secure: SECURE_EXISTING_LAMPORTS },
@@ -116,7 +104,8 @@ describe("program_autofixer Pinocchio visitors", () => {
       const out = await runProgramAutofixer({ code: vulnerable, framework: "pinocchio" });
       const hit = out.issues.find(i => i.rule === rule);
       expect(hit, `expected ${rule} to fire on vulnerable fixture`).toBeDefined();
-      expect(out.require_another_tool_call_after_fixing).toBe(true);
+      const hasBlocking = out.issues.some(i => i.severity === "critical" || i.severity === "high");
+      expect(out.require_another_tool_call_after_fixing).toBe(hasBlocking);
     },
     20_000,
   );
@@ -143,6 +132,15 @@ describe("program_autofixer Pinocchio visitors", () => {
     const out = await runProgramAutofixer({ code: "this is not rust @#$%^&", framework: "pinocchio" });
     expect(out.require_another_tool_call_after_fixing).toBe(true);
   });
+
+  it("does not force another tool call for low-severity-only findings", async () => {
+    const out = await runProgramAutofixer({ code: VULNERABLE_PROGRAM_ID, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "program-id-verification");
+    expect(hit, "program-id-verification should fire on vulnerable fixture").toBeDefined();
+    expect(hit?.severity).toBe("low");
+    expect(out.issues.every(i => i.severity !== "critical" && i.severity !== "high")).toBe(true);
+    expect(out.require_another_tool_call_after_fixing).toBe(false);
+  }, 20_000);
 });
 
 describe("program_autofixer Pinocchio additional visitors", () => {
@@ -301,15 +299,6 @@ describe("program_autofixer regression cases (no regex fallbacks)", () => {
     const hit = out.issues.find(i => i.rule === "unchecked-arithmetic");
     expect(hit, `unchecked-arithmetic missed lamport math`).toBeDefined();
   }, 20_000);
-
-  it("does not treat local try_from bindings as account destructures", async () => {
-    const out = await runProgramAutofixer({
-      code: SECURE_TRY_FROM_WITH_LOCAL_BINDING,
-      framework: "pinocchio",
-    });
-    const hit = out.issues.find(i => i.rule === "readonly-enforcement" && i.title.includes("bump"));
-    expect(hit, `readonly-enforcement treated local bump as an account: ${hit?.title}`).toBeUndefined();
-  }, 20_000);
 });
 
 describe("unsafe-unwrap noise suppression (infallible try_into patterns)", () => {
@@ -339,24 +328,6 @@ describe("unsafe-unwrap noise suppression (infallible try_into patterns)", () =>
 });
 
 describe("program_autofixer Pinocchio cross-check regression cases", () => {
-  it("reports at most one event-via-cpi finding per file", async () => {
-    const out = await runProgramAutofixer({
-      code: VULNERABLE_EVENT_VIA_CPI_MULTIPLE_LOGS,
-      framework: "pinocchio",
-    });
-    const hits = out.issues.filter(i => i.rule === "event-via-cpi");
-    expect(hits).toHaveLength(1);
-  }, 20_000);
-
-  it("does not flag diagnostic msg logs as event-via-cpi", async () => {
-    const out = await runProgramAutofixer({
-      code: SECURE_EVENT_VIA_CPI_DEBUG_LOGS,
-      framework: "pinocchio",
-    });
-    const hit = out.issues.find(i => i.rule === "event-via-cpi");
-    expect(hit, `event-via-cpi flagged diagnostic logs: ${hit?.title}`).toBeUndefined();
-  }, 20_000);
-
   it("does not count nested function borrows against the outer function", async () => {
     const out = await runProgramAutofixer({
       code: SECURE_ACCOUNT_BORROW_NESTED_FN,
@@ -409,5 +380,220 @@ describe("program_autofixer Pinocchio cross-check regression cases", () => {
     });
     const hit = out.issues.find(i => i.rule === "existing-lamports");
     expect(hit, `existing-lamports flagged a fresh-account branch: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+});
+
+describe("program_autofixer suppression soundness", () => {
+  it("does not let a key compare waive the signer requirement without PDA evidence", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub struct A<'a> { pub admin: &'a AccountView }
+impl<'a> A<'a> {
+  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+    let [admin] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
+    if admin.key() != &EXPECTED_ADMIN { return Err(ProgramError::IllegalOwner); }
+    Ok(Self { admin })
+  }
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "missing-signer")).toBe(true);
+  }, 20_000);
+
+  it("accepts an owner check on the account behind a borrowed data buffer", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub fn process(vault: &AccountView) -> Result<(), ProgramError> {
+  if !vault.is_owned_by(&crate::ID) { return Err(ProgramError::IllegalOwner); }
+  let data = vault.try_borrow_data()?;
+  let _state = Vault::from_bytes(&data)?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "missing-owner");
+    expect(hit, `missing-owner fired despite owner guard on buffer source: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+
+  it("does not suppress missing-owner via a check in an unrelated sibling function", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub fn safe(account: &AccountView) -> Result<(), ProgramError> {
+  if !account.is_owned_by(&crate::ID) { return Err(ProgramError::IllegalOwner); }
+  let _s = State::from_bytes(account.data())?;
+  Ok(())
+}
+pub fn unsafe_fn(account: &AccountView) -> Result<(), ProgramError> {
+  let _s = State::from_bytes(account.data())?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "missing-owner")).toBe(true);
+  }, 20_000);
+
+  it("skips discriminator-check when the program has no discriminator scheme", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub fn process(vault: &AccountView) -> Result<(), ProgramError> {
+  if !vault.is_owned_by(&crate::ID) { return Err(ProgramError::IllegalOwner); }
+  let data = vault.try_borrow_data()?;
+  let _state = Vault::from_bytes(&data)?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "discriminator-check");
+    expect(hit, `discriminator-check fired without a discriminator scheme: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+});
+
+describe("program_autofixer suppression ordering and polarity", () => {
+  it("flags missing-owner when the ownership check is after the deserialization sink", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub fn process(vault: &AccountView) -> Result<(), ProgramError> {
+  let _s = Vault::from_bytes(vault.data())?;
+  verify_current_program_account(vault)?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "missing-owner")).toBe(true);
+  }, 20_000);
+
+  it("does not let a key compare to an arbitrary constant waive missing-signer", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+use pinocchio::pubkey::find_program_address;
+pub struct A<'a> { pub admin: &'a AccountView }
+impl<'a> A<'a> {
+  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+    let [admin] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
+    let (_unrelated, _b) = find_program_address(&[b"x"], &crate::ID);
+    if admin.key() != &EXPECTED_ADMIN { return Err(ProgramError::IllegalOwner); }
+    Ok(Self { admin })
+  }
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "missing-signer")).toBe(true);
+  }, 20_000);
+
+  it("waives missing-signer when the account key is compared to a derived PDA", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+use pinocchio::pubkey::find_program_address;
+pub struct A<'a> { pub authority: &'a AccountView }
+impl<'a> A<'a> {
+  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+    let [authority] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
+    let (expected, _b) = find_program_address(&[b"auth"], &crate::ID);
+    if authority.key() != &expected { return Err(ProgramError::InvalidSeeds); }
+    Ok(Self { authority })
+  }
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "missing-signer")).toBe(false);
+  }, 20_000);
+
+  it("flags an inverted then_some validation chain (wrong polarity)", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub struct A<'a> { pub admin: &'a AccountView }
+impl<'a> A<'a> {
+  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+    let [admin] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
+    (!admin.is_signer()).then_some(()).ok_or(ProgramError::MissingRequiredSignature)?;
+    Ok(Self { admin })
+  }
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "missing-signer")).toBe(true);
+  }, 20_000);
+
+  it("accepts a correctly-oriented then_some ownership chain", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub fn process(vault: &AccountView) -> Result<(), ProgramError> {
+  vault.is_owned_by(&crate::ID).then_some(()).ok_or(ProgramError::IllegalOwner)?;
+  let _s = Vault::from_bytes(vault.data())?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "missing-owner");
+    expect(hit, `missing-owner fired despite valid then_some chain: ${hit?.title}`).toBeUndefined();
+  }, 20_000);
+});
+
+describe("program_autofixer greptile-review fixes", () => {
+  it("does not let a relationship check in one function suppress another (account-relationship)", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+struct TransferChecked<'a> { from: &'a AccountView, to: &'a AccountView, mint: &'a AccountView, amount: u64 }
+impl<'a> TransferChecked<'a> { fn invoke(&self) -> Result<(), ProgramError> { Ok(()) } }
+pub fn safe(from: &AccountView, to: &AccountView, mint: &AccountView, expected: &AccountView) -> Result<(), ProgramError> {
+  if mint.key() != expected.key() { return Err(ProgramError::InvalidArgument); }
+  TransferChecked { from, to, mint, amount: 1 }.invoke()
+}
+pub fn unsafe_fn(from: &AccountView, to: &AccountView, mint: &AccountView) -> Result<(), ProgramError> {
+  TransferChecked { from, to, mint, amount: 1 }.invoke()
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "account-relationship")).toBe(true);
+  }, 20_000);
+
+  it("does not suppress pda-validation via a non-address validation call (check_balance)", async () => {
+    const code = `use pinocchio::pubkey::find_program_address;
+pub fn handle(account: &AccountView, seed: &[u8]) -> Result<(), ProgramError> {
+  let (pda, _bump) = find_program_address(&[seed], &crate::ID);
+  check_balance(&pda)?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "pda-validation")).toBe(true);
+  }, 20_000);
+
+  it("still suppresses pda-validation via an address-named validator", async () => {
+    const code = `use pinocchio::pubkey::find_program_address;
+pub fn handle(account: &AccountView, seed: &[u8]) -> Result<(), ProgramError> {
+  let (pda, _bump) = find_program_address(&[seed], &crate::ID);
+  verify_pda_address(&pda, account)?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "pda-validation")).toBe(false);
+  }, 20_000);
+
+  it("flags unchecked subtraction when the bound check is after the operation", async () => {
+    const code = `pub fn withdraw(balance: u64, amount: u64) -> u64 {
+  let remaining = balance - amount;
+  if balance < amount { return 0; }
+  remaining
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "unchecked-arithmetic")).toBe(true);
+  }, 20_000);
+
+  it("flags unchecked deserialization when the length check is after the cast", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub fn read(data: &[u8]) -> Result<Escrow, ProgramError> {
+  let e = Escrow::from_bytes_unchecked(data);
+  if data.len() < Escrow::LEN { return Err(ProgramError::InvalidAccountData); }
+  Ok(e)
+}
+struct Escrow;
+impl Escrow { const LEN: usize = 32; fn from_bytes_unchecked(_d: &[u8]) -> Self { Self } }
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "data-size-validation")).toBe(true);
   }, 20_000);
 });

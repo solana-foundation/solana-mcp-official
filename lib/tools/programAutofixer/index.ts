@@ -37,7 +37,7 @@ function summarizeForAnalytics({
 
 export const PROGRAM_AUTOFIXER_DESCRIPTION = `Analyze Solana program Rust for Pinocchio and Anchor security antipatterns. Returns structured issues, fix suggestions, the detected framework, and whether another validation pass is required.
 
-MUST be called whenever the user asks to write or modify Solana program Rust, before returning code. After applying fixes, call it again until \`require_another_tool_call_after_fixing\` is false.`;
+MUST be called whenever the user asks to write or modify Solana program Rust, before returning code. After applying fixes, call it again until \`require_another_tool_call_after_fixing\` is false. The flag stays true only while syntax errors or critical/high issues remain; medium/low findings and suggestions are advisory — surface them to the user, but they do not require another pass.`;
 
 export function createProgramAutofixerTool(): SolanaTool {
   return {

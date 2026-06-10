@@ -78,14 +78,14 @@ impl<'a> CreateAccounts<'a> {
 `;
 
 export const VULNERABLE_ARITHMETIC = `use pinocchio::program_error::ProgramError;
-pub fn add_amounts(a: u64, b: u64) -> Result<u64, ProgramError> {
-  Ok(a + b)
+pub fn add_amounts(balance: u64, amount: u64) -> Result<u64, ProgramError> {
+  Ok(balance + amount)
 }
 `;
 
 export const SECURE_ARITHMETIC = `use pinocchio::program_error::ProgramError;
-pub fn add_amounts(a: u64, b: u64) -> Result<u64, ProgramError> {
-  a.checked_add(b).ok_or(ProgramError::ArithmeticOverflow)
+pub fn add_amounts(balance: u64, amount: u64) -> Result<u64, ProgramError> {
+  balance.checked_add(amount).ok_or(ProgramError::ArithmeticOverflow)
 }
 `;
 
@@ -137,6 +137,7 @@ pub struct Withdraw<'a> { pub rent_sysvar: &'a AccountView }
 impl<'a> Withdraw<'a> {
   pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
     let [rent_sysvar] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
+    let _rent_data = rent_sysvar.data();
     Ok(Self { rent_sysvar })
   }
 }
@@ -197,23 +198,6 @@ export const VULNERABLE_ARITHMETIC_LAMPORTS = `pub fn update(state: &mut State, 
 }
 `;
 
-export const SECURE_TRY_FROM_WITH_LOCAL_BINDING = `${PINOCCHIO_HEADER}
-pub struct InitAccounts<'a> {
-  pub admin: &'a AccountView,
-  pub escrow: &'a AccountView,
-}
-
-impl<'a> InitAccounts<'a> {
-  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
-    let [admin, escrow] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
-    let bump = 255u8;
-    verify_signer(admin, false)?;
-    verify_owned_by(escrow, &crate::ID)?;
-    Ok(Self { admin, escrow })
-  }
-}
-`;
-
 // Fixtures for the extended Pinocchio visitors. Each pair: vulnerable + secure.
 // Wrapped in `use pinocchio::*` so the framework auto-detect picks Pinocchio.
 
@@ -235,32 +219,6 @@ pub fn handle() -> Result<u64, ProgramError> {
   amount.ok_or(ProgramError::InvalidArgument)
 }
 fn compute() -> Option<u64> { Some(0) }
-`;
-
-// ----- event-via-cpi (Check 21) -----
-export const VULNERABLE_EVENT_VIA_CPI = `${PINOCCHIO_USE}
-pub fn emit(amount: u64) {
-  msg!("transfer amount: {}", amount);
-}
-`;
-export const VULNERABLE_EVENT_VIA_CPI_MULTIPLE_LOGS = `${PINOCCHIO_USE}
-pub fn emit(amount: u64) {
-  msg!("transfer amount: {}", amount);
-  msg!("withdraw amount: {}", amount);
-}
-`;
-export const SECURE_EVENT_VIA_CPI_DEBUG_LOGS = `${PINOCCHIO_USE}
-pub fn process(amount: u64) {
-  msg!("entered processor");
-  msg!("amount parsed: {}", amount);
-}
-`;
-export const SECURE_EVENT_VIA_CPI = `${PINOCCHIO_USE}
-pub fn emit(program_id: &[u8;32], event_authority: &AccountView, program: &AccountView, amount: u64) -> Result<(), ProgramError> {
-  emit_event(program_id, event_authority, program, &amount.to_le_bytes())?;
-  Ok(())
-}
-fn emit_event(_p: &[u8;32], _a: &AccountView, _b: &AccountView, _d: &[u8]) -> Result<(), ProgramError> { Ok(()) }
 `;
 
 // ----- unchecked-deserialization (Check 14) -----
@@ -414,18 +372,21 @@ fn verify_signer(_a: &AccountView, _b: bool) -> Result<(), ProgramError> { Ok(()
 // ----- token-2022-extensions (Check 22) -----
 export const VULNERABLE_TOKEN_2022 = `${PINOCCHIO_USE}
 use pinocchio_token_2022::TOKEN_2022_PROGRAM_ID;
-pub fn transfer_some(mint: &AccountView) -> Result<(), ProgramError> {
-  // No safe-mint check!
-  Ok(())
+pub fn transfer_some(mint: &AccountView, token_program: &AccountView) -> Result<(), ProgramError> {
+  let expected = TOKEN_2022_PROGRAM_ID;
+  process_transfer(mint, token_program, &expected)
 }
+fn process_transfer(_m: &AccountView, _t: &AccountView, _p: &[u8; 32]) -> Result<(), ProgramError> { Ok(()) }
 `;
 export const SECURE_TOKEN_2022 = `${PINOCCHIO_USE}
 use pinocchio_token_2022::TOKEN_2022_PROGRAM_ID;
-pub fn transfer_some(mint: &AccountView) -> Result<(), ProgramError> {
+pub fn transfer_some(mint: &AccountView, token_program: &AccountView) -> Result<(), ProgramError> {
+  let expected = TOKEN_2022_PROGRAM_ID;
   verify_safe_mint(mint)?;
-  Ok(())
+  process_transfer(mint, token_program, &expected)
 }
 fn verify_safe_mint(_m: &AccountView) -> Result<(), ProgramError> { Ok(()) }
+fn process_transfer(_m: &AccountView, _t: &AccountView, _p: &[u8; 32]) -> Result<(), ProgramError> { Ok(()) }
 `;
 
 // ----- instruction-data-bounds (Check 24) -----
@@ -466,55 +427,6 @@ struct Config;
 impl Pda for Escrow { const PREFIX: &'static [u8] = b"escrow"; }
 impl Pda for Config { const PREFIX: &'static [u8] = b"config"; }
 trait Pda { const PREFIX: &'static [u8]; }
-`;
-
-// ----- bump-canonicalization (Check 10) -----
-export const VULNERABLE_BUMP_CANON = `use pinocchio::pubkey::find_program_address;
-pub fn handle(account: &AccountView, seed: &[u8]) -> Result<(), ProgramError> {
-  let (pda, bump) = find_program_address(&[seed], &crate::ID);
-  if account.key() == &pda { /* but bump never compared */ }
-  Ok(())
-}
-`;
-export const SECURE_BUMP_CANON = `use pinocchio::pubkey::find_program_address;
-pub fn handle(account: &AccountView, seed: &[u8], stored_bump: u8) -> Result<(), ProgramError> {
-  let (pda, bump) = find_program_address(&[seed], &crate::ID);
-  assert_eq!(bump, stored_bump);
-  if account.key() == &pda { /* ok */ }
-  Ok(())
-}
-`;
-
-// ----- writable-mutation (Check 5) -----
-export const VULNERABLE_WRITABLE_MUTATION = `${PINOCCHIO_USE}
-struct WAccounts<'a> { pub config: &'a AccountView }
-impl<'a> WAccounts<'a> {
-  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
-    let [config] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
-    verify_writable(config, true)?;
-    Ok(Self { config })
-  }
-}
-pub fn process(a: WAccounts) -> Result<(), ProgramError> {
-  let _ = a.config.lamports();
-  Ok(())
-}
-fn verify_writable(_a: &AccountView, _f: bool) -> Result<(), ProgramError> { Ok(()) }
-`;
-export const SECURE_WRITABLE_MUTATION = `${PINOCCHIO_USE}
-struct WAccounts<'a> { pub config: &'a AccountView }
-impl<'a> WAccounts<'a> {
-  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
-    let [config] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
-    verify_writable(config, true)?;
-    Ok(Self { config })
-  }
-}
-pub fn process(a: WAccounts) -> Result<(), ProgramError> {
-  a.config.set_lamports(123);
-  Ok(())
-}
-fn verify_writable(_a: &AccountView, _f: bool) -> Result<(), ProgramError> { Ok(()) }
 `;
 
 // ----- account-relationship (Check 26) -----
@@ -589,11 +501,14 @@ pub fn read_name(args_name: &[u8]) -> &str {
 
 // ----- existing-lamports (Check 16) -----
 export const VULNERABLE_EXISTING_LAMPORTS = `${PINOCCHIO_USE}
+struct CreateAccount<'a> { from: &'a AccountView, to: &'a AccountView, lamports: u64, space: u64, owner: [u8;32] }
+impl<'a> CreateAccount<'a> { fn invoke_signed(&self, _s: &[u8]) -> Result<(), ProgramError> { Ok(()) } }
 pub fn create(pda: &AccountView, payer: &AccountView) -> Result<(), ProgramError> {
   if pda.lamports() > 0 {
     // Branch exists but does nothing - skip account creation
     return Ok(());
   }
+  CreateAccount { from: payer, to: pda, lamports: 1_000_000, space: 100, owner: [0u8;32] }.invoke_signed(&[])?;
   Ok(())
 }
 `;

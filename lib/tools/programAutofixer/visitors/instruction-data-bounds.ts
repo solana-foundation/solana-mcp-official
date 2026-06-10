@@ -1,17 +1,110 @@
 import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
-import { walk } from "../walk.js";
+import { findFirst, walk } from "../walk.js";
 import { getCallName } from "../walk.js";
-import { getMacroName } from "./_helpers.js";
+import {
+  LEN_MARKERS,
+  bodyContainsRejectingCheckFor,
+  getMacroName,
+  getMethodCallName,
+  getMethodReceiverRoot,
+  isRejectingGuard,
+  macroIdentifiers,
+  rootIdentifierOf,
+} from "./_helpers.js";
 
 const LEN_MACROS = new Set(["require_len", "require_size", "require_eq_len"]);
 const LEN_FNS = new Set(["require_len", "check_len", "verify_len"]);
+const BOUNDS_METHODS = new Set(["try_into", "get", "split_first", "split_at", "split_at_checked"]);
+const CHECK_MACRO_PATTERN = /assert|require/;
+const LEN_TOKEN_PATTERN = /len|size/;
 
-/**
- * Walk an impl_item declaration_list for a `try_from` function and confirm it
- * contains a length-validation macro or call.
- */
+function tryFromDataParam(fnNode: Node): string | null {
+  const params = fnNode.childForFieldName("parameters");
+  if (!params) return null;
+  for (let i = 0; i < params.namedChildCount; i++) {
+    const param = params.namedChild(i);
+    if (param?.type !== "parameter") continue;
+    const pattern = param.childForFieldName("pattern");
+    if (pattern?.type === "identifier") return pattern.text;
+  }
+  return null;
+}
+
+function rootMatches(value: Node, dataParam: string | null): boolean {
+  if (!dataParam) return true;
+  const root = rootIdentifierOf(value);
+  return !root || root === dataParam;
+}
+
+function containsSlicePattern(node: Node): boolean {
+  return findFirst(node, n => n.type === "slice_pattern") !== null;
+}
+
+function lenComparisonInGuard(binary: Node): boolean {
+  let hasLenField = false;
+  walk(binary, n => {
+    if (hasLenField) return "skip";
+    if (n.type === "field_identifier" && LEN_MARKERS.some(m => n.text.toLowerCase().includes(m))) hasLenField = true;
+  });
+  return hasLenField && isRejectingGuard(binary);
+}
+
+function bodyValidatesBounds(body: Node, dataParam: string | null): boolean {
+  if (dataParam && bodyContainsRejectingCheckFor(body, dataParam, LEN_MARKERS)) return true;
+  let found = false;
+  walk(body, n => {
+    if (found) return "skip";
+    if (n.type === "macro_invocation") {
+      const m = getMacroName(n);
+      if (!m) return;
+      if (LEN_MACROS.has(m)) {
+        found = true;
+        return;
+      }
+      if (m === "array_ref" && (!dataParam || macroIdentifiers(n).includes(dataParam))) {
+        found = true;
+        return;
+      }
+      if (CHECK_MACRO_PATTERN.test(m) && macroIdentifiers(n).some(id => LEN_TOKEN_PATTERN.test(id.toLowerCase()))) {
+        found = true;
+      }
+      return;
+    }
+    if (n.type === "let_declaration") {
+      const pattern = n.childForFieldName("pattern");
+      const value = n.childForFieldName("value");
+      if (pattern && value && containsSlicePattern(pattern) && rootMatches(value, dataParam)) found = true;
+      return;
+    }
+    if (n.type === "match_expression") {
+      const value = n.childForFieldName("value");
+      const bodyNode = n.childForFieldName("body");
+      if (value && bodyNode && rootMatches(value, dataParam) && containsSlicePattern(bodyNode)) found = true;
+      return;
+    }
+    if (n.type === "binary_expression") {
+      if (lenComparisonInGuard(n)) found = true;
+      return;
+    }
+    if (n.type === "call_expression") {
+      const fn = n.childForFieldName("function");
+      const name = fn ? getCallName(fn) : null;
+      if (name && LEN_FNS.has(name)) {
+        found = true;
+        return;
+      }
+      const methodName = getMethodCallName(n);
+      if (methodName && BOUNDS_METHODS.has(methodName)) {
+        const receiverRoot = getMethodReceiverRoot(n);
+        if (!dataParam || !receiverRoot || receiverRoot === dataParam) found = true;
+      }
+    }
+  });
+  return found;
+}
+
 function tryFromHasLenCheck(implItem: Node): boolean {
   let found = false;
   walk(implItem, n => {
@@ -19,38 +112,32 @@ function tryFromHasLenCheck(implItem: Node): boolean {
     if (n.type !== "function_item") return;
     const nameNode = n.childForFieldName("name");
     if (nameNode?.text !== "try_from") return;
-    walk(n, inner => {
-      if (found) return "skip";
-      if (inner.type === "macro_invocation") {
-        const m = getMacroName(inner);
-        if (m && LEN_MACROS.has(m)) found = true;
-      } else if (inner.type === "call_expression") {
-        const fn = inner.childForFieldName("function");
-        const name = fn ? getCallName(fn) : null;
-        if (name && LEN_FNS.has(name)) found = true;
-      }
-    });
+    const body = n.childForFieldName("body");
+    if (!body) return;
+    if (bodyValidatesBounds(body, tryFromDataParam(n))) found = true;
+    return "skip";
   });
   return found;
 }
 
-function isTryFromU8Impl(implItem: Node): { targetName: string } | null {
-  let isTryFromSlice = false;
-  for (let i = 0; i < implItem.namedChildCount; i++) {
-    const c = implItem.namedChild(i);
-    if (!c) continue;
-    if (c.type === "generic_type") {
-      const head = c.namedChild(0);
-      if (head?.text !== "TryFrom") continue;
-      const args = c.namedChild(1);
-      if (!args) continue;
-      walk(args, n => {
-        if (isTryFromSlice) return "skip";
-        if (n.type === "primitive_type" && n.text === "u8") isTryFromSlice = true;
-      });
-    }
+function isTryFromSliceImpl(implItem: Node): { targetName: string } | null {
+  const trait = implItem.childForFieldName("trait");
+  if (!trait || trait.type !== "generic_type") return null;
+  const head = trait.childForFieldName("type") ?? trait.namedChild(0);
+  if (head?.text !== "TryFrom") return null;
+  const args = trait.childForFieldName("type_arguments") ?? trait.namedChild(1);
+  if (!args) return null;
+  let isSliceOfU8 = false;
+  for (let i = 0; i < args.namedChildCount; i++) {
+    const arg = args.namedChild(i);
+    if (arg?.type !== "reference_type") continue;
+    const inner = arg.childForFieldName("type") ?? arg.namedChild(arg.namedChildCount - 1);
+    if (!inner || (inner.type !== "slice_type" && inner.type !== "array_type")) continue;
+    if (inner.namedChildCount !== 1) continue;
+    const element = inner.childForFieldName("element") ?? inner.namedChild(0);
+    if (element?.type === "primitive_type" && element.text === "u8") isSliceOfU8 = true;
   }
-  if (!isTryFromSlice) return null;
+  if (!isSliceOfU8) return null;
   const target = implItem.childForFieldName("type");
   return target ? { targetName: target.text } : null;
 }
@@ -61,7 +148,7 @@ export const instructionDataBounds: Visitor = {
   appliesTo: ["pinocchio"],
   enter: {
     impl_item(node, ctx) {
-      const info = isTryFromU8Impl(node);
+      const info = isTryFromSliceImpl(node);
       if (!info) return;
       if (tryFromHasLenCheck(node)) return;
       ctx.output.issues.push({
@@ -69,8 +156,8 @@ export const instructionDataBounds: Visitor = {
         rule: "instruction-data-bounds",
         title: `TryFrom<&[u8]> for ${info.targetName} skips bounds validation`,
         location: formatLocation(ctx.filename, node),
-        description: `\`impl TryFrom<&[u8]> for ${info.targetName}\` parses instruction data without invoking a length check (\`require_len!\` / \`check_len\`). Short input causes out-of-bounds reads inside the parser.`,
-        suggestion: `Open the \`try_from\` body with \`require_len!(data, Self::LEN);\` (or an equivalent explicit length compare) before indexing the slice.`,
+        description: `\`impl TryFrom<&[u8]> for ${info.targetName}\` parses instruction data without a length check or slice-pattern destructuring. Direct indexing panics on short input (DoS).`,
+        suggestion: `Open the \`try_from\` body with \`require_len!(data, Self::LEN);\`, an explicit \`data.len()\` compare, or destructure via \`let [tag, rest @ ..] = data else { return Err(...) };\` before indexing the slice.`,
       });
     },
   },

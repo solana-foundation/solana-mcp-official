@@ -1,8 +1,17 @@
 import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
-import { walk } from "../walk.js";
-import { findEnclosingFunctionBody, getMethodCallName, getMethodReceiverRoot } from "./_helpers.js";
+import { getCallName, walk } from "../walk.js";
+import {
+  findEnclosingFunctionBody,
+  getCallArgs,
+  getMethodCallName,
+  getMethodReceiverRoot,
+  rootIdentifierOf,
+} from "./_helpers.js";
+
+const CLOSE_FNS = new Set(["close", "close_account"]);
+const WIPE_FNS = new Set(["assign"]);
 
 function isLamportsZeroCall(node: Node): { receiver: string | null } | null {
   if (node.type !== "call_expression") return null;
@@ -15,13 +24,22 @@ function isLamportsZeroCall(node: Node): { receiver: string | null } | null {
   return { receiver: getMethodReceiverRoot(node) };
 }
 
-function scopeCallsCloseOn(scope: Node, target: string): boolean {
+function scopeCallsOn(scope: Node, target: string, names: ReadonlySet<string>): boolean {
   let found = false;
   walk(scope, n => {
     if (found) return "skip";
     if (n.type !== "call_expression") return;
-    if (getMethodCallName(n) !== "close") return;
-    if (getMethodReceiverRoot(n) === target) found = true;
+    const methodName = getMethodCallName(n);
+    if (methodName && names.has(methodName) && getMethodReceiverRoot(n) === target) {
+      found = true;
+      return "skip";
+    }
+    const fn = n.childForFieldName("function");
+    if (!fn || fn.type === "field_expression") return;
+    const callName = getCallName(fn);
+    if (!callName || !names.has(callName)) return;
+    const first = getCallArgs(n)[0];
+    if (first && rootIdentifierOf(first) === target) found = true;
   });
   return found;
 }
@@ -36,13 +54,14 @@ export const accountClosure: Visitor = {
       if (!info || !info.receiver) return;
       const scope = findEnclosingFunctionBody(node);
       if (!scope) return;
-      if (scopeCallsCloseOn(scope, info.receiver)) return;
+      if (scopeCallsOn(scope, info.receiver, CLOSE_FNS)) return;
+      if (scopeCallsOn(scope, info.receiver, WIPE_FNS)) return;
       ctx.output.issues.push({
         severity: "critical",
         rule: "account-closure",
         title: `Account ${info.receiver} drained without \`close()\``,
         location: formatLocation(ctx.filename, node),
-        description: `\`${info.receiver}.set_lamports(0)\` is called but \`${info.receiver}.close()\` is never called in the same function. \`close()\` zeros the data buffer and reassigns the account to the system program; without it the closed account remains usable in the same transaction (reload attack).`,
+        description: `\`${info.receiver}.set_lamports(0)\` is called but \`${info.receiver}.close()\` (or a manual \`realloc(0)\` + \`assign\` wipe) never happens in the same function. \`close()\` zeros the data buffer and reassigns the account to the system program; without it the closed account remains usable in the same transaction (reload attack).`,
         suggestion: `After draining lamports, call \`${info.receiver}.close()?;\` so the account is reset and reassigned to the system program.`,
       });
     },

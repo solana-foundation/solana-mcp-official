@@ -1,7 +1,7 @@
 import type { Node, Tree } from "web-tree-sitter";
 import { findAll, findFirst, getCallName, walk } from "../walk.js";
 
-const SIGNER_NAMES = new Set(["admin", "authority", "owner", "signer", "payer", "delegate", "fee_payer"]);
+const SIGNER_NAMES = new Set(["admin", "authority", "signer", "payer", "fee_payer"]);
 
 const PROGRAM_ACCOUNT_NAMES = new Set([
   "system_program",
@@ -32,7 +32,7 @@ const PROGRAM_VERIFY_CALLS = new Set([
   "verify_program_id",
 ]);
 
-const FROM_BYTES_NAMES = new Set(["from_bytes", "from_bytes_mut", "from_bytes_unchecked", "load", "load_mut"]);
+const FROM_BYTES_NAMES = new Set(["from_bytes", "from_bytes_mut", "from_bytes_unchecked"]);
 
 const CHECKED_ARITHMETIC_METHODS = new Set([
   "checked_add",
@@ -223,8 +223,153 @@ export function inlineSignerGuardRoot(node: Node): string | null {
 
 export function bodyContainsSignerValidationFor(body: Node, accountName: string): boolean {
   if (bodyContainsVerifyFor(body, VERIFY_SIGNER_CALLS, accountName)) return true;
-  return findAll(body, n => inlineSignerGuardRoot(n) === accountName).length > 0;
+  if (findAll(body, n => inlineSignerGuardRoot(n) === accountName).length > 0) return true;
+  return bodyContainsRejectingCheckFor(body, accountName, SIGNER_MARKERS);
 }
+
+export const SIGNER_MARKERS = ["is_signer"] as const;
+export const OWNER_MARKERS = ["owner", "is_owned_by"] as const;
+export const KEY_MARKERS = ["key", "address", "pubkey"] as const;
+export const DISCRIMINATOR_MARKERS = ["discriminator"] as const;
+export const LEN_MARKERS = ["len", "size"] as const;
+
+const CHECK_MACROS = new Set([
+  "assert",
+  "assert_eq",
+  "assert_ne",
+  "require",
+  "require_eq",
+  "require_neq",
+  "require_keys_eq",
+  "require_keys_neq",
+]);
+
+export function macroChecksAccount(node: Node, accountName: string, markers: readonly string[]): boolean {
+  if (node.type !== "macro_invocation") return false;
+  const name = getMacroName(node);
+  if (!name || !CHECK_MACROS.has(name)) return false;
+  const ids = macroIdentifiers(node);
+  if (!ids.includes(accountName)) return false;
+  return ids.some(id => markers.some(m => id.toLowerCase().includes(m)));
+}
+
+function mentionsMarker(node: Node, markers: readonly string[]): boolean {
+  let found = false;
+  walk(node, c => {
+    if (found) return "skip";
+    if (c.type === "identifier" || c.type === "field_identifier") {
+      const text = c.text.toLowerCase();
+      if (markers.some(m => text.includes(m))) found = true;
+    }
+  });
+  return found;
+}
+
+function markerIsNegated(scope: Node, markers: readonly string[]): boolean {
+  let negated = false;
+  walk(scope, c => {
+    if (negated) return "skip";
+    if (c.type !== "identifier" && c.type !== "field_identifier") return;
+    if (!markers.some(m => c.text.toLowerCase().includes(m))) return;
+    let cursor: Node | null = c.parent;
+    while (cursor && cursor.startIndex >= scope.startIndex && cursor.endIndex <= scope.endIndex) {
+      if (cursor.type === "unary_expression" && cursor.text.trimStart().startsWith("!")) {
+        negated = true;
+        return "skip";
+      }
+      cursor = cursor.parent;
+    }
+  });
+  return negated;
+}
+
+/**
+ * Recognizes a rejecting guard on `accountName` whose condition compares the account's
+ * key/address to one of `targetVars` — used to confirm a key check is against a derived
+ * PDA rather than an arbitrary constant.
+ */
+export function rejectingKeyCheckAgainst(body: Node, accountName: string, targetVars: ReadonlySet<string>): boolean {
+  if (targetVars.size === 0) return false;
+  let found = false;
+  walk(body, n => {
+    if (found) return "skip";
+    if (n.type !== "if_expression") return;
+    const condition = n.childForFieldName("condition") ?? n.namedChild(0);
+    if (!condition || !branchRejects(n)) return;
+    if (!containsIdentifier(condition, accountName) || !mentionsMarker(condition, KEY_MARKERS)) return;
+    for (const v of targetVars) {
+      if (containsIdentifier(condition, v)) {
+        found = true;
+        break;
+      }
+    }
+  });
+  return found;
+}
+
+/**
+ * Recognizes inline validation shapes for `accountName` anywhere in `body`:
+ *   if <cond mentioning account + marker> { return Err(...) }   (or Err(...)? / err-macro)
+ *   match <expr mentioning account + marker> { ... Err ... }
+ *   assert!/require!-family macros mentioning account + marker
+ *   <account>.<marker>(...).then_some(()).ok_or(Err)?   (and similar ok_or chains)
+ * Markers are lowercase substrings matched against identifiers (e.g. "is_signer", "owner", "key").
+ * When `beforeIndex` is set, only checks that start before that source offset count — used to
+ * enforce that a guard precedes the sink it is meant to protect.
+ */
+export function bodyContainsRejectingCheckFor(
+  body: Node,
+  accountName: string,
+  markers: readonly string[],
+  beforeIndex?: number,
+): boolean {
+  let found = false;
+  walk(body, n => {
+    if (found) return "skip";
+    if (beforeIndex !== undefined && n.startIndex >= beforeIndex) return "skip";
+    if (n.type === "if_expression") {
+      const condition = n.childForFieldName("condition") ?? n.namedChild(0);
+      if (
+        condition &&
+        branchRejects(n) &&
+        containsIdentifier(condition, accountName) &&
+        mentionsMarker(condition, markers)
+      ) {
+        found = true;
+      }
+      return;
+    }
+    if (n.type === "match_expression") {
+      const value = n.childForFieldName("value");
+      if (
+        value &&
+        containsIdentifier(value, accountName) &&
+        mentionsMarker(value, markers) &&
+        nodeContainsErrorConstructor(n)
+      ) {
+        found = true;
+      }
+      return;
+    }
+    if (n.type === "try_expression") {
+      const inner = n.namedChild(0);
+      if (
+        inner &&
+        containsIdentifier(inner, accountName) &&
+        mentionsMarker(inner, markers) &&
+        mentionsMarker(inner, OK_OR_CHAIN_MARKERS) &&
+        !markerIsNegated(inner, markers)
+      ) {
+        found = true;
+      }
+      return;
+    }
+    if (macroChecksAccount(n, accountName, markers)) found = true;
+  });
+  return found;
+}
+
+const OK_OR_CHAIN_MARKERS = ["ok_or"];
 
 export {
   VERIFY_SIGNER_CALLS,
