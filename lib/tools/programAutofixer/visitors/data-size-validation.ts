@@ -48,7 +48,7 @@ function lenComparisonMatches(binary: Node, targetRoot: string | null): boolean 
 }
 
 function scopeHasLengthCheck(scope: Node, callNode: Node, targetRoot: string | null): boolean {
-  if (targetRoot && bodyContainsRejectingCheckFor(scope, targetRoot, LEN_MARKERS)) return true;
+  if (targetRoot && bodyContainsRejectingCheckFor(scope, targetRoot, LEN_MARKERS, callNode.startIndex)) return true;
   let found = false;
   walk(scope, n => {
     if (found) return "skip";

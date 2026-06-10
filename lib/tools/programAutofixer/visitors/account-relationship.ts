@@ -1,5 +1,5 @@
 import type { Node } from "web-tree-sitter";
-import type { Visitor, VisitorContext } from "../types.js";
+import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
 import { getCallName } from "../walk.js";
@@ -26,17 +26,6 @@ const CHECK_MACROS = new Set([
   "require_keys_neq",
 ]);
 const PDA_DERIVE_FNS = new Set(["find_program_address", "try_find_program_address", "create_program_address"]);
-
-interface RelationshipState {
-  inlineChecked: boolean;
-  pdaDerived: boolean;
-}
-
-function getState(ctx: VisitorContext): RelationshipState {
-  const bag = ctx as unknown as { __accountRelationship?: RelationshipState };
-  if (!bag.__accountRelationship) bag.__accountRelationship = { inlineChecked: false, pdaDerived: false };
-  return bag.__accountRelationship;
-}
 
 function nodeRejects(node: Node): boolean {
   let found = false;
@@ -112,21 +101,38 @@ function isTransferishStruct(node: Node): { name: string } | null {
   return { name: tail };
 }
 
-function scopeHasRelationshipCheck(scope: Node): boolean {
+function scopeValidatesRelationship(scope: Node): boolean {
   let found = false;
   walk(scope, n => {
     if (found) return "skip";
-    if (n.type !== "call_expression") return;
-    const fn = n.childForFieldName("function");
-    const callName = fn ? getCallName(fn) : null;
-    if (callName && RELATIONSHIP_CHECK_FNS.has(callName)) {
-      found = true;
-      return "skip";
+    if (n.type === "if_expression") {
+      const condition = n.childForFieldName("condition") ?? n.namedChild(0);
+      const consequence = n.childForFieldName("consequence");
+      if (condition && consequence && mentionsRelationshipMarker(condition) && nodeRejects(consequence)) {
+        found = true;
+      }
+      return;
     }
-    const methodName = getMethodCallName(n);
-    if (methodName && RELATIONSHIP_CHECK_FNS.has(methodName)) {
-      found = true;
-      return "skip";
+    if (n.type === "macro_invocation") {
+      const name = getMacroName(n);
+      if (
+        name &&
+        CHECK_MACROS.has(name) &&
+        macroIdentifiers(n).some(id => RELATIONSHIP_MARKERS.some(m => id.toLowerCase().includes(m)))
+      ) {
+        found = true;
+      }
+      return;
+    }
+    if (n.type === "call_expression") {
+      const fn = n.childForFieldName("function");
+      const callName = fn ? getCallName(fn) : null;
+      if (callName && (RELATIONSHIP_CHECK_FNS.has(callName) || PDA_DERIVE_FNS.has(callName))) {
+        found = true;
+        return "skip";
+      }
+      const methodName = getMethodCallName(n);
+      if (methodName && RELATIONSHIP_CHECK_FNS.has(methodName)) found = true;
     }
   });
   return found;
@@ -136,51 +142,19 @@ export const accountRelationship: Visitor = {
   name: "account-relationship",
   severity: "low",
   appliesTo: ["pinocchio"],
-  before(tree, ctx) {
-    const state = getState(ctx);
-    walk(tree.rootNode, n => {
-      if (state.inlineChecked && state.pdaDerived) return "skip";
-      if (n.type === "if_expression") {
-        const condition = n.childForFieldName("condition") ?? n.namedChild(0);
-        const consequence = n.childForFieldName("consequence");
-        if (condition && consequence && mentionsRelationshipMarker(condition) && nodeRejects(consequence)) {
-          state.inlineChecked = true;
-        }
-        return;
-      }
-      if (n.type === "macro_invocation") {
-        const name = getMacroName(n);
-        if (
-          name &&
-          CHECK_MACROS.has(name) &&
-          macroIdentifiers(n).some(id => RELATIONSHIP_MARKERS.some(m => id.toLowerCase().includes(m)))
-        ) {
-          state.inlineChecked = true;
-        }
-        return;
-      }
-      if (n.type === "call_expression") {
-        const fn = n.childForFieldName("function");
-        const name = fn ? getCallName(fn) : null;
-        if (name && PDA_DERIVE_FNS.has(name)) state.pdaDerived = true;
-      }
-    });
-  },
   enter: {
     struct_expression(node, ctx) {
       const info = isTransferishStruct(node);
       if (!info) return;
-      const state = getState(ctx);
-      if (state.inlineChecked || state.pdaDerived) return;
       const scope = findEnclosingFunctionBody(node);
       if (!scope) return;
-      if (scopeHasRelationshipCheck(scope)) return;
+      if (scopeValidatesRelationship(scope)) return;
       ctx.output.issues.push({
         severity: "low",
         rule: "account-relationship",
         title: `${info.name} CPI without relationship validation`,
         location: formatLocation(ctx.filename, node),
-        description: `\`${info.name}\` is invoked but no \`validate_associated_token_account\` / \`verify_token_account\` / \`verify_mint\` call (or inline mint/owner comparison) appears in this file. Token accounts must be tied to the expected wallet+mint; otherwise an attacker can supply an arbitrary mint and drain the wrong account.`,
+        description: `\`${info.name}\` is invoked but no \`validate_associated_token_account\` / \`verify_token_account\` / \`verify_mint\` call (or inline mint/owner comparison) appears in this function. Token accounts must be tied to the expected wallet+mint; otherwise an attacker can supply an arbitrary mint and drain the wrong account.`,
         suggestion: `Before invoking ${info.name}, validate that the token account belongs to the expected wallet and mint via \`validate_associated_token_account(token_account, expected_wallet, expected_mint, token_program)?;\` or an explicit \`token_account.mint() == expected_mint.key()\` guard.`,
       });
     },

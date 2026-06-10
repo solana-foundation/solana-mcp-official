@@ -13,7 +13,10 @@ import {
 
 const PDA_DERIVATION_FNS = new Set(["find_program_address", "try_find_program_address", "create_program_address"]);
 
-const VALIDATION_CALL_PATTERN = /assert|require|check|verify|validate/i;
+// Must look like a validator (assert/verify/...) AND reference address-derivation semantics,
+// so check_balance(pda) / verify_owner(pda) don't waive this critical rule.
+const VALIDATION_CALL_PATTERN =
+  /(assert|require|check|verify|validate).*(pda|seed|address|derive|key)|(pda|seed|address|derive|key).*(assert|require|check|verify|validate)/i;
 
 const POSITIVE_COMPARISON_METHOD_NAMES = new Set(["eq", "equals"]);
 const NEGATIVE_COMPARISON_METHOD_NAMES = new Set(["ne", "not_equals"]);

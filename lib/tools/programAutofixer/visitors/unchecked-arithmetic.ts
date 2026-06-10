@@ -144,8 +144,8 @@ function subtractionGuardedInBody(node: Node, left: Node, right: Node): boolean 
   const rightRoot = rootIdentifierOf(right);
   if (!leftRoot || !rightRoot) return false;
   return (
-    bodyContainsRejectingCheckFor(body, leftRoot, [rightRoot.toLowerCase()]) ||
-    bodyContainsRejectingCheckFor(body, rightRoot, [leftRoot.toLowerCase()])
+    bodyContainsRejectingCheckFor(body, leftRoot, [rightRoot.toLowerCase()], node.startIndex) ||
+    bodyContainsRejectingCheckFor(body, rightRoot, [leftRoot.toLowerCase()], node.startIndex)
   );
 }
 

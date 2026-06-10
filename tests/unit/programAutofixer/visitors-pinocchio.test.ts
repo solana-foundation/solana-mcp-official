@@ -528,3 +528,72 @@ pub fn process(vault: &AccountView) -> Result<(), ProgramError> {
     expect(hit, `missing-owner fired despite valid then_some chain: ${hit?.title}`).toBeUndefined();
   }, 20_000);
 });
+
+describe("program_autofixer greptile-review fixes", () => {
+  it("does not let a relationship check in one function suppress another (account-relationship)", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+struct TransferChecked<'a> { from: &'a AccountView, to: &'a AccountView, mint: &'a AccountView, amount: u64 }
+impl<'a> TransferChecked<'a> { fn invoke(&self) -> Result<(), ProgramError> { Ok(()) } }
+pub fn safe(from: &AccountView, to: &AccountView, mint: &AccountView, expected: &AccountView) -> Result<(), ProgramError> {
+  if mint.key() != expected.key() { return Err(ProgramError::InvalidArgument); }
+  TransferChecked { from, to, mint, amount: 1 }.invoke()
+}
+pub fn unsafe_fn(from: &AccountView, to: &AccountView, mint: &AccountView) -> Result<(), ProgramError> {
+  TransferChecked { from, to, mint, amount: 1 }.invoke()
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "account-relationship")).toBe(true);
+  }, 20_000);
+
+  it("does not suppress pda-validation via a non-address validation call (check_balance)", async () => {
+    const code = `use pinocchio::pubkey::find_program_address;
+pub fn handle(account: &AccountView, seed: &[u8]) -> Result<(), ProgramError> {
+  let (pda, _bump) = find_program_address(&[seed], &crate::ID);
+  check_balance(&pda)?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "pda-validation")).toBe(true);
+  }, 20_000);
+
+  it("still suppresses pda-validation via an address-named validator", async () => {
+    const code = `use pinocchio::pubkey::find_program_address;
+pub fn handle(account: &AccountView, seed: &[u8]) -> Result<(), ProgramError> {
+  let (pda, _bump) = find_program_address(&[seed], &crate::ID);
+  verify_pda_address(&pda, account)?;
+  Ok(())
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "pda-validation")).toBe(false);
+  }, 20_000);
+
+  it("flags unchecked subtraction when the bound check is after the operation", async () => {
+    const code = `pub fn withdraw(balance: u64, amount: u64) -> u64 {
+  let remaining = balance - amount;
+  if balance < amount { return 0; }
+  remaining
+}
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "unchecked-arithmetic")).toBe(true);
+  }, 20_000);
+
+  it("flags unchecked deserialization when the length check is after the cast", async () => {
+    const code = `use pinocchio::account_view::AccountView;
+use pinocchio::program_error::ProgramError;
+pub fn read(data: &[u8]) -> Result<Escrow, ProgramError> {
+  let e = Escrow::from_bytes_unchecked(data);
+  if data.len() < Escrow::LEN { return Err(ProgramError::InvalidAccountData); }
+  Ok(e)
+}
+struct Escrow;
+impl Escrow { const LEN: usize = 32; fn from_bytes_unchecked(_d: &[u8]) -> Self { Self } }
+`;
+    const out = await runProgramAutofixer({ code, framework: "pinocchio" });
+    expect(out.issues.some(i => i.rule === "data-size-validation")).toBe(true);
+  }, 20_000);
+});
