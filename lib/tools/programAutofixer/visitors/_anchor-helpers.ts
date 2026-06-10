@@ -18,6 +18,8 @@ export interface AnchorField {
   /** Full type text. */
   typeText: string;
   attribute: ParsedAccountAttr | null;
+  /** True when a `/// CHECK:` doc comment directly precedes the field. */
+  hasCheckComment: boolean;
   fieldNode: Node;
 }
 
@@ -127,30 +129,52 @@ function attributeIsDeriveAccounts(attrItem: Node): boolean {
   return found;
 }
 
+const TRANSPARENT_WRAPPER_TYPES = new Set(["Box", "Option"]);
+
 function getStructTypeIdentifier(typeNode: Node): { outer: string | null; inner: string | null; text: string } {
   const text = typeNode.text;
   if (typeNode.type === "type_identifier") return { outer: typeNode.text, inner: null, text };
+  if (typeNode.type === "scoped_type_identifier") return { outer: typeTailIdentifier(typeNode), inner: null, text };
   if (typeNode.type === "generic_type") {
     const outerId = typeNode.namedChild(0);
-    const outer = outerId?.type === "type_identifier" ? outerId.text : null;
+    const outer = outerId ? typeTailIdentifier(outerId) : null;
     const args = typeNode.childForFieldName("type_arguments") ?? typeNode.namedChild(1);
-    let inner: string | null = null;
-    if (args) {
-      for (let i = 0; i < args.namedChildCount; i++) {
-        const c = args.namedChild(i);
-        if (c?.type === "type_identifier") {
-          inner = c.text;
-          break;
-        }
-      }
+    const firstArg = args ? firstTypeArgument(args) : null;
+    if (outer && TRANSPARENT_WRAPPER_TYPES.has(outer) && firstArg) {
+      const unwrapped = getStructTypeIdentifier(firstArg);
+      return { outer: unwrapped.outer, inner: unwrapped.inner, text };
     }
+    const inner = firstArg ? typeTailIdentifier(firstArg) : null;
     return { outer, inner, text };
   }
   if (typeNode.type === "reference_type") {
-    const inner = typeNode.namedChild(typeNode.namedChildCount - 1);
+    const inner = typeNode.childForFieldName("type") ?? typeNode.namedChild(typeNode.namedChildCount - 1);
     if (inner) return getStructTypeIdentifier(inner);
   }
   return { outer: null, inner: null, text };
+}
+
+function firstTypeArgument(args: Node): Node | null {
+  for (let i = 0; i < args.namedChildCount; i++) {
+    const c = args.namedChild(i);
+    if (!c || c.type === "lifetime") continue;
+    return c;
+  }
+  return null;
+}
+
+const CHECK_DOC_COMMENT_RE = /^(\/\/\/|\/\/!)\s*check\b/i;
+
+function isCheckDocComment(node: Node): boolean {
+  return node.type === "line_comment" && CHECK_DOC_COMMENT_RE.test(node.text);
+}
+
+function mergeAccountAttrs(base: ParsedAccountAttr, extra: ParsedAccountAttr): ParsedAccountAttr {
+  return {
+    keywords: new Set([...base.keywords, ...extra.keywords]),
+    kvPairs: new Map([...base.kvPairs, ...extra.kvPairs]),
+    attributeNode: base.attributeNode,
+  };
 }
 
 function collectStructFields(structNode: Node): AnchorField[] {
@@ -158,12 +182,17 @@ function collectStructFields(structNode: Node): AnchorField[] {
   if (!list) return [];
   const fields: AnchorField[] = [];
   let pendingAttr: ParsedAccountAttr | null = null;
+  let pendingCheckComment = false;
   for (let i = 0; i < list.namedChildCount; i++) {
     const child = list.namedChild(i);
     if (!child) continue;
+    if (child.type === "line_comment" || child.type === "block_comment") {
+      if (isCheckDocComment(child)) pendingCheckComment = true;
+      continue;
+    }
     if (child.type === "attribute_item") {
       const parsed = parseIfAccountAttribute(child);
-      if (parsed) pendingAttr = parsed;
+      if (parsed) pendingAttr = pendingAttr ? mergeAccountAttrs(pendingAttr, parsed) : parsed;
       continue;
     }
     if (child.type === "field_declaration") {
@@ -171,6 +200,7 @@ function collectStructFields(structNode: Node): AnchorField[] {
       const typeNode = child.childForFieldName("type") ?? findFieldType(child);
       if (!nameNode || !typeNode) {
         pendingAttr = null;
+        pendingCheckComment = false;
         continue;
       }
       const { outer, inner, text } = getStructTypeIdentifier(typeNode);
@@ -180,9 +210,11 @@ function collectStructFields(structNode: Node): AnchorField[] {
         innerTypeIdentifier: inner,
         typeText: text,
         attribute: pendingAttr,
+        hasCheckComment: pendingCheckComment,
         fieldNode: child,
       });
       pendingAttr = null;
+      pendingCheckComment = false;
     }
   }
   return fields;
@@ -225,6 +257,8 @@ export function collectAnchorContext(tree: Tree): AnchorContext {
     for (let i = 0; i < container.namedChildCount; i++) {
       const node = container.namedChild(i);
       if (!node) continue;
+
+      if (node.type === "line_comment" || node.type === "block_comment") continue;
 
       if (node.type === "attribute_item") {
         if (attributeIsDeriveAccounts(node)) pendingIsAccountsDerive = true;
@@ -377,7 +411,7 @@ function contextStructNameFromFunction(functionNode: Node): string | null {
     const param = parameters.namedChild(i);
     if (!param || param.type !== "parameter") continue;
     const typeNode = param.childForFieldName("type") ?? findParameterType(param);
-    const name = typeNode ? contextStructNameFromType(typeNode) : null;
+    const name = typeNode ? contextStructNameFromType(unwrapReferenceType(typeNode)) : null;
     if (name) return name;
   }
   return null;
@@ -395,9 +429,20 @@ function findParameterType(parameterNode: Node): Node | null {
   for (let i = 0; i < parameterNode.namedChildCount; i++) {
     const c = parameterNode.namedChild(i);
     if (!c) continue;
+    if (c.type === "reference_type") return unwrapReferenceType(c);
     if (c.type === "generic_type" || c.type === "scoped_type_identifier" || c.type === "type_identifier") return c;
   }
   return null;
+}
+
+function unwrapReferenceType(node: Node): Node {
+  let cursor = node;
+  while (cursor.type === "reference_type") {
+    const inner = cursor.childForFieldName("type") ?? cursor.namedChild(cursor.namedChildCount - 1);
+    if (!inner) break;
+    cursor = inner;
+  }
+  return cursor;
 }
 
 function contextStructNameFromType(typeNode: Node): string | null {

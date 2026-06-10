@@ -11,17 +11,46 @@ import { getMacroName, getMethodCallName, rootIdentifierOf } from "./_helpers.js
  * not silently skip creation. Flag when the lamports() > 0 branch lacks any of those.
  */
 const FALLBACK_STRUCT_TYPES = new Set(["Allocate", "Assign", "Transfer"]);
+const CREATION_STRUCT_TYPES = new Set(["CreateAccount", "Allocate"]);
+const CREATION_CALL_NAMES = new Set(["create_account", "allocate"]);
+const FALLBACK_CALL_NAMES = new Set(["create_pda_account_idempotent", "allocate", "assign", "transfer"]);
 
-function isFallbackStruct(node: Node): boolean {
-  if (node.type !== "struct_expression") return false;
+function structTail(node: Node): string | null {
+  if (node.type !== "struct_expression") return null;
   const t = node.namedChild(0);
-  if (!t) return false;
-  if (t.type === "type_identifier") return FALLBACK_STRUCT_TYPES.has(t.text);
+  if (!t) return null;
+  if (t.type === "type_identifier") return t.text;
   if (t.type === "scoped_type_identifier" || t.type === "scoped_identifier") {
     const last = t.namedChild(t.namedChildCount - 1);
-    return last ? FALLBACK_STRUCT_TYPES.has(last.text) : false;
+    return last?.text ?? null;
   }
-  return false;
+  return null;
+}
+
+function isFallbackStruct(node: Node): boolean {
+  const tail = structTail(node);
+  return tail !== null && FALLBACK_STRUCT_TYPES.has(tail);
+}
+
+function functionCreatesAccount(body: Node): boolean {
+  let found = false;
+  walk(body, n => {
+    if (found) return "skip";
+    const tail = structTail(n);
+    if (tail && CREATION_STRUCT_TYPES.has(tail)) {
+      found = true;
+      return "skip";
+    }
+    if (n.type === "call_expression") {
+      const fn = n.childForFieldName("function");
+      const name = fn ? getCallName(fn) : null;
+      if (name && CREATION_CALL_NAMES.has(name)) {
+        found = true;
+        return "skip";
+      }
+    }
+  });
+  return found;
 }
 
 function isIntegerLiteral(node: Node, value: string): boolean {
@@ -120,6 +149,7 @@ export const existingLamports: Visitor = {
     function_item(node, ctx) {
       const body = node.childForFieldName("body");
       if (!body) return;
+      if (!functionCreatesAccount(body)) return;
       const ifNode = findIfWithExistingLamportsCheck(body);
       if (!ifNode) return;
       const consequence = ifNode.childForFieldName("consequence");
@@ -135,7 +165,7 @@ export const existingLamports: Visitor = {
         if (n.type === "call_expression") {
           const fn = n.childForFieldName("function");
           const name = fn ? getCallName(fn) : null;
-          if (name && (name === "create_pda_account_idempotent" || name === "allocate" || name === "assign")) {
+          if (name && FALLBACK_CALL_NAMES.has(name)) {
             hasFallback = true;
             return "skip";
           }

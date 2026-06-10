@@ -114,6 +114,14 @@ export const anchorCpiContextUnverified: Visitor = {
       );
       const someTyped = candidates.some(f => f.typeIdentifier !== null && TYPED_PROGRAM_TYPES.has(f.typeIdentifier));
       if (someTyped || !allUntyped) return;
+      // `address =` / `owner =` / `executable` constraints pin the program identity even on untyped wrappers.
+      const anyConstrained = candidates.some(
+        f =>
+          f.attribute?.kvPairs.has("address") ||
+          f.attribute?.kvPairs.has("owner") ||
+          f.attribute?.keywords.has("executable"),
+      );
+      if (anyConstrained) return;
       const fn = node.childForFieldName("function");
       const tail = fn?.lastChild?.text ?? "new";
       ctx.output.issues.push({

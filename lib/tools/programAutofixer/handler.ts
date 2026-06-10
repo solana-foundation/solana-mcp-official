@@ -115,7 +115,9 @@ function buildDispatch(visitors: readonly Visitor[]): Map<string, Array<{ visito
 }
 
 function runVisitorPipeline(tree: Tree, ctx: VisitorContext): void {
-  const active = allVisitors.filter(v => ctx.framework === "unknown" || v.appliesTo.includes(ctx.framework));
+  const active = allVisitors.filter(v =>
+    ctx.framework === "unknown" ? v.appliesTo.length > 1 : v.appliesTo.includes(ctx.framework),
+  );
 
   for (const v of active) {
     try {
@@ -205,7 +207,8 @@ export async function runProgramAutofixer({
   runVisitorPipeline(tree, ctx);
 
   output.issues = dedupe(output.issues);
-  output.require_another_tool_call_after_fixing = output.issues.length > 0 || output.suggestions.length > 0;
+  output.require_another_tool_call_after_fixing =
+    tree.rootNode.hasError || output.issues.some(i => i.severity === "critical" || i.severity === "high");
 
   return output;
 }

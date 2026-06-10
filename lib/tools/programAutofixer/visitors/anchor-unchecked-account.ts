@@ -11,6 +11,11 @@ export const anchorUncheckedAccount: Visitor = {
     for (const struct of ctx.anchor.structs) {
       for (const field of struct.fields) {
         if (!field.typeIdentifier || !PERMISSIVE_TYPES.has(field.typeIdentifier)) continue;
+        if (field.hasCheckComment) continue;
+        const attr = field.attribute;
+        if (attr && (attr.kvPairs.has("address") || attr.kvPairs.has("owner") || attr.kvPairs.has("constraint"))) {
+          continue;
+        }
         ctx.output.issues.push({
           severity: "low",
           rule: "anchor-unchecked-account",

@@ -13,8 +13,8 @@ export const anchorReallocIncomplete: Visitor = {
         const usesRealloc = attr.kvPairs.has("realloc");
         if (!usesRealloc) continue;
         const missing: string[] = [];
-        if (!attr.kvPairs.has("realloc::payer")) missing.push("realloc::payer");
-        if (!attr.kvPairs.has("realloc::zero")) missing.push("realloc::zero");
+        if (!attr.kvPairs.has("realloc::payer") && !attr.kvPairs.has("realloc_payer")) missing.push("realloc::payer");
+        if (!attr.kvPairs.has("realloc::zero") && !attr.kvPairs.has("realloc_zero")) missing.push("realloc::zero");
         if (missing.length === 0) continue;
         ctx.output.issues.push({
           severity: "medium",
