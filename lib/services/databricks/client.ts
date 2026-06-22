@@ -128,3 +128,44 @@ export async function dbxFetch<T>(path: string, init: RequestInit = {}): Promise
     ? lastError
     : new Error(`Databricks request to ${path} failed after ${MAX_ATTEMPTS} attempts`);
 }
+
+interface McpContentBlock {
+  type: string;
+  text?: string;
+}
+
+interface McpToolResult {
+  content?: McpContentBlock[];
+  isError?: boolean;
+}
+
+interface JsonRpcEnvelope<T> {
+  result?: T;
+  error?: { code: number; message: string };
+}
+
+export async function mcpToolCall(
+  serverPath: string,
+  toolName: string,
+  args: Record<string, unknown>,
+  meta?: Record<string, string>,
+): Promise<string> {
+  const params: Record<string, unknown> = { name: toolName, arguments: args };
+  if (meta) params._meta = meta;
+
+  const envelope = await dbxFetch<JsonRpcEnvelope<McpToolResult>>(serverPath, {
+    method: "POST",
+    headers: { Accept: "application/json, text/event-stream" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params }),
+  });
+
+  if (envelope.error) {
+    throw new Error(`MCP ${serverPath} error ${envelope.error.code}: ${envelope.error.message}`);
+  }
+  const result = envelope.result;
+  const text = result?.content?.find(block => block.type === "text")?.text ?? "";
+  if (!result || result.isError) {
+    throw new Error(`MCP tool ${toolName} failed: ${text || "(no detail)"}`);
+  }
+  return text;
+}

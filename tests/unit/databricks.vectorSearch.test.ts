@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const HOST = "https://dbc-test.cloud.databricks.com";
 const TOKEN = "dapi-test-token";
 const INDEX = "test_catalog.test_schema.docs_chunks_idx";
+const MCP_URL = `${HOST}/api/2.0/mcp/ai-search/test_catalog/test_schema/docs_chunks_idx`;
+const TOOL = "test_catalog__test_schema__docs_chunks_idx";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -11,7 +13,27 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-describe("databricks vectorSearch", () => {
+function mcpResponse(hits: unknown[], opts: { isError?: boolean } = {}): Response {
+  return jsonResponse({
+    jsonrpc: "2.0",
+    id: 1,
+    result: {
+      content: [{ type: "text", text: JSON.stringify(hits) }],
+      isError: opts.isError ?? false,
+    },
+  });
+}
+
+interface ToolCallBody {
+  method: string;
+  params: {
+    name: string;
+    arguments: { query: string };
+    _meta: Record<string, string>;
+  };
+}
+
+describe("databricks vectorSearch (managed AI Search MCP)", () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
@@ -43,6 +65,18 @@ describe("databricks vectorSearch", () => {
     warnSpy.mockRestore();
   });
 
+  it("returns [] and warns when index is not catalog.schema.index, without calling fetch", async () => {
+    process.env.DATABRICKS_VS_INDEX = "only_two.parts";
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
+
+    const result = await searchDocs("whatever");
+    expect(result).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
   it("returns [] when host/token missing, without calling fetch", async () => {
     delete process.env.DATABRICKS_TOKEN;
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -54,61 +88,49 @@ describe("databricks vectorSearch", () => {
     warnSpy.mockRestore();
   });
 
-  it("POSTs to the query endpoint with oversampled num_results (k*3)", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        manifest: {
-          columns: [
-            { name: "id" },
-            { name: "url" },
-            { name: "title" },
-            { name: "source_id" },
-            { name: "content" },
-            { name: "score" },
-          ],
-        },
-        result: { data_array: [] },
-      }),
-    );
+  it("calls the ai-search MCP tool with query + _meta (num_results = k, no oversample)", async () => {
+    fetchMock.mockResolvedValueOnce(mcpResponse([]));
 
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
     await searchDocs("how to derive a PDA", 5);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe(`${HOST}/api/2.0/vector-search/indexes/${INDEX}/query`);
+    expect(url).toBe(MCP_URL);
     expect(init.method).toBe("POST");
-    const body = JSON.parse(init.body as string) as {
-      query_text: string;
-      columns: string[];
-      num_results: number;
-    };
-    expect(body.query_text).toBe("how to derive a PDA");
-    expect(body.num_results).toBe(15);
-    expect(body.columns).toEqual(["id", "url", "title", "source_id", "content"]);
+    expect(new Headers(init.headers).get("Accept")).toContain("text/event-stream");
+
+    const body = JSON.parse(init.body as string) as ToolCallBody;
+    expect(body.method).toBe("tools/call");
+    expect(body.params.name).toBe(TOOL);
+    expect(body.params.arguments.query).toBe("how to derive a PDA");
+    expect(body.params._meta.num_results).toBe("5");
+    expect(body.params._meta.columns).toBe("id,url,title,source_id,content");
+    expect(body.params._meta.columns_to_rerank).toBe("content");
+    expect(body.params._meta.include_score).toBe("true");
   });
 
-  it("parses rows via manifest column order into DocChunk[]", async () => {
+  it("parses the JSON content array into DocChunk[]", async () => {
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        manifest: {
-          columns: [
-            { name: "score" },
-            { name: "source_id" },
-            { name: "id" },
-            { name: "url" },
-            { name: "title" },
-            { name: "content" },
-          ],
+      mcpResponse([
+        {
+          id: "abc",
+          url: "https://github.com/codama-idl/codama",
+          title: "codama/README.md",
+          source_id: "gh-codama",
+          content: "Codama overview",
+          score: 0.83,
         },
-        result: {
-          data_array: [
-            [0.83, "gh-codama", "abc", "https://github.com/codama-idl/codama", "codama/README.md", "Codama overview"],
-            [0.71, "anchor-docs", "def", "https://www.anchor-lang.com/docs/pda", "Anchor PDA", "How to derive..."],
-            [0.5, null, "ghi", null, null, null],
-          ],
+        {
+          id: "def",
+          url: "https://www.anchor-lang.com/docs/pda",
+          title: "Anchor PDA",
+          source_id: "anchor-docs",
+          content: "How to derive...",
+          score: 0.71,
         },
-      }),
+        { id: "ghi", url: null, title: null, source_id: null, content: null, score: 0.5 },
+      ]),
     );
 
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
@@ -132,27 +154,48 @@ describe("databricks vectorSearch", () => {
 
   it("dedupes chunks by URL, keeping highest-scored, then trims to k", async () => {
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        manifest: {
-          columns: [
-            { name: "id" },
-            { name: "url" },
-            { name: "title" },
-            { name: "source_id" },
-            { name: "content" },
-            { name: "score" },
-          ],
+      mcpResponse([
+        {
+          id: "a",
+          url: "https://solana.com/versions",
+          title: "Versioned",
+          source_id: "solana-docs",
+          content: "best chunk",
+          score: 0.9,
         },
-        result: {
-          data_array: [
-            ["a", "https://solana.com/versions", "Versioned", "solana-docs", "best chunk", 0.9],
-            ["b", "https://solana.com/versions", "Versioned", "solana-docs", "dup chunk", 0.89],
-            ["c", "https://solana.com/versions", "Versioned", "solana-docs", "another dup", 0.88],
-            ["d", "https://solana.com/pda", "PDA", "solana-docs", "pda content", 0.7],
-            ["e", "https://www.anchor-lang.com/pda", "Anchor PDA", "anchor-docs", "anchor content", 0.65],
-          ],
+        {
+          id: "b",
+          url: "https://solana.com/versions",
+          title: "Versioned",
+          source_id: "solana-docs",
+          content: "dup chunk",
+          score: 0.89,
         },
-      }),
+        {
+          id: "c",
+          url: "https://solana.com/versions",
+          title: "Versioned",
+          source_id: "solana-docs",
+          content: "another dup",
+          score: 0.88,
+        },
+        {
+          id: "d",
+          url: "https://solana.com/pda",
+          title: "PDA",
+          source_id: "solana-docs",
+          content: "pda content",
+          score: 0.7,
+        },
+        {
+          id: "e",
+          url: "https://www.anchor-lang.com/pda",
+          title: "Anchor PDA",
+          source_id: "anchor-docs",
+          content: "anchor content",
+          score: 0.65,
+        },
+      ]),
     );
 
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
@@ -166,24 +209,10 @@ describe("databricks vectorSearch", () => {
 
   it("falls back to id as dedupe key when url is null", async () => {
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        manifest: {
-          columns: [
-            { name: "id" },
-            { name: "url" },
-            { name: "title" },
-            { name: "source_id" },
-            { name: "content" },
-            { name: "score" },
-          ],
-        },
-        result: {
-          data_array: [
-            ["id-1", null, "T1", null, "c1", 0.8],
-            ["id-2", null, "T2", null, "c2", 0.7],
-          ],
-        },
-      }),
+      mcpResponse([
+        { id: "id-1", url: null, title: "T1", source_id: null, content: "c1", score: 0.8 },
+        { id: "id-2", url: null, title: "T2", source_id: null, content: "c2", score: 0.7 },
+      ]),
     );
 
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
@@ -191,56 +220,56 @@ describe("databricks vectorSearch", () => {
     expect(chunks.map(c => c.id)).toEqual(["id-1", "id-2"]);
   });
 
-  it("defaults k to 20 (oversampled num_results=60) when no arg or env", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        manifest: { columns: [{ name: "id" }, { name: "score" }] },
-        result: { data_array: [] },
-      }),
-    );
+  it("defaults k to 20 (num_results=20) when no arg or env", async () => {
+    fetchMock.mockResolvedValueOnce(mcpResponse([]));
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
     await searchDocs("hello");
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(init.body as string).num_results).toBe(60);
+    expect((JSON.parse(init.body as string) as ToolCallBody).params._meta.num_results).toBe("20");
   });
 
   it("reads DATABRICKS_VS_K env when arg omitted", async () => {
     process.env.DATABRICKS_VS_K = "12";
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        manifest: { columns: [{ name: "id" }, { name: "score" }] },
-        result: { data_array: [] },
-      }),
-    );
+    fetchMock.mockResolvedValueOnce(mcpResponse([]));
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
     await searchDocs("hello");
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(init.body as string).num_results).toBe(36); // 12 * 3
+    expect((JSON.parse(init.body as string) as ToolCallBody).params._meta.num_results).toBe("12");
   });
 
   it("caps k at 50 regardless of arg or env", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        manifest: { columns: [{ name: "id" }, { name: "score" }] },
-        result: { data_array: [] },
-      }),
-    );
+    fetchMock.mockResolvedValueOnce(mcpResponse([]));
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
     await searchDocs("hello", 9999);
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(init.body as string).num_results).toBe(150); // 50 * 3
+    expect((JSON.parse(init.body as string) as ToolCallBody).params._meta.num_results).toBe("50");
   });
 
   it("handles empty result set", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        manifest: { columns: [{ name: "id" }, { name: "score" }] },
-        result: { data_array: [] },
-      }),
-    );
-
+    fetchMock.mockResolvedValueOnce(mcpResponse([]));
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
     const chunks = await searchDocs("nothing matches");
     expect(chunks).toEqual([]);
+  });
+
+  it("returns [] when the tool returns non-JSON content", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        jsonrpc: "2.0",
+        id: 1,
+        result: { content: [{ type: "text", text: "not json at all" }], isError: false },
+      }),
+    );
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
+    const chunks = await searchDocs("x");
+    expect(chunks).toEqual([]);
+    warnSpy.mockRestore();
+  });
+
+  it("throws when the tool result is flagged isError", async () => {
+    fetchMock.mockResolvedValueOnce(mcpResponse([], { isError: true }));
+    const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
+    await expect(searchDocs("x")).rejects.toThrow(/failed/);
   });
 });
