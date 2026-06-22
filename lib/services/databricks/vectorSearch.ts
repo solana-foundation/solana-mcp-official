@@ -25,6 +25,9 @@ const RERANK_COLUMN = "content";
 const DEFAULT_K = 20;
 const MAX_K = 50;
 const OVERSAMPLE_MULTIPLIER = 3;
+// Endpoint's hard cap for reranked queries: num_results above this errors.
+// Keep MAX_K <= RERANK_MAX_RESULTS, or large-k callers are silently clamped
+// to fewer results than requested.
 const RERANK_MAX_RESULTS = 50;
 
 function resolveK(k?: number): number {

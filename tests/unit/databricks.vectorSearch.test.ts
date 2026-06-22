@@ -232,6 +232,21 @@ describe("databricks vectorSearch (managed AI Search MCP)", () => {
     expect(chunks.map(c => c.id)).toEqual(["id-1", "id-2"]);
   });
 
+  it("returns fewer than k when dedupe collapses the oversampled pool", async () => {
+    fetchMock.mockResolvedValueOnce(
+      mcpResponse([
+        { id: "a", url: "https://x/1", title: "T", source_id: "s", content: "c1", score: 0.9 },
+        { id: "b", url: "https://x/1", title: "T", source_id: "s", content: "c2", score: 0.8 },
+        { id: "c", url: "https://x/1", title: "T", source_id: "s", content: "c3", score: 0.7 },
+        { id: "d", url: "https://x/2", title: "U", source_id: "s", content: "c4", score: 0.6 },
+      ]),
+    );
+
+    const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
+    const chunks = await searchDocs("q", 20);
+    expect(chunks.map(c => c.id)).toEqual(["a", "d"]);
+  });
+
   it("defaults k to 20 and clamps oversampled num_results to the rerank cap of 50", async () => {
     fetchMock.mockResolvedValueOnce(mcpResponse([]));
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
