@@ -139,7 +139,7 @@ describe("databricks client", () => {
       expect(oauthInit.method).toBe("POST");
       const oauthHeaders = new Headers(oauthInit.headers);
       expect(oauthHeaders.get("Authorization")).toMatch(/^Basic /);
-      expect(oauthInit.body).toBe("grant_type=client_credentials&scope=all-apis");
+      expect(oauthInit.body).toBe("grant_type=client_credentials&scope=ai-search%20sql");
 
       const [apiUrl, apiInit] = fetchMock.mock.calls[1] as [string, RequestInit];
       expect(apiUrl).toBe(`${HOST}/api/2.0/thing`);

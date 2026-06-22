@@ -64,7 +64,7 @@ async function fetchOauthToken(mode: Extract<AuthMode, { kind: "oauth" }>): Prom
       Authorization: `Basic ${credentials}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: "grant_type=client_credentials&scope=all-apis",
+    body: "grant_type=client_credentials&scope=ai-search%20sql",
   });
 
   if (!res.ok) {
