@@ -24,6 +24,18 @@ function mcpResponse(hits: unknown[], opts: { isError?: boolean } = {}): Respons
   });
 }
 
+function sseResponse(hits: unknown[]): Response {
+  const envelope = {
+    jsonrpc: "2.0",
+    id: 1,
+    result: { content: [{ type: "text", text: JSON.stringify(hits) }], isError: false },
+  };
+  return new Response(`event: message\ndata: ${JSON.stringify(envelope)}\n\n`, {
+    status: 200,
+    headers: { "Content-Type": "text/event-stream" },
+  });
+}
+
 interface ToolCallBody {
   method: string;
   params: {
@@ -271,5 +283,18 @@ describe("databricks vectorSearch (managed AI Search MCP)", () => {
     fetchMock.mockResolvedValueOnce(mcpResponse([], { isError: true }));
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
     await expect(searchDocs("x")).rejects.toThrow(/failed/);
+  });
+
+  it("parses an SSE-framed (text/event-stream) response", async () => {
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        { id: "s1", url: "https://solana.com/x", title: "X", source_id: "solana-docs", content: "sse", score: 0.9 },
+      ]),
+    );
+    const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
+    const chunks = await searchDocs("x");
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].id).toBe("s1");
+    expect(chunks[0].content).toBe("sse");
   });
 });

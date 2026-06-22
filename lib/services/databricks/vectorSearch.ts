@@ -39,7 +39,10 @@ interface McpTarget {
 
 function resolveMcpTarget(): McpTarget | null {
   const index = process.env.DATABRICKS_VS_INDEX;
-  if (!index) return null;
+  if (!index) {
+    console.warn("[vectorSearch] DATABRICKS_VS_INDEX not set — retrieval disabled");
+    return null;
+  }
   const parts = index.split(".");
   if (parts.length !== 3 || parts.some(part => part.length === 0)) {
     console.warn(`[vectorSearch] DATABRICKS_VS_INDEX="${index}" is not catalog.schema.index — retrieval disabled`);
@@ -54,11 +57,12 @@ function resolveMcpTarget(): McpTarget | null {
 
 export async function searchDocs(query: string, k?: number): Promise<DocChunk[]> {
   const topK = resolveK(k);
-  const target = resolveMcpTarget();
-  if (!isDatabricksConfigured() || !target) {
-    console.warn("[vectorSearch] DATABRICKS_VS_INDEX (or host/token) not set — retrieval disabled");
+  if (!isDatabricksConfigured()) {
+    console.warn("[vectorSearch] Databricks host/token not set — retrieval disabled");
     return [];
   }
+  const target = resolveMcpTarget();
+  if (!target) return [];
 
   const text = await mcpToolCall(
     target.path,

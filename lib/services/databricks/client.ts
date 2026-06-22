@@ -84,6 +84,19 @@ async function resolveBearerToken(mode: AuthMode): Promise<string> {
   return mode.kind === "pat" ? mode.token : fetchOauthToken(mode);
 }
 
+async function readJsonOrSse<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  if ((res.headers.get("content-type") ?? "").includes("text/event-stream")) {
+    const data = text
+      .split(/\r?\n/)
+      .filter(line => line.startsWith("data:"))
+      .map(line => line.slice(5).trimStart())
+      .join("\n");
+    return JSON.parse(data) as T;
+  }
+  return JSON.parse(text) as T;
+}
+
 export async function dbxFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const mode = resolveAuthMode();
   if (!mode) {
@@ -106,7 +119,7 @@ export async function dbxFetch<T>(path: string, init: RequestInit = {}): Promise
     try {
       const res = await fetch(url, { ...init, headers });
       if (res.ok) {
-        return (await res.json()) as T;
+        return readJsonOrSse<T>(res);
       }
       const bodyText = (await res.text()).slice(0, MAX_BODY_SNIPPET);
       if ((res.status === 429 || res.status >= 500) && attempt < MAX_ATTEMPTS - 1) {
