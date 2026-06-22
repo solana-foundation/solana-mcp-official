@@ -84,6 +84,19 @@ async function resolveBearerToken(mode: AuthMode): Promise<string> {
   return mode.kind === "pat" ? mode.token : fetchOauthToken(mode);
 }
 
+async function readJsonOrSse<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  if ((res.headers.get("content-type") ?? "").includes("text/event-stream")) {
+    const data = text
+      .split(/\r?\n/)
+      .filter(line => line.startsWith("data:"))
+      .map(line => line.slice(5).trimStart())
+      .join("\n");
+    return JSON.parse(data) as T;
+  }
+  return JSON.parse(text) as T;
+}
+
 export async function dbxFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const mode = resolveAuthMode();
   if (!mode) {
@@ -106,7 +119,7 @@ export async function dbxFetch<T>(path: string, init: RequestInit = {}): Promise
     try {
       const res = await fetch(url, { ...init, headers });
       if (res.ok) {
-        return (await res.json()) as T;
+        return readJsonOrSse<T>(res);
       }
       const bodyText = (await res.text()).slice(0, MAX_BODY_SNIPPET);
       if ((res.status === 429 || res.status >= 500) && attempt < MAX_ATTEMPTS - 1) {
@@ -127,4 +140,45 @@ export async function dbxFetch<T>(path: string, init: RequestInit = {}): Promise
   throw lastError instanceof Error
     ? lastError
     : new Error(`Databricks request to ${path} failed after ${MAX_ATTEMPTS} attempts`);
+}
+
+interface McpContentBlock {
+  type: string;
+  text?: string;
+}
+
+interface McpToolResult {
+  content?: McpContentBlock[];
+  isError?: boolean;
+}
+
+interface JsonRpcEnvelope<T> {
+  result?: T;
+  error?: { code: number; message: string };
+}
+
+export async function mcpToolCall(
+  serverPath: string,
+  toolName: string,
+  args: Record<string, unknown>,
+  meta?: Record<string, string>,
+): Promise<string> {
+  const params: Record<string, unknown> = { name: toolName, arguments: args };
+  if (meta) params._meta = meta;
+
+  const envelope = await dbxFetch<JsonRpcEnvelope<McpToolResult>>(serverPath, {
+    method: "POST",
+    headers: { Accept: "application/json, text/event-stream" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params }),
+  });
+
+  if (envelope.error) {
+    throw new Error(`MCP ${serverPath} error ${envelope.error.code}: ${envelope.error.message}`);
+  }
+  const result = envelope.result;
+  const text = result?.content?.find(block => block.type === "text")?.text ?? "";
+  if (!result || result.isError) {
+    throw new Error(`MCP tool ${toolName} failed: ${text || "(no detail)"}`);
+  }
+  return text;
 }
