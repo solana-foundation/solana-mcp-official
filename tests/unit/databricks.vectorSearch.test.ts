@@ -100,7 +100,7 @@ describe("databricks vectorSearch (managed AI Search MCP)", () => {
     warnSpy.mockRestore();
   });
 
-  it("calls the ai-search MCP tool with query + _meta (num_results = k, no oversample)", async () => {
+  it("calls the ai-search MCP tool with query + _meta, oversampling num_results (k*3)", async () => {
     fetchMock.mockResolvedValueOnce(mcpResponse([]));
 
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
@@ -116,7 +116,7 @@ describe("databricks vectorSearch (managed AI Search MCP)", () => {
     expect(body.method).toBe("tools/call");
     expect(body.params.name).toBe(TOOL);
     expect(body.params.arguments.query).toBe("how to derive a PDA");
-    expect(body.params._meta.num_results).toBe("5");
+    expect(body.params._meta.num_results).toBe("15");
     expect(body.params._meta.columns).toBe("id,url,title,source_id,content");
     expect(body.params._meta.columns_to_rerank).toBe("content");
     expect(body.params._meta.include_score).toBe("true");
@@ -232,12 +232,12 @@ describe("databricks vectorSearch (managed AI Search MCP)", () => {
     expect(chunks.map(c => c.id)).toEqual(["id-1", "id-2"]);
   });
 
-  it("defaults k to 20 (num_results=20) when no arg or env", async () => {
+  it("defaults k to 20 and clamps oversampled num_results to the rerank cap of 50", async () => {
     fetchMock.mockResolvedValueOnce(mcpResponse([]));
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
     await searchDocs("hello");
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect((JSON.parse(init.body as string) as ToolCallBody).params._meta.num_results).toBe("20");
+    expect((JSON.parse(init.body as string) as ToolCallBody).params._meta.num_results).toBe("50");
   });
 
   it("reads DATABRICKS_VS_K env when arg omitted", async () => {
@@ -246,7 +246,7 @@ describe("databricks vectorSearch (managed AI Search MCP)", () => {
     const { searchDocs } = await import("../../lib/services/databricks/vectorSearch.js");
     await searchDocs("hello");
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect((JSON.parse(init.body as string) as ToolCallBody).params._meta.num_results).toBe("12");
+    expect((JSON.parse(init.body as string) as ToolCallBody).params._meta.num_results).toBe("36");
   });
 
   it("caps k at 50 regardless of arg or env", async () => {
