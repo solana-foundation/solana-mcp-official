@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@solana/prettier-config-solana": "^0.0.6",
+    "@solana/prettier-config-solana": "^0.0.7",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^26.0.1",
     "@vitest/coverage-v8": "^4.1.3",
