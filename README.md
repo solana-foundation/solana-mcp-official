@@ -4,6 +4,45 @@ Try it out at https://mcp.solana.com !
 
 The official Solana Developer MCP. Purpose: serve up-to-date documentation across the Solana ecosystem to AI agents and developer tooling.
 
+## Codex Setup
+
+The hosted Streamable HTTP endpoint is available at:
+
+```text
+https://mcp.solana.com/mcp
+```
+
+To add it with the Codex CLI:
+
+```bash
+codex mcp add solana-mcp --url https://mcp.solana.com/mcp
+codex mcp list
+```
+
+`codex mcp list` should include `solana-mcp`.
+
+You can also configure Codex directly in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.solana-mcp]
+url = "https://mcp.solana.com/mcp"
+```
+
+For local development (server running locally at `localhost:8080`), use the local MCP endpoint:
+
+```toml
+[mcp_servers.solana-mcp]
+url = "http://localhost:8080/mcp"
+```
+
+If your environment needs a stdio adapter instead of direct HTTP, use `mcp-remote`:
+
+```toml
+[mcp_servers.solana-mcp]
+command = "npx"
+args = ["-y", "mcp-remote", "https://mcp.solana.com/mcp"]
+```
+
 ## Architecture
 
 - **Ingestion** ([`ingestion/`](ingestion/)): Databricks notebook crawls the sources listed in [`ingestion/sources.yaml`](ingestion/sources.yaml), chunks markdown, and writes embeddings into a Delta-backed Vector Search index.
