@@ -72,7 +72,7 @@ export const uncheckedDeserialization: Visitor = {
   severity: "medium",
   appliesTo: ["pinocchio", "anchor"],
   falsePositiveWhen:
-    "The length is validated via a helper call or macro this rule does not model (only if-guards and assert/require macros with len/size tokens are credited); the cast target is a type alias or #[repr(transparent)] wrapper over a primitive; the cast sits in a private function fronted by a length-checking wrapper not named *_unchecked; or the slice's fixed-size type guarantees the length.",
+    "FP if: length validated via helper/macro outside modeled if-guards and assert/require+len/size; cast target is a type alias or #[repr(transparent)] over primitive; cast fronted by length-checking wrapper not named *_unchecked; or fixed-size slice type guarantees length.",
   enter: {
     type_cast_expression(node, ctx) {
       let pointerType: Node | null = null;

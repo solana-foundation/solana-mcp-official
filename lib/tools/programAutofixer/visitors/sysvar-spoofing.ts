@@ -71,7 +71,7 @@ export const sysvarSpoofing: Visitor = {
   severity: "medium",
   appliesTo: ["pinocchio"],
   falsePositiveWhen:
-    "The sysvar is loaded through a validating constructor other than from_account_view/from_account_info (e.g. Rent::from_account, Clock::try_from); the key is compared to the sysvar ID constant via assert_eq!/match without a key/address marker; or the value actually comes from the Clock::get()/Rent::get() syscall and the account data read is incidental.",
+    "FP if: loaded via validating constructor other than from_account_view/from_account_info (Rent::from_account, Clock::try_from); key compared to sysvar ID via assert_eq!/match without key/address marker; or value comes from Clock::get()/Rent::get() syscall, data read incidental.",
   before(tree, ctx) {
     for (const { destructured, body, implName } of ctx.tryFromBodies) {
       for (const account of destructured) {

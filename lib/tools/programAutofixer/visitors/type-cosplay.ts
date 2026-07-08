@@ -46,7 +46,7 @@ export const typeCosplay: Visitor = {
   severity: "critical",
   appliesTo: ["pinocchio"],
   falsePositiveWhen:
-    "The types sharing a DISCRIMINATOR value are disambiguated at load time by owner, length, or context checks the rule cannot see; the matching values are enum casts that are textually equal but semantically distinct; or one flagged type is not actually an account type despite carrying LEN/from_bytes shapes.",
+    "FP if: types disambiguated at load time by owner/length/context checks; matching values are enum casts textually equal but semantically distinct; or flagged type not actually an account despite LEN/from_bytes shapes.",
   enter: {
     const_item(node, ctx) {
       const name = _findConstName(node);

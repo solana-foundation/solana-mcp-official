@@ -157,7 +157,7 @@ export const arbitraryCpi: Visitor = {
   severity: "critical",
   appliesTo: ["pinocchio"],
   falsePositiveWhen:
-    "The target program id is verified in the accounts struct's try_from or in a helper outside this function; the instruction is built by a project-local builder that hardcodes the program id internally; the program account's binding name does not look program-shaped so existing verification is not attributed; or the instruction expression flows through bindings (match/closure/struct field) the analyzer cannot trace to a ::ID.",
+    "FP if: program id verified in the accounts struct try_from or a helper outside this fn; instruction built by project-local builder hardcoding the id internally; program binding name not program-shaped so verification unattributed; or instruction flows through match/closure/struct-field bindings untraceable to ::ID.",
   enter: {
     call_expression(node, ctx) {
       const fn = node.childForFieldName("function");

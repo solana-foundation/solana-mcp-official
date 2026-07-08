@@ -86,7 +86,7 @@ export const anchorCloseWithoutReceiver: Visitor = {
   severity: "critical",
   appliesTo: ["anchor"],
   falsePositiveWhen:
-    "The account is closed via Anchor's account.close(dest)? helper or by zeroing data with sol_memset/fill(0) (only assign/realloc calls are recognized as manual closure); the lamport credit to a receiver happens in the same statement; or the account binding flows through a chain the rule cannot associate with the struct field.",
+    "FP if: closed via Anchor account.close(dest)? or data zeroed with sol_memset/fill(0) (only assign/realloc recognized); lamport credit to receiver in the same statement; or binding chain unassociatable with the struct field.",
   enter: {
     assignment_expression(node, ctx) {
       if (!isInsideProgramModule(node, ctx.anchor.programModule)) return;

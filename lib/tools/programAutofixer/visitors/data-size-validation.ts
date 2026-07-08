@@ -90,7 +90,7 @@ export const dataSizeValidation: Visitor = {
   severity: "high",
   appliesTo: ["pinocchio"],
   falsePositiveWhen:
-    "The length is guaranteed by the input's type (e.g. &[u8; N] or a prior try_into to a fixed array on another binding); the length check lives in a caller or wrapper in another file; the check uses a helper or macro name outside require_len/check_len/verify_len and assert/require+len patterns; or a prior successful parse of the same slice already implies its size.",
+    "FP if: length guaranteed by input type (&[u8; N], prior try_into to fixed array on another binding); check in caller/wrapper in another file; helper/macro named outside require_len/check_len/verify_len and assert/require+len patterns; or prior parse of same slice implies size.",
   enter: {
     call_expression(node, ctx) {
       const fn = node.childForFieldName("function");

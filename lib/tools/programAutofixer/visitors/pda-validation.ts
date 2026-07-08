@@ -260,7 +260,7 @@ export const pdaValidation: Visitor = {
   severity: "critical",
   appliesTo: ["pinocchio"],
   falsePositiveWhen:
-    "The derived key is compared or validated in a caller or helper outside this function; the comparison target is a constant/constructor expression the analyzer discards; the validation helper's name lacks both a verb and a pda/seed/address/key token (e.g. ensure_canonical); or identity is enforced by construction — the same seeds+bump sign an invoke_signed so the runtime validates the address.",
+    "FP if: derived key compared/validated in caller or helper outside this fn; comparison target is a constant/constructor expr the analyzer discards; helper name lacks verb + pda/seed/address/key token (ensure_canonical); or same seeds+bump sign an invoke_signed — runtime validates the address by construction.",
   enter: {
     call_expression(node, ctx) {
       const fn = node.childForFieldName("function");

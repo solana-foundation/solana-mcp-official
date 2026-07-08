@@ -88,11 +88,13 @@ function detectFramework(tree: Tree): Framework {
 
 const hintByRule = new Map(allVisitors.map(v => [v.name, v.falsePositiveWhen]));
 
-function attachFalsePositiveHints(issues: Issue[]): void {
+function collectFalsePositiveHints(issues: Issue[]): Record<string, string> {
+  const hints: Record<string, string> = {};
   for (const issue of issues) {
     const hint = hintByRule.get(issue.rule);
-    if (hint) issue.false_positive_when = hint;
+    if (hint) hints[issue.rule] = hint;
   }
+  return hints;
 }
 
 function dedupe(issues: Issue[]): Issue[] {
@@ -203,6 +205,7 @@ export async function runProgramAutofixer({
     issues: [],
     suggestions: [],
     framework_detected: "unknown",
+    false_positive_hints: {},
     require_another_tool_call_after_fixing: false,
   };
 
@@ -246,7 +249,7 @@ export async function runProgramAutofixer({
 
   output.issues = dedupe(output.issues);
   fingerprintIssues(output.issues, tree);
-  attachFalsePositiveHints(output.issues);
+  output.false_positive_hints = collectFalsePositiveHints(output.issues);
   applyDismissals(output, dismissed);
   output.require_another_tool_call_after_fixing =
     tree.rootNode.hasError ||

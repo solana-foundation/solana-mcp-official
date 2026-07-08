@@ -8,7 +8,7 @@ export const anchorUncheckedAccount: Visitor = {
   severity: "low",
   appliesTo: ["anchor"],
   falsePositiveWhen:
-    "The safety comment exists but does not contain the word 'check'; the account is validated in the handler body (require_keys_eq!, manual owner assert); or it is a PDA validated by seeds+bump constraints, which this rule does not count as a waiver.",
+    "FP if: safety comment exists without the word 'check'; account validated in the handler body (require_keys_eq!, manual owner assert); or PDA validated by seeds+bump constraints (not counted as a waiver).",
   after(ctx) {
     for (const struct of ctx.anchor.structs) {
       for (const field of struct.fields) {

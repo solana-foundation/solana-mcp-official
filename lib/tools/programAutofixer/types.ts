@@ -17,13 +17,13 @@ export interface Issue {
   /** Stable identity: hash of rule + title + enclosing scope chain. Set by the driver after visitors run. */
   fingerprint?: string;
   dismissed?: boolean;
-  false_positive_when?: string;
 }
 
 export interface AutofixerOutput {
   issues: Issue[];
   suggestions: string[];
   framework_detected: Framework;
+  false_positive_hints: Record<string, string>;
   require_another_tool_call_after_fixing: boolean;
 }
 

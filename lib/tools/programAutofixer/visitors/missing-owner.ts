@@ -141,7 +141,7 @@ export const missingOwner: Visitor = {
   severity: "high",
   appliesTo: ["pinocchio"],
   falsePositiveWhen:
-    "The owner check runs in a caller or dispatcher in another file before this code; ownership is enforced by a helper or trait method with a name outside verify_owned_by/verify_owner/assert_owned_by; the account was created by this same instruction through a create/allocate path the rule missed; or the data buffer reaches from_bytes through multi-step aliasing the analyzer cannot attribute.",
+    "FP if: owner checked in caller/dispatcher in another file; enforced by helper/trait named outside verify_owned_by/verify_owner/assert_owned_by; account created by this instruction via unrecognized create/allocate path; or buffer reaches from_bytes through multi-step aliasing.",
   enter: {
     call_expression(node, ctx) {
       const info = isFromBytesCall(node);

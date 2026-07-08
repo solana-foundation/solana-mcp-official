@@ -14,7 +14,6 @@ const issueSchema = z.object({
   code_snippet: z.string().optional(),
   fingerprint: z.string(),
   dismissed: z.boolean().optional(),
-  false_positive_when: z.string().optional(),
 });
 
 function summarizeForAnalytics({
@@ -41,11 +40,11 @@ function summarizeForAnalytics({
   };
 }
 
-export const PROGRAM_AUTOFIXER_DESCRIPTION = `Analyze Solana program Rust for Pinocchio and Anchor security antipatterns. Returns structured issues, fix suggestions, the detected framework, and whether another validation pass is required.
+export const PROGRAM_AUTOFIXER_DESCRIPTION = `Static security linter for Solana program Rust (Pinocchio + Anchor). Returns issues (with stable \`fingerprint\`), suggestions, detected framework, \`false_positive_hints\` (rule → known blind spots), and \`require_another_tool_call_after_fixing\`.
 
-MUST be called whenever the user asks to write or modify Solana program Rust, before returning code. After applying fixes, call it again until \`require_another_tool_call_after_fixing\` is false. The flag stays true only while syntax errors or critical/high issues remain; medium/low findings and suggestions are advisory — surface them to the user, but they do not require another pass.
+MUST be called whenever the user asks to write or modify Solana program Rust, before returning code. Re-call after fixes until \`require_another_tool_call_after_fixing\` is false — true only while syntax errors or undismissed critical/high issues remain; medium/low are advisory.
 
-False positives: every issue carries a stable \`fingerprint\` and a \`false_positive_when\` field listing the rule's known blind spots. Check those conditions against the code; if one verifiably holds, re-call with \`dismissed: [{fingerprint, reason}]\`, citing the matching condition and code evidence in \`reason\`. Dismissed issues stop gating the flag but are still returned with \`dismissed: true\`; surface dismissed critical/high issues to the user together with your reason. Never dismiss an issue you have not verified.`;
+False positives: check the rule's \`false_positive_hints\` conditions against the code. If one verifiably holds, re-call with \`dismissed: [{fingerprint, reason}]\`, citing the evidence. Dismissed issues stop gating the flag, return marked \`dismissed: true\`. Surface dismissed critical/high to the user with the reason. Never dismiss unverified.`;
 
 export function createProgramAutofixerTool(): SolanaTool {
   return {
@@ -73,6 +72,7 @@ export function createProgramAutofixerTool(): SolanaTool {
       issues: z.array(issueSchema),
       suggestions: z.array(z.string()),
       framework_detected: z.enum(["pinocchio", "anchor", "unknown"]),
+      false_positive_hints: z.record(z.string(), z.string()),
       require_another_tool_call_after_fixing: z.boolean(),
     },
     annotations: {
@@ -95,7 +95,7 @@ export function createProgramAutofixerTool(): SolanaTool {
     }) => {
       const frameworkRequested = framework ?? "auto";
       const result = await runProgramAutofixer({ code, filename, framework: frameworkRequested, dismissed });
-      const text = JSON.stringify(result, null, 2);
+      const text = JSON.stringify(result);
       const analytics = summarizeForAnalytics({ code, framework: frameworkRequested, result });
       await logAnalytics({
         event_type: "message_response",

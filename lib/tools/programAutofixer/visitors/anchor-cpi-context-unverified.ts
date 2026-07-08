@@ -93,7 +93,7 @@ export const anchorCpiContextUnverified: Visitor = {
   severity: "high",
   appliesTo: ["anchor"],
   falsePositiveWhen:
-    "The program account is validated by owner =, executable, a constraint expression, or an in-handler require_keys_eq! against the expected id (only address = and typed Program/Interface are recognized); the program is pinned to a constant not spelled ID/id; or the typed program hides behind a type alias.",
+    "FP if: program validated by owner =, executable, a constraint expr, or in-handler require_keys_eq! (only address = and typed Program/Interface recognized); pinned to a constant not spelled ID/id; or typed program behind a type alias.",
   enter: {
     call_expression(node, ctx) {
       if (!isInsideProgramModule(node, ctx.anchor.programModule)) return;

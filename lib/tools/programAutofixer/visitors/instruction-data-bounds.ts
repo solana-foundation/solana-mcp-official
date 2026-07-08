@@ -147,7 +147,7 @@ export const instructionDataBounds: Visitor = {
   severity: "high",
   appliesTo: ["pinocchio"],
   falsePositiveWhen:
-    "Bounds are enforced by delegating to another parser (Self::from_bytes, bytemuck::try_from_bytes) inside try_from; the length compare is phrased so no len/size token is detected; or the data parameter is destructured so the guard cannot be attributed to it.",
+    "FP if: bounds enforced by a delegated parser inside try_from (Self::from_bytes, bytemuck::try_from_bytes); length compare phrased without a detectable len/size token; or data param destructured so the guard is unattributable.",
   enter: {
     impl_item(node, ctx) {
       const info = isTryFromSliceImpl(node);

@@ -32,7 +32,7 @@ export const programIdVerification: Visitor = {
   severity: "low",
   appliesTo: ["pinocchio"],
   falsePositiveWhen:
-    "The CPI wrapper hardcodes the program id (typical for pinocchio_system/pinocchio_token instruction builders), making an explicit check redundant; the id is compared via a bare == or assert_eq! without a recognizable key marker; or verification happens in a helper in another file.",
+    "FP if: CPI wrapper hardcodes program id (typical pinocchio_system/pinocchio_token builders — explicit check redundant); id compared via bare == or assert_eq! without key marker; or verified in helper in another file.",
   before(tree, ctx) {
     for (const { body, destructured, implName } of ctx.tryFromBodies) {
       for (const account of destructured) {
