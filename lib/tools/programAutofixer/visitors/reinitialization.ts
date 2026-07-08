@@ -103,6 +103,8 @@ export const reinitialization: Visitor = {
   name: "reinitialization",
   severity: "medium",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen:
+    "The init guard lives inside a helper (e.g. ensure_uninitialized(pda)) defined elsewhere; the guard checks a signal other than data_len/data_is_empty/discriminator/is_initialized/lamports (e.g. owner == system_program); the create target is an expression the analyzer cannot resolve to an account; or the program intentionally relies on the runtime's AccountAlreadyInitialized error.",
   enter: {
     struct_expression(node, ctx) {
       if (!isCreateAccountStruct(node)) return;

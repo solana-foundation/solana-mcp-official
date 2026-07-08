@@ -146,6 +146,8 @@ export const instructionDataBounds: Visitor = {
   name: "instruction-data-bounds",
   severity: "high",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen:
+    "Bounds are enforced by delegating to another parser (Self::from_bytes, bytemuck::try_from_bytes) inside try_from; the length compare is phrased so no len/size token is detected; or the data parameter is destructured so the guard cannot be attributed to it.",
   enter: {
     impl_item(node, ctx) {
       const info = isTryFromSliceImpl(node);

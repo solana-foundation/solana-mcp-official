@@ -110,6 +110,8 @@ export const pdaSeedCollision: Visitor = {
   name: "pda-seed-collision",
   severity: "medium",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen:
+    "The flagged derivations differ by a runtime seed (e.g. distinct authority keys) that the resolver flattens to a wildcard; the distinguishing seed is a constant whose type shape the rule does not track; or the constants belong to separate modules that never derive the same PDA namespace.",
   enter: {
     const_item(node, ctx) {
       const name = findConstName(node);

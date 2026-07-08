@@ -65,6 +65,8 @@ export const anchorMissingMut: Visitor = {
   name: "anchor-missing-mut",
   severity: "high",
   appliesTo: ["anchor"],
+  falsePositiveWhen:
+    "A same-named field in a different Accounts struct was matched because the handler's Context struct could not be resolved; the field carries a realloc constraint (which implies mut but is outside the rule's implicit-mut list); or mut is added by a macro-generated attribute.",
   enter: {
     assignment_expression(node, ctx) {
       if (!isInsideProgramModule(node, ctx.anchor.programModule)) return;

@@ -1,6 +1,7 @@
 import type { Node, Tree } from "web-tree-sitter";
 import { parseRust } from "./parse.js";
 import { walk } from "./walk.js";
+import { fingerprintIssues } from "./fingerprint.js";
 import { allVisitors } from "./visitors/index.js";
 import { findTryFromBodies } from "./visitors/_helpers.js";
 import { collectAnchorContext } from "./visitors/_anchor-helpers.js";
@@ -85,6 +86,15 @@ function detectFramework(tree: Tree): Framework {
   return "unknown";
 }
 
+const hintByRule = new Map(allVisitors.map(v => [v.name, v.falsePositiveWhen]));
+
+function attachFalsePositiveHints(issues: Issue[]): void {
+  for (const issue of issues) {
+    const hint = hintByRule.get(issue.rule);
+    if (hint) issue.false_positive_when = hint;
+  }
+}
+
 function dedupe(issues: Issue[]): Issue[] {
   const seen = new Set<string>();
   const out: Issue[] = [];
@@ -153,16 +163,41 @@ function runVisitorPipeline(tree: Tree, ctx: VisitorContext): void {
   }
 }
 
+export interface Dismissal {
+  fingerprint: string;
+  reason: string;
+}
+
+function applyDismissals(output: AutofixerOutput, dismissed: Dismissal[]): void {
+  if (dismissed.length === 0) return;
+  const requested = new Set(dismissed.map(d => d.fingerprint));
+  const matched = new Set<string>();
+  for (const issue of output.issues) {
+    if (issue.fingerprint && requested.has(issue.fingerprint)) {
+      issue.dismissed = true;
+      matched.add(issue.fingerprint);
+    }
+  }
+  const stale = [...requested].filter(f => !matched.has(f));
+  if (stale.length > 0) {
+    output.suggestions.push(
+      `Dismissed fingerprint(s) matched no current issue (stale after edits, or already fixed): ${stale.join(", ")}`,
+    );
+  }
+}
+
 export interface RunAutofixerArgs {
   code: string;
   filename?: string;
   framework?: Framework | "auto";
+  dismissed?: Dismissal[];
 }
 
 export async function runProgramAutofixer({
   code,
   filename = "input.rs",
   framework = "auto",
+  dismissed = [],
 }: RunAutofixerArgs): Promise<AutofixerOutput> {
   const output: AutofixerOutput = {
     issues: [],
@@ -183,6 +218,7 @@ export async function runProgramAutofixer({
       description: `tree-sitter could not parse the input: ${(err as Error).message}`,
       suggestion: "Confirm the input is valid Rust (a single file or concatenated module).",
     });
+    fingerprintIssues(output.issues, null);
     output.require_another_tool_call_after_fixing = true;
     return output;
   }
@@ -209,8 +245,12 @@ export async function runProgramAutofixer({
   runVisitorPipeline(tree, ctx);
 
   output.issues = dedupe(output.issues);
+  fingerprintIssues(output.issues, tree);
+  attachFalsePositiveHints(output.issues);
+  applyDismissals(output, dismissed);
   output.require_another_tool_call_after_fixing =
-    tree.rootNode.hasError || output.issues.some(i => i.severity === "critical" || i.severity === "high");
+    tree.rootNode.hasError ||
+    output.issues.some(i => !i.dismissed && (i.severity === "critical" || i.severity === "high"));
 
   return output;
 }

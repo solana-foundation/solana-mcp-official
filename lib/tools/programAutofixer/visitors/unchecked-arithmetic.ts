@@ -183,6 +183,8 @@ export const uncheckedArithmetic: Visitor = {
   name: "unchecked-arithmetic",
   severity: "medium",
   appliesTo: ["pinocchio", "anchor"],
+  falsePositiveWhen:
+    "The operands are bounded by an earlier validation on different bindings (e.g. amount checked in try_from, or require!(amount <= balance) on other names); the math uses a custom safe wrapper (safe_add) or a checked call nested deeper than the rule scans; the operand type cannot overflow in this domain (widened or bignum type); the name only resembles a balance (e.g. total_accounts, deposit_index) and the math is count/index arithmetic; or a bounds check guards a + or * (only subtraction guards are credited).",
   enter: {
     binary_expression: handleArithmetic,
     compound_assignment_expr: handleArithmetic,

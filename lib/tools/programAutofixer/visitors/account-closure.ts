@@ -48,6 +48,8 @@ export const accountClosure: Visitor = {
   name: "account-closure",
   severity: "critical",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen:
+    "Closure is completed by a helper in another module (e.g. close_account(x)) or via a builder struct like Assign{..}.invoke() rather than a call literally named close/assign on the same receiver; lamports are drained through a variable or arithmetic instead of a literal set_lamports(0); or the receiver was aliased to a different binding before the close call.",
   enter: {
     call_expression(node, ctx) {
       const info = isLamportsZeroCall(node);

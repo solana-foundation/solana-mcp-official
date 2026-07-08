@@ -6,6 +6,8 @@ export const anchorManualSignerCheck: Visitor = {
   name: "anchor-manual-signer-check",
   severity: "low",
   appliesTo: ["anchor"],
+  falsePositiveWhen:
+    "The account must stay AccountInfo/UncheckedAccount (optional signer or CPI-forwarded), making a manual is_signer check the correct pattern; the read is for branching or logging rather than the sole security gate; or it is a defensive re-check of an account already typed Signer.",
   enter: {
     field_expression(node, ctx) {
       if (!isInsideProgramModule(node, ctx.anchor.programModule)) return;

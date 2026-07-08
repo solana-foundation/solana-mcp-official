@@ -259,6 +259,8 @@ export const pdaValidation: Visitor = {
   name: "pda-validation",
   severity: "critical",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen:
+    "The derived key is compared or validated in a caller or helper outside this function; the comparison target is a constant/constructor expression the analyzer discards; the validation helper's name lacks both a verb and a pda/seed/address/key token (e.g. ensure_canonical); or identity is enforced by construction — the same seeds+bump sign an invoke_signed so the runtime validates the address.",
   enter: {
     call_expression(node, ctx) {
       const fn = node.childForFieldName("function");

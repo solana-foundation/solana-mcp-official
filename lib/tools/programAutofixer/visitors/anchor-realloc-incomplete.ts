@@ -5,6 +5,8 @@ export const anchorReallocIncomplete: Visitor = {
   name: "anchor-realloc-incomplete",
   severity: "medium",
   appliesTo: ["anchor"],
+  falsePositiveWhen:
+    "realloc::payer/realloc::zero are supplied via a macro or a sibling attribute the parser does not expand; a nonstandard but valid spelling is used; or the handler performs the resize manually with proper funding and zeroing.",
   after(ctx) {
     for (const struct of ctx.anchor.structs) {
       for (const field of struct.fields) {

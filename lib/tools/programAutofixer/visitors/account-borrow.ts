@@ -62,6 +62,8 @@ export const accountBorrow: Visitor = {
   name: "account-borrow",
   severity: "low",
   appliesTo: ["pinocchio", "anchor"],
+  falsePositiveWhen:
+    "The two mutable borrows sit in mutually exclusive control flow (different match arms or branches); the receivers have identical text but refer to different runtime accounts (loop iterations, indexed access); or the first borrow ends by scope, consumption, or reassignment rather than an explicit drop().",
   enter: {
     function_item(node, ctx) {
       const body = node.childForFieldName("body");

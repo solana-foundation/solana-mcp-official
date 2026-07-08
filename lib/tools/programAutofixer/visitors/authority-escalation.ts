@@ -229,6 +229,8 @@ export const authorityEscalation: Visitor = {
   name: "authority-escalation",
   severity: "high",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen:
+    "The authorizing comparison (current authority vs verified signer) happens in the accounts struct's try_from or a helper like require_authority(state, signer); the comparison uses a shape outside ==/!=/eq/ne/assert-eq macros (e.g. assert_keys_equal, matches!); the signer's binding name is outside the recognized signer-name set despite being verified; or the state was freshly constructed in a way the local-construction check missed.",
   enter: {
     assignment_expression(node, ctx) {
       const left = node.childForFieldName("left");

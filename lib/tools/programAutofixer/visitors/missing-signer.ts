@@ -70,6 +70,8 @@ export const missingSigner: Visitor = {
   name: "missing-signer",
   severity: "critical",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen:
+    "The signer check lives in a helper defined in another file; the helper has a name other than verify_signer/assert_signer/check_signer (e.g. require_signer, ensure_signed); the is_signer guard uses a shape other than `if !x.is_signer() { return Err(...) }` (e.g. require! or an ok_or chain); or the account name merely resembles an authority and gates no privileged action.",
   before(tree, ctx) {
     // A key compare only waives the signer requirement when the account is compared against a
     // derived PDA (PDAs cannot sign); a compare to an arbitrary constant proves nothing.

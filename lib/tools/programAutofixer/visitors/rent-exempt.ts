@@ -30,6 +30,8 @@ export const rentExempt: Visitor = {
   name: "rent-exempt",
   severity: "medium",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen:
+    "The hardcoded lamports literal is intentionally correct for a fixed-size account or an allocate-only path, or the value provably equals the rent minimum for the account's size.",
   enter: {
     struct_expression(node, ctx) {
       if (!isCreateAccountStruct(node)) return;

@@ -62,6 +62,8 @@ export const token2022Extensions: Visitor = {
   name: "token-2022-extensions",
   severity: "medium",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen:
+    "Extension validation lives in another file or a shared helper crate; the check helper has a name outside get_extension*/verify_safe_mint/check_extensions/validate_token_extensions (e.g. assert_no_dangerous_extensions); the file only rejects Token-2022 mints outright in a guard shape the rule does not classify as rejecting; or Token-2022 types are only referenced through renamed imports without processing.",
   enter: {
     identifier: recordHint,
     type_identifier: recordHint,

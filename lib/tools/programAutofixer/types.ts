@@ -14,6 +14,10 @@ export interface Issue {
   description: string;
   suggestion: string;
   code_snippet?: string;
+  /** Stable identity: hash of rule + title + enclosing scope chain. Set by the driver after visitors run. */
+  fingerprint?: string;
+  dismissed?: boolean;
+  false_positive_when?: string;
 }
 
 export interface AutofixerOutput {
@@ -40,6 +44,8 @@ export interface Visitor {
   name: string;
   severity: Severity;
   appliesTo: Framework[];
+  /** Known blind spots: verifiable conditions under which this rule's finding is a false positive. */
+  falsePositiveWhen: string;
   /** Optional pre-pass: cache state on ctx, scan for prerequisites, etc. */
   before?(tree: Tree, ctx: VisitorContext): void;
   /** Per-node-type handlers. Driver dispatches by node.type during a single tree walk. */

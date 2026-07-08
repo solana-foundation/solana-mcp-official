@@ -18,6 +18,8 @@ export const discriminatorCheck: Visitor = {
   name: "discriminator-check",
   severity: "high",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen:
+    "The discriminator is validated inside the deserialization function itself; disambiguation uses a tag/kind/variant field instead of an identifier containing 'discriminator'; or the discriminator constant or check helper lives in another file.",
   enter: {
     call_expression(node, ctx) {
       const info = isFromBytesCall(node);
