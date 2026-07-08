@@ -1,6 +1,6 @@
 import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
-import { formatLocation, snippet } from "../types.js";
+import { formatLocation } from "../types.js";
 import { walk } from "../walk.js";
 import {
   CHECKED_ARITHMETIC_METHODS,
@@ -175,7 +175,6 @@ function handleArithmetic(node: Node, ctx: import("../types.js").VisitorContext)
     location: formatLocation(ctx.filename, node),
     description: `Plain \`${baseOp}\` on a balance-shaped value panics on overflow in debug and wraps silently in release. For balance / amount math this is exploitable.`,
     suggestion: `Use \`.checked_${opName}(...).ok_or(ProgramError::ArithmeticOverflow)?\` or \`saturating_${opName}\` if saturation is intended.`,
-    code_snippet: snippet(ctx.source, node, 80),
   });
 }
 

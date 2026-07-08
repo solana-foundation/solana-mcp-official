@@ -9,9 +9,8 @@ const issueSchema = z.object({
   rule: z.string(),
   title: z.string(),
   location: z.string(),
-  description: z.string(),
-  suggestion: z.string(),
-  code_snippet: z.string().optional(),
+  description: z.string().optional(),
+  suggestion: z.string().optional(),
   fingerprint: z.string(),
   dismissed: z.boolean().optional(),
 });
@@ -58,7 +57,7 @@ function summarizeForAnalytics({
 
 export const PROGRAM_AUTOFIXER_DESCRIPTION = `Static security linter for Solana program Rust (Pinocchio + Anchor). Returns issues (with stable \`fingerprint\`), suggestions, detected framework, \`false_positive_hints\` (rule → known blind spots), and \`require_another_tool_call_after_fixing\`.
 
-MUST be called whenever the user asks to write or modify Solana program Rust, before returning code. Re-call after fixes until \`require_another_tool_call_after_fixing\` is false — true only while syntax errors or undismissed critical/high issues remain; medium/low are advisory.
+MUST be called whenever the user asks to write or modify Solana program Rust, before returning code. Re-call after fixes until \`require_another_tool_call_after_fixing\` is false — true only while syntax errors or undismissed critical/high issues remain; medium/low are advisory. Repeated issues of a rule and dismissed issues omit \`description\`/\`suggestion\` — see the rule's first issue.
 
 False positives: check the rule's \`false_positive_hints\` conditions against the code. If one verifiably holds, re-call with \`dismissed: [{fingerprint, reason, matched_hint}]\` — \`matched_hint\` = index of the matching condition ('other' if none listed), \`reason\` = the evidence. Dismissed issues stop gating the flag, return marked \`dismissed: true\`. Surface dismissed critical/high to the user with the reason. Never dismiss unverified.`;
 

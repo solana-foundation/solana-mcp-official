@@ -11,9 +11,9 @@ export interface Issue {
   rule: string;
   title: string;
   location: string;
-  description: string;
-  suggestion: string;
-  code_snippet?: string;
+  /** Present only on the first non-dismissed issue of each rule; stripped from repeats and dismissed issues by the driver. */
+  description?: string;
+  suggestion?: string;
   /** Stable identity: hash of rule + title + enclosing scope chain. Set by the driver after visitors run. */
   fingerprint?: string;
   dismissed?: boolean;
@@ -56,9 +56,4 @@ export interface Visitor {
 
 export function formatLocation(filename: string, node: Node): string {
   return `${filename}:${node.startPosition.row + 1}:${node.startPosition.column + 1}`;
-}
-
-export function snippet(source: string, node: Node, maxChars = 240): string {
-  const text = source.slice(node.startIndex, node.endIndex);
-  return text.length <= maxChars ? text : `${text.slice(0, maxChars)}…`;
 }

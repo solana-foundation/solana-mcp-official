@@ -1,5 +1,5 @@
 import type { Visitor } from "../types.js";
-import { formatLocation, snippet } from "../types.js";
+import { formatLocation } from "../types.js";
 import { ctxAccountsField, isInsideProgramModule } from "./_anchor-helpers.js";
 
 export const anchorManualSignerCheck: Visitor = {
@@ -29,7 +29,6 @@ export const anchorManualSignerCheck: Visitor = {
         location: formatLocation(ctx.filename, node),
         description: `Accessing \`.is_signer\` on \`ctx.accounts.${accountField}\` inside a handler re-implements what Anchor's typed \`Signer<'info>\` (or a \`signer\` constraint) already enforces. Manual checks are easy to forget or invert, and bypass the framework's compile-time guarantees.`,
         suggestion: `Declare the \`${accountField}\` account as \`Signer<'info>\` in the Accounts struct (or add \`#[account(signer)]\` to a typed wrapper) and drop the manual \`.is_signer\` access.`,
-        code_snippet: snippet(ctx.source, node, 80),
       });
     },
   },

@@ -189,6 +189,18 @@ function applyDismissals(output: AutofixerOutput, dismissed: Dismissal[]): void 
   }
 }
 
+function stripRedundantProse(issues: Issue[]): void {
+  const proseKept = new Set<string>();
+  for (const issue of issues) {
+    if (!issue.dismissed && !proseKept.has(issue.rule)) {
+      proseKept.add(issue.rule);
+      continue;
+    }
+    delete issue.description;
+    delete issue.suggestion;
+  }
+}
+
 export interface RunAutofixerArgs {
   code: string;
   filename?: string;
@@ -252,6 +264,7 @@ export async function runProgramAutofixer({
   fingerprintIssues(output.issues, tree);
   output.false_positive_hints = collectFalsePositiveHints(output.issues);
   applyDismissals(output, dismissed);
+  stripRedundantProse(output.issues);
   output.require_another_tool_call_after_fixing =
     tree.rootNode.hasError ||
     output.issues.some(i => !i.dismissed && (i.severity === "critical" || i.severity === "high"));
