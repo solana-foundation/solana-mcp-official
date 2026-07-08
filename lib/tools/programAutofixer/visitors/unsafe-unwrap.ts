@@ -153,8 +153,12 @@ export const unsafeUnwrap: Visitor = {
   name: "unsafe-unwrap",
   severity: "low",
   appliesTo: ["pinocchio", "anchor"],
-  falsePositiveWhen:
-    "FP if: value checked by preceding match/if-let/let-else, not an is_some/is_ok guard; guard diverges via ?/bail!/panic!, not return/break/continue; receiver infallible beyond modeled try_into/to_le_bytes shapes (first() on known non-empty); or validated by a helper before the call.",
+  falsePositiveWhen: [
+    "value checked by preceding match/if-let/let-else, not an is_some/is_ok guard",
+    "guard diverges via ?/bail!/panic!, not return/break/continue",
+    "receiver infallible beyond modeled try_into/to_le_bytes shapes (first() on known non-empty)",
+    "validated by a helper before the call",
+  ],
   enter: {
     call_expression(node, ctx) {
       if (getMethodCallName(node) !== "unwrap") return;

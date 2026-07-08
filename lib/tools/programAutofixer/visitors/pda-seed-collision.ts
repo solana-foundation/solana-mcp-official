@@ -110,8 +110,11 @@ export const pdaSeedCollision: Visitor = {
   name: "pda-seed-collision",
   severity: "medium",
   appliesTo: ["pinocchio"],
-  falsePositiveWhen:
-    "FP if: derivations differ by a runtime seed (distinct authority keys) the resolver flattens to a wildcard; distinguishing seed is a const of untracked type shape; or consts live in separate modules never deriving the same namespace.",
+  falsePositiveWhen: [
+    "derivations differ by a runtime seed (distinct authority keys) the resolver flattens to a wildcard",
+    "distinguishing seed is a const of untracked type shape",
+    "consts live in separate modules never deriving the same namespace",
+  ],
   enter: {
     const_item(node, ctx) {
       const name = findConstName(node);

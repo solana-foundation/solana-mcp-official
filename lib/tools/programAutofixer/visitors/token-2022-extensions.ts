@@ -62,8 +62,12 @@ export const token2022Extensions: Visitor = {
   name: "token-2022-extensions",
   severity: "medium",
   appliesTo: ["pinocchio"],
-  falsePositiveWhen:
-    "FP if: extension validation in another file/shared crate; helper named outside get_extension*/verify_safe_mint/check_extensions/validate_token_extensions; file only rejects Token-2022 mints in a guard shape not classified rejecting; or types referenced via renamed imports without processing.",
+  falsePositiveWhen: [
+    "extension validation in another file/shared crate",
+    "helper named outside get_extension*/verify_safe_mint/check_extensions/validate_token_extensions",
+    "file only rejects Token-2022 mints in a guard shape not classified rejecting",
+    "types referenced via renamed imports without processing",
+  ],
   enter: {
     identifier: recordHint,
     type_identifier: recordHint,

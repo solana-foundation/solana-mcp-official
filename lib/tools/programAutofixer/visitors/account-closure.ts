@@ -48,8 +48,11 @@ export const accountClosure: Visitor = {
   name: "account-closure",
   severity: "critical",
   appliesTo: ["pinocchio"],
-  falsePositiveWhen:
-    "FP if: closure finished by helper in another module (close_account(x)) or builder struct (Assign{..}.invoke()) rather than a call named close/assign on the same receiver; lamports drained via variable/arithmetic, not literal set_lamports(0); or receiver aliased to a different binding before close.",
+  falsePositiveWhen: [
+    "closure finished by helper in another module (close_account(x)) or builder struct (Assign{..}.invoke()) rather than a call named close/assign on the same receiver",
+    "lamports drained via variable/arithmetic, not literal set_lamports(0)",
+    "receiver aliased to a different binding before close",
+  ],
   enter: {
     call_expression(node, ctx) {
       const info = isLamportsZeroCall(node);

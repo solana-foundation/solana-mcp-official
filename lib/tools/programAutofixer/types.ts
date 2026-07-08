@@ -23,7 +23,7 @@ export interface AutofixerOutput {
   issues: Issue[];
   suggestions: string[];
   framework_detected: Framework;
-  false_positive_hints: Record<string, string>;
+  false_positive_hints: Record<string, string[]>;
   require_another_tool_call_after_fixing: boolean;
 }
 
@@ -44,8 +44,8 @@ export interface Visitor {
   name: string;
   severity: Severity;
   appliesTo: Framework[];
-  /** Known blind spots: verifiable conditions under which this rule's finding is a false positive. */
-  falsePositiveWhen: string;
+  /** Known blind spots: verifiable conditions under which this rule's finding is a false positive. Dismissals reference these by index via `matched_hint`. */
+  falsePositiveWhen: string[];
   /** Optional pre-pass: cache state on ctx, scan for prerequisites, etc. */
   before?(tree: Tree, ctx: VisitorContext): void;
   /** Per-node-type handlers. Driver dispatches by node.type during a single tree walk. */

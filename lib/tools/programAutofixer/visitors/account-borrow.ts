@@ -62,8 +62,11 @@ export const accountBorrow: Visitor = {
   name: "account-borrow",
   severity: "low",
   appliesTo: ["pinocchio", "anchor"],
-  falsePositiveWhen:
-    "FP if: borrows in mutually exclusive control flow (match arms, branches); identical receiver text, different runtime accounts (loop iterations, indexing); or first borrow ends by scope/consumption/reassignment, not explicit drop().",
+  falsePositiveWhen: [
+    "borrows in mutually exclusive control flow (match arms, branches)",
+    "identical receiver text, different runtime accounts (loop iterations, indexing)",
+    "first borrow ends by scope/consumption/reassignment, not explicit drop()",
+  ],
   enter: {
     function_item(node, ctx) {
       const body = node.childForFieldName("body");

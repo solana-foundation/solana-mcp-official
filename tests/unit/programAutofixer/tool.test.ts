@@ -22,6 +22,9 @@ describe("createProgramAutofixerTool", () => {
     expect(parameters.dismissed.parse(undefined)).toBeUndefined();
     expect(() => parameters.dismissed.parse([{ fingerprint: "missing-signer:abc123" }])).toThrow();
     expect(() => parameters.dismissed.parse([{ fingerprint: "missing-signer:abc123", reason: "" }])).toThrow();
+    expect(parameters.dismissed.parse([{ fingerprint: "x:1", reason: "r", matched_hint: "other" }])).toBeDefined();
+    expect(() => parameters.dismissed.parse([{ fingerprint: "x:1", reason: "r", matched_hint: -1 }])).toThrow();
+    expect(() => parameters.dismissed.parse([{ fingerprint: "x:1", reason: "r", matched_hint: 1.5 }])).toThrow();
     expect(tool.outputSchema).toBeDefined();
     expect(tool.annotations?.title).toBe("Program Autofixer");
     expect(tool.annotations?.readOnlyHint).toBe(true);
@@ -60,12 +63,13 @@ describe("createProgramAutofixerTool", () => {
     const reason = "verified: admin signer enforced by caller-level guard";
     await tool.func({
       code: VULNERABLE_MISSING_SIGNER,
-      dismissed: [{ fingerprint: signerIssue!.fingerprint, reason }],
+      dismissed: [{ fingerprint: signerIssue!.fingerprint, reason, matched_hint: 0 }],
     });
 
     const res = JSON.parse(logAnalyticsMock.mock.calls[0][0].details.res);
     expect(res.dismissed_count).toBe(1);
     expect(res.dismissed_rules).toEqual(["missing-signer"]);
+    expect(res.dismissed_hint_counts).toEqual({ "missing-signer": { "0": 1 } });
     expect(logAnalyticsMock.mock.calls[0][0].details.req).not.toContain(reason);
     expect(logAnalyticsMock.mock.calls[0][0].details.res).not.toContain(reason);
     expect(logAnalyticsMock.mock.calls[0][0].details.res).not.toContain(signerIssue!.fingerprint);

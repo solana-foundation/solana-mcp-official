@@ -70,8 +70,12 @@ export const missingSigner: Visitor = {
   name: "missing-signer",
   severity: "critical",
   appliesTo: ["pinocchio"],
-  falsePositiveWhen:
-    "FP if: signer checked in helper in another file; helper named outside verify_signer/assert_signer/check_signer; is_signer guard shaped unlike `if !x.is_signer() { return Err }` (require!, ok_or chain); or name only resembles authority, gates nothing privileged.",
+  falsePositiveWhen: [
+    "signer checked in helper in another file",
+    "helper named outside verify_signer/assert_signer/check_signer",
+    "is_signer guard shaped unlike `if !x.is_signer() { return Err }` (require!, ok_or chain)",
+    "account name only resembles authority, gates nothing privileged",
+  ],
   before(tree, ctx) {
     // A key compare only waives the signer requirement when the account is compared against a
     // derived PDA (PDAs cannot sign); a compare to an arbitrary constant proves nothing.

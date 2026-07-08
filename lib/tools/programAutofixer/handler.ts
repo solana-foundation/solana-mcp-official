@@ -88,8 +88,8 @@ function detectFramework(tree: Tree): Framework {
 
 const hintByRule = new Map(allVisitors.map(v => [v.name, v.falsePositiveWhen]));
 
-function collectFalsePositiveHints(issues: Issue[]): Record<string, string> {
-  const hints: Record<string, string> = {};
+function collectFalsePositiveHints(issues: Issue[]): Record<string, string[]> {
+  const hints: Record<string, string[]> = {};
   for (const issue of issues) {
     const hint = hintByRule.get(issue.rule);
     if (hint) hints[issue.rule] = hint;
@@ -168,6 +168,7 @@ function runVisitorPipeline(tree: Tree, ctx: VisitorContext): void {
 export interface Dismissal {
   fingerprint: string;
   reason: string;
+  matched_hint?: number | "other";
 }
 
 function applyDismissals(output: AutofixerOutput, dismissed: Dismissal[]): void {

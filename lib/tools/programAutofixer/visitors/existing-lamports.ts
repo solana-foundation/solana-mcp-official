@@ -145,8 +145,11 @@ export const existingLamports: Visitor = {
   name: "existing-lamports",
   severity: "medium",
   appliesTo: ["pinocchio"],
-  falsePositiveWhen:
-    "FP if: pre-funded case handled by differently-named idempotent helper (init_if_needed, fund_and_assign); fallback uses method calls (pda.assign(owner)) not recognized fn/struct names; or branch rejects via ? or helper-built error, not literal return Err.",
+  falsePositiveWhen: [
+    "pre-funded case handled by differently-named idempotent helper (init_if_needed, fund_and_assign)",
+    "fallback uses method calls (pda.assign(owner)) not recognized fn/struct names",
+    "branch rejects via ? or helper-built error, not literal return Err",
+  ],
   enter: {
     function_item(node, ctx) {
       const body = node.childForFieldName("body");

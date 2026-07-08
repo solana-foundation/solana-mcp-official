@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { logAnalytics } from "../../analytics.js";
-import { runProgramAutofixer } from "./handler.js";
+import { runProgramAutofixer, type Dismissal } from "./handler.js";
 import type { SolanaTool } from "../types.js";
-import type { AutofixerOutput } from "./types.js";
+import type { AutofixerOutput, Issue } from "./types.js";
 
 const issueSchema = z.object({
   severity: z.enum(["critical", "high", "medium", "low"]),
@@ -16,14 +16,29 @@ const issueSchema = z.object({
   dismissed: z.boolean().optional(),
 });
 
+function dismissalHintCounts(dismissed: Dismissal[], issues: Issue[]): Record<string, Record<string, number>> {
+  const counts: Record<string, Record<string, number>> = {};
+  const ruleByFingerprint = new Map(issues.map(i => [i.fingerprint, i.rule]));
+  for (const d of dismissed) {
+    const rule = ruleByFingerprint.get(d.fingerprint);
+    if (!rule) continue;
+    const bucket = d.matched_hint === undefined ? "unspecified" : String(d.matched_hint);
+    const ruleCounts = (counts[rule] ??= {});
+    ruleCounts[bucket] = (ruleCounts[bucket] ?? 0) + 1;
+  }
+  return counts;
+}
+
 function summarizeForAnalytics({
   code,
   framework,
   result,
+  dismissed,
 }: {
   code: string;
   framework: "pinocchio" | "anchor" | "auto";
   result: AutofixerOutput;
+  dismissed: Dismissal[];
 }) {
   const dismissedIssues = result.issues.filter(i => i.dismissed);
   return {
@@ -36,6 +51,7 @@ function summarizeForAnalytics({
     severities: Array.from(new Set(result.issues.map(i => i.severity))).sort(),
     dismissed_count: dismissedIssues.length,
     dismissed_rules: Array.from(new Set(dismissedIssues.map(i => i.rule))).sort(),
+    dismissed_hint_counts: dismissalHintCounts(dismissed, result.issues),
     require_another_tool_call_after_fixing: result.require_another_tool_call_after_fixing,
   };
 }
@@ -44,7 +60,7 @@ export const PROGRAM_AUTOFIXER_DESCRIPTION = `Static security linter for Solana 
 
 MUST be called whenever the user asks to write or modify Solana program Rust, before returning code. Re-call after fixes until \`require_another_tool_call_after_fixing\` is false — true only while syntax errors or undismissed critical/high issues remain; medium/low are advisory.
 
-False positives: check the rule's \`false_positive_hints\` conditions against the code. If one verifiably holds, re-call with \`dismissed: [{fingerprint, reason}]\`, citing the evidence. Dismissed issues stop gating the flag, return marked \`dismissed: true\`. Surface dismissed critical/high to the user with the reason. Never dismiss unverified.`;
+False positives: check the rule's \`false_positive_hints\` conditions against the code. If one verifiably holds, re-call with \`dismissed: [{fingerprint, reason, matched_hint}]\` — \`matched_hint\` = index of the matching condition ('other' if none listed), \`reason\` = the evidence. Dismissed issues stop gating the flag, return marked \`dismissed: true\`. Surface dismissed critical/high to the user with the reason. Never dismiss unverified.`;
 
 export function createProgramAutofixerTool(): SolanaTool {
   return {
@@ -62,17 +78,23 @@ export function createProgramAutofixerTool(): SolanaTool {
         .default("auto")
         .describe("Framework hint. Default 'auto' — detect from imports / attributes."),
       dismissed: z
-        .array(z.object({ fingerprint: z.string(), reason: z.string().min(1) }))
+        .array(
+          z.object({
+            fingerprint: z.string(),
+            reason: z.string().min(1),
+            matched_hint: z.union([z.number().int().nonnegative(), z.literal("other")]).optional(),
+          }),
+        )
         .optional()
         .describe(
-          "Issues verified as false positives, by fingerprint. `reason` must cite the code evidence. Dismissed issues stop gating `require_another_tool_call_after_fixing` but are still returned flagged `dismissed: true`.",
+          "Issues verified as false positives, by fingerprint. `reason` must cite the code evidence; `matched_hint` is the index of the matching `false_positive_hints` condition, or 'other' if none applies. Dismissed issues stop gating `require_another_tool_call_after_fixing` but are still returned flagged `dismissed: true`.",
         ),
     },
     outputSchema: {
       issues: z.array(issueSchema),
       suggestions: z.array(z.string()),
       framework_detected: z.enum(["pinocchio", "anchor", "unknown"]),
-      false_positive_hints: z.record(z.string(), z.string()),
+      false_positive_hints: z.record(z.string(), z.array(z.string())),
       require_another_tool_call_after_fixing: z.boolean(),
     },
     annotations: {
@@ -91,12 +113,17 @@ export function createProgramAutofixerTool(): SolanaTool {
       code: string;
       filename?: string;
       framework?: "pinocchio" | "anchor" | "auto";
-      dismissed?: { fingerprint: string; reason: string }[];
+      dismissed?: Dismissal[];
     }) => {
       const frameworkRequested = framework ?? "auto";
       const result = await runProgramAutofixer({ code, filename, framework: frameworkRequested, dismissed });
       const text = JSON.stringify(result);
-      const analytics = summarizeForAnalytics({ code, framework: frameworkRequested, result });
+      const analytics = summarizeForAnalytics({
+        code,
+        framework: frameworkRequested,
+        result,
+        dismissed: dismissed ?? [],
+      });
       await logAnalytics({
         event_type: "message_response",
         details: {

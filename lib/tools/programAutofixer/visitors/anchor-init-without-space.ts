@@ -23,8 +23,11 @@ export const anchorInitWithoutSpace: Visitor = {
   name: "anchor-init-without-space",
   severity: "high",
   appliesTo: ["anchor"],
-  falsePositiveWhen:
-    "FP if: space supplied by a macro/non-literal mechanism; zero-copy behind a type alias hiding AccountLoader; or init uses an SPL-interface constraint key outside the recognized token/mint/associated_token set.",
+  falsePositiveWhen: [
+    "space supplied by a macro/non-literal mechanism",
+    "zero-copy behind a type alias hiding AccountLoader",
+    "init uses an SPL-interface constraint key outside the recognized token/mint/associated_token set",
+  ],
   after(ctx) {
     for (const struct of ctx.anchor.structs) {
       for (const field of struct.fields) {

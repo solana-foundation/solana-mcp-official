@@ -5,8 +5,10 @@ export const anchorSeedsWithoutBump: Visitor = {
   name: "anchor-seeds-without-bump",
   severity: "high",
   appliesTo: ["anchor"],
-  falsePositiveWhen:
-    "FP if: bump added by a macro or separate merged #[account] attribute the parser doesn't expand; or PDA verified manually in the handler via find_program_address with an explicit bump check.",
+  falsePositiveWhen: [
+    "bump added by a macro or separate merged #[account] attribute the parser doesn't expand",
+    "PDA verified manually in the handler via find_program_address with an explicit bump check",
+  ],
   after(ctx) {
     for (const struct of ctx.anchor.structs) {
       for (const field of struct.fields) {

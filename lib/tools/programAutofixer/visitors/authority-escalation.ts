@@ -229,8 +229,12 @@ export const authorityEscalation: Visitor = {
   name: "authority-escalation",
   severity: "high",
   appliesTo: ["pinocchio"],
-  falsePositiveWhen:
-    "FP if: authority-vs-signer comparison in accounts struct try_from or helper (require_authority(state, signer)); comparison shaped outside ==/!=/eq/ne/assert-eq macros (assert_keys_equal, matches!); signer binding named outside recognized set despite verified; or state freshly constructed in an unrecognized way.",
+  falsePositiveWhen: [
+    "authority-vs-signer comparison in accounts struct try_from or helper (require_authority(state, signer))",
+    "comparison shaped outside ==/!=/eq/ne/assert-eq macros (assert_keys_equal, matches!)",
+    "signer binding named outside recognized set despite verified",
+    "state freshly constructed in an unrecognized way",
+  ],
   enter: {
     assignment_expression(node, ctx) {
       const left = node.childForFieldName("left");

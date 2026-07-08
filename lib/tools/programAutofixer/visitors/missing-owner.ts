@@ -140,8 +140,12 @@ export const missingOwner: Visitor = {
   name: "missing-owner",
   severity: "high",
   appliesTo: ["pinocchio"],
-  falsePositiveWhen:
-    "FP if: owner checked in caller/dispatcher in another file; enforced by helper/trait named outside verify_owned_by/verify_owner/assert_owned_by; account created by this instruction via unrecognized create/allocate path; or buffer reaches from_bytes through multi-step aliasing.",
+  falsePositiveWhen: [
+    "owner checked in caller/dispatcher in another file",
+    "enforced by helper/trait named outside verify_owned_by/verify_owner/assert_owned_by",
+    "account created by this instruction via unrecognized create/allocate path",
+    "buffer reaches from_bytes through multi-step aliasing",
+  ],
   enter: {
     call_expression(node, ctx) {
       const info = isFromBytesCall(node);
