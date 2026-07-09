@@ -6,6 +6,7 @@ multi-ecosystem-groups:
       interval: 'cron'
       cronjob: '0 9 1,15 * *'
       timezone: UTC
+    open-pull-requests-limit: 5
     labels:
       - 'dependencies'
 
@@ -14,7 +15,6 @@ updates:
     directory: '/'
     multi-ecosystem-group: 'all-deps'
     patterns: ['*']
-    open-pull-requests-limit: 5
     cooldown:
       default-days: 7
     commit-message:
@@ -29,7 +29,6 @@ updates:
     directory: '/'
     multi-ecosystem-group: 'all-deps'
     patterns: ['*']
-    open-pull-requests-limit: 3
     cooldown:
       default-days: 7
     allow:
