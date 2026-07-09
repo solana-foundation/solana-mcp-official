@@ -59,6 +59,44 @@
         "FROM mcp_initializations\n",
         "GROUP BY 1, 2 ORDER BY 3 DESC"
       ]
+    },
+    {
+      "name": "fp_rate_per_rule",
+      "displayName": "FP rate per rule (30d)",
+      "queryLines": [
+        "WITH runs AS (\n",
+        "  SELECT from_json(response_text, 'STRUCT<rules: ARRAY<STRING>, dismissed_rules: ARRAY<STRING>>') AS r\n",
+        "  FROM mcp_tool_calls\n",
+        "  WHERE row_type = 'response' AND tool_name = 'program_autofixer'\n",
+        "    AND timestamp >= current_timestamp() - INTERVAL 30 DAYS\n",
+        "    AND response_text IS NOT NULL\n",
+        ")\n",
+        "SELECT rule,\n",
+        "  count(*) AS fired_runs,\n",
+        "  count_if(array_contains(r.dismissed_rules, rule)) AS dismissed_runs,\n",
+        "  round(count_if(array_contains(r.dismissed_rules, rule)) * 100.0 / count(*), 1) AS fp_rate_pct\n",
+        "FROM runs LATERAL VIEW explode(r.rules) exploded AS rule\n",
+        "GROUP BY rule\n",
+        "ORDER BY fp_rate_pct DESC, fired_runs DESC"
+      ]
+    },
+    {
+      "name": "fp_blind_spots",
+      "displayName": "Dismissal blind spots (30d)",
+      "queryLines": [
+        "WITH counts AS (\n",
+        "  SELECT from_json(get_json_object(response_text, '$.dismissed_hint_counts'), 'MAP<STRING, MAP<STRING, INT>>') AS m\n",
+        "  FROM mcp_tool_calls\n",
+        "  WHERE row_type = 'response' AND tool_name = 'program_autofixer'\n",
+        "    AND timestamp >= current_timestamp() - INTERVAL 30 DAYS\n",
+        ")\n",
+        "SELECT rule, hint_condition, sum(n) AS dismissals\n",
+        "FROM counts\n",
+        "LATERAL VIEW explode(m) rules_map AS rule, buckets\n",
+        "LATERAL VIEW explode(buckets) bucket_map AS hint_condition, n\n",
+        "GROUP BY rule, hint_condition\n",
+        "ORDER BY rule, dismissals DESC"
+      ]
     }
   ],
   "pages": [
@@ -431,6 +469,202 @@
             "y": 23,
             "width": 6,
             "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "fp",
+      "displayName": "False positives",
+      "layout": [
+        {
+          "widget": {
+            "name": "hdr_fp",
+            "textbox_spec": "## False positives\nDismissal telemetry from `program_autofixer` \u2014 which rules cry wolf, and which blind spot gets cited."
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "table_fp_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "fp_rate_per_rule",
+                  "fields": [
+                    {
+                      "name": "rule",
+                      "expression": "`rule`"
+                    },
+                    {
+                      "name": "fired_runs",
+                      "expression": "`fired_runs`"
+                    },
+                    {
+                      "name": "dismissed_runs",
+                      "expression": "`dismissed_runs`"
+                    },
+                    {
+                      "name": "fp_rate_pct",
+                      "expression": "`fp_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "rule",
+                    "displayName": "Rule"
+                  },
+                  {
+                    "fieldName": "fired_runs",
+                    "displayName": "Fired runs"
+                  },
+                  {
+                    "fieldName": "dismissed_runs",
+                    "displayName": "Dismissed runs"
+                  },
+                  {
+                    "fieldName": "fp_rate_pct",
+                    "displayName": "FP rate %"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "FP rate per rule (30d)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_fp_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "fp_rate_per_rule",
+                  "fields": [
+                    {
+                      "name": "rule",
+                      "expression": "`rule`"
+                    },
+                    {
+                      "name": "fp_rate_pct",
+                      "expression": "`fp_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "fp_rate_pct",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "FP rate %"
+                },
+                "y": {
+                  "fieldName": "rule",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Rule"
+                }
+              },
+              "frame": {
+                "title": "FP rate per rule (30d)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_blind_spots",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "fp_blind_spots",
+                  "fields": [
+                    {
+                      "name": "rule",
+                      "expression": "`rule`"
+                    },
+                    {
+                      "name": "hint_condition",
+                      "expression": "`hint_condition`"
+                    },
+                    {
+                      "name": "dismissals",
+                      "expression": "`dismissals`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "rule",
+                    "displayName": "Rule"
+                  },
+                  {
+                    "fieldName": "hint_condition",
+                    "displayName": "Cited condition (index / other / unspecified)"
+                  },
+                  {
+                    "fieldName": "dismissals",
+                    "displayName": "Dismissals"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Which blind spot gets cited (30d)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 6,
+            "height": 7
           }
         }
       ]
