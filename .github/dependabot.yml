@@ -1,36 +1,37 @@
 version: 2
-updates:
-  - package-ecosystem: 'npm'
-    directory: '/'
+
+multi-ecosystem-groups:
+  all-deps:
     schedule:
-      interval: 'weekly'
+      interval: 'cron'
+      cronjob: '0 9 1,15 * *'
+      timezone: UTC
     open-pull-requests-limit: 5
     commit-message:
       prefix: 'deps'
       include: 'scope'
     labels:
       - 'dependencies'
-    groups:
-      npm-minor-patch:
-        applies-to: 'version-updates'
-        patterns:
-          - '*'
+
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    multi-ecosystem-group: 'all-deps'
+    patterns: ['*']
+    cooldown:
+      default-days: 7
+    allow:
+      - dependency-name: '*'
         update-types:
-          - 'minor'
-          - 'patch'
+          - 'version-update:semver-patch'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
-    schedule:
-      interval: 'weekly'
-    open-pull-requests-limit: 3
-    labels:
-      - 'dependencies'
-    groups:
-      gha-minor-patch:
-        applies-to: 'version-updates'
-        patterns:
-          - '*'
+    multi-ecosystem-group: 'all-deps'
+    patterns: ['*']
+    cooldown:
+      default-days: 7
+    allow:
+      - dependency-name: '*'
         update-types:
-          - 'minor'
-          - 'patch'
+          - 'version-update:semver-patch'
