@@ -5,6 +5,7 @@ export const anchorInitWithoutPayer: Visitor = {
   name: "anchor-init-without-payer",
   severity: "critical",
   appliesTo: ["anchor"],
+  falsePositiveWhen: ["payer emitted by a macro-generated or merged #[account] attribute the parser can't see"],
   after(ctx) {
     for (const struct of ctx.anchor.structs) {
       for (const field of struct.fields) {

@@ -288,7 +288,7 @@ describe("program_autofixer regression cases (no regex fallbacks)", () => {
   it("does not flag unchecked-arithmetic on account-layout `len()` math", async () => {
     const out = await runProgramAutofixer({ code: SECURE_ARITHMETIC_LEN_MATH, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "unchecked-arithmetic");
-    expect(hit, `unchecked-arithmetic fired on len() math: ${hit?.code_snippet}`).toBeUndefined();
+    expect(hit, `unchecked-arithmetic fired on len() math: ${hit?.location}`).toBeUndefined();
   }, 20_000);
 
   it("does flag unchecked-arithmetic on lamport math", async () => {
@@ -305,19 +305,19 @@ describe("unsafe-unwrap noise suppression (infallible try_into patterns)", () =>
   it("suppresses `data[0..N].try_into().unwrap()` with literal range", async () => {
     const out = await runProgramAutofixer({ code: SECURE_UNWRAP_FIXED_SLICE_LITERAL, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "unsafe-unwrap");
-    expect(hit, `unsafe-unwrap fired on literal fixed slice: ${hit?.code_snippet}`).toBeUndefined();
+    expect(hit, `unsafe-unwrap fired on literal fixed slice: ${hit?.location}`).toBeUndefined();
   }, 20_000);
 
   it("suppresses `data[offset..offset + N].try_into().unwrap()`", async () => {
     const out = await runProgramAutofixer({ code: SECURE_UNWRAP_FIXED_SLICE_OFFSET, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "unsafe-unwrap");
-    expect(hit, `unsafe-unwrap fired on offset+literal slice: ${hit?.code_snippet}`).toBeUndefined();
+    expect(hit, `unsafe-unwrap fired on offset+literal slice: ${hit?.location}`).toBeUndefined();
   }, 20_000);
 
   it("suppresses `value.to_le_bytes().try_into().unwrap()`", async () => {
     const out = await runProgramAutofixer({ code: SECURE_UNWRAP_TO_LE_BYTES, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "unsafe-unwrap");
-    expect(hit, `unsafe-unwrap fired on to_le_bytes round-trip: ${hit?.code_snippet}`).toBeUndefined();
+    expect(hit, `unsafe-unwrap fired on to_le_bytes round-trip: ${hit?.location}`).toBeUndefined();
   }, 20_000);
 
   it("still flags `from_utf8(attacker_bytes).unwrap()`", async () => {

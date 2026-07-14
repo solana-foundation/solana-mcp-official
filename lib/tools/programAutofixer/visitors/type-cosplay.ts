@@ -45,6 +45,11 @@ export const typeCosplay: Visitor = {
   name: "type-cosplay",
   severity: "critical",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen: [
+    "types disambiguated at load time by owner/length/context checks",
+    "matching values are enum casts textually equal but semantically distinct",
+    "flagged type not actually an account despite LEN/from_bytes shapes",
+  ],
   enter: {
     const_item(node, ctx) {
       const name = _findConstName(node);

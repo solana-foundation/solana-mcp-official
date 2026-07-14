@@ -70,6 +70,11 @@ export const sysvarSpoofing: Visitor = {
   name: "sysvar-spoofing",
   severity: "medium",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen: [
+    "loaded via validating constructor other than from_account_view/from_account_info (Rent::from_account, Clock::try_from)",
+    "key compared to sysvar ID via assert_eq!/match without key/address marker",
+    "value comes from Clock::get()/Rent::get() syscall, data read incidental",
+  ],
   before(tree, ctx) {
     for (const { destructured, body, implName } of ctx.tryFromBodies) {
       for (const account of destructured) {

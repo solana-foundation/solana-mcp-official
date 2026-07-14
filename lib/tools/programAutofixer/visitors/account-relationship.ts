@@ -142,6 +142,11 @@ export const accountRelationship: Visitor = {
   name: "account-relationship",
   severity: "low",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen: [
+    "mint/owner relationship enforced in accounts struct try_from, typed constraints, or a helper not named *_token_account/verify_mint",
+    "comparison bindings lack 'mint'/'owner' substrings (expected_asset, pool_key)",
+    "accounts verified upstream, passed pre-checked",
+  ],
   enter: {
     struct_expression(node, ctx) {
       const info = isTransferishStruct(node);

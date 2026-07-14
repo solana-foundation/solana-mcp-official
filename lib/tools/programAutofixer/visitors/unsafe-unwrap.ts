@@ -1,6 +1,6 @@
 import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
-import { formatLocation, snippet } from "../types.js";
+import { formatLocation } from "../types.js";
 import { getCallName, walk } from "../walk.js";
 import { findEnclosingFunctionBody, getCallArgs, getMethodCallName, getMethodReceiverRoot } from "./_helpers.js";
 
@@ -153,6 +153,12 @@ export const unsafeUnwrap: Visitor = {
   name: "unsafe-unwrap",
   severity: "low",
   appliesTo: ["pinocchio", "anchor"],
+  falsePositiveWhen: [
+    "value checked by preceding match/if-let/let-else, not an is_some/is_ok guard",
+    "guard diverges via ?/bail!/panic!, not return/break/continue",
+    "receiver infallible beyond modeled try_into/to_le_bytes shapes (first() on known non-empty)",
+    "validated by a helper before the call",
+  ],
   enter: {
     call_expression(node, ctx) {
       if (getMethodCallName(node) !== "unwrap") return;
@@ -168,7 +174,6 @@ export const unsafeUnwrap: Visitor = {
         location: formatLocation(ctx.filename, node),
         description: `\`.unwrap()\` panics the program on failure. Solana program panics abort the transaction and emit no useful diagnostics. Prefer \`.ok_or(ProgramError::...)?\` or \`.map_err(|_| ...)?\`.`,
         suggestion: `Replace \`.unwrap()\` with explicit error handling: \`.ok_or(ProgramError::InvalidArgument)?\` (Option) or \`.map_err(|_| ProgramError::InvalidAccountData)?\` (Result), or \`.expect("reason")\` to document why it cannot fail.`,
-        code_snippet: snippet(ctx.source, node, 80),
       });
     },
   },

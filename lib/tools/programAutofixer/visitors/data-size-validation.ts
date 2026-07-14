@@ -89,6 +89,12 @@ export const dataSizeValidation: Visitor = {
   name: "data-size-validation",
   severity: "high",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen: [
+    "length guaranteed by input type (&[u8; N], prior try_into to fixed array on another binding)",
+    "check in caller/wrapper in another file",
+    "helper/macro named outside require_len/check_len/verify_len and assert/require+len patterns",
+    "prior parse of same slice implies size",
+  ],
   enter: {
     call_expression(node, ctx) {
       const fn = node.childForFieldName("function");

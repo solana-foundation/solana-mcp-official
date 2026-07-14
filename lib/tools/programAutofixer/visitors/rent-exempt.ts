@@ -1,6 +1,6 @@
 import type { Node } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
-import { formatLocation, snippet } from "../types.js";
+import { formatLocation } from "../types.js";
 
 function isCreateAccountStruct(node: Node): boolean {
   if (node.type !== "struct_expression") return false;
@@ -30,6 +30,10 @@ export const rentExempt: Visitor = {
   name: "rent-exempt",
   severity: "medium",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen: [
+    "hardcoded literal intentionally correct for a fixed-size account or allocate-only path",
+    "value provably equals the rent minimum for the account size",
+  ],
   enter: {
     struct_expression(node, ctx) {
       if (!isCreateAccountStruct(node)) return;
@@ -45,7 +49,6 @@ export const rentExempt: Visitor = {
         location: formatLocation(ctx.filename, lamportsExpr),
         description: `\`CreateAccount { lamports: ${lamportsExpr.text}, .. }\` hardcodes the lamports amount instead of computing rent-exempt minimum. If the rent rate changes or the account size is larger than expected, the new account will be subject to rent collection.`,
         suggestion: `Use the real Pinocchio rent sysvar: import \`pinocchio::sysvars::{rent::Rent, Sysvar}\`, compute \`let lamports = Rent::get()?.try_minimum_balance(space as usize)?;\`, and pass that \`lamports\` value to \`CreateAccount\`. Do not create a local \`Rent\` shim or hardcode a fallback value.`,
-        code_snippet: snippet(ctx.source, node, 100),
       });
     },
   },

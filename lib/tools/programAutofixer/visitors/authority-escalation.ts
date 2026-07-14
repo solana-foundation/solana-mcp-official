@@ -1,6 +1,6 @@
 import type { Node } from "web-tree-sitter";
 import type { Visitor, VisitorContext } from "../types.js";
-import { formatLocation, snippet } from "../types.js";
+import { formatLocation } from "../types.js";
 import { getCallName, walk } from "../walk.js";
 import {
   bodyContainsSignerValidationFor,
@@ -229,6 +229,12 @@ export const authorityEscalation: Visitor = {
   name: "authority-escalation",
   severity: "high",
   appliesTo: ["pinocchio"],
+  falsePositiveWhen: [
+    "authority-vs-signer comparison in accounts struct try_from or helper (require_authority(state, signer))",
+    "comparison shaped outside ==/!=/eq/ne/assert-eq macros (assert_keys_equal, matches!)",
+    "signer binding named outside recognized set despite verified",
+    "state freshly constructed in an unrecognized way",
+  ],
   enter: {
     assignment_expression(node, ctx) {
       const left = node.childForFieldName("left");
@@ -254,7 +260,6 @@ export const authorityEscalation: Visitor = {
         location: formatLocation(ctx.filename, node),
         description: `\`${left.text} = ...\` mutates an authority/admin field but no \`verify_signer\` call appears earlier in the same function. Without checking the current authority signed off, any caller can rotate the authority.`,
         suggestion: `Before assigning a new ${field.text}, verify the current authority signed with \`verify_signer(<current_authority>)?\` (or an explicit \`.is_signer()\` check) and assert \`<current_authority>.address() == &state.${field.text}\`.`,
-        code_snippet: snippet(ctx.source, node, 80),
       });
     },
   },

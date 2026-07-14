@@ -11,15 +11,19 @@ export interface Issue {
   rule: string;
   title: string;
   location: string;
-  description: string;
-  suggestion: string;
-  code_snippet?: string;
+  /** Present only on the first non-dismissed issue of each rule; stripped from repeats and dismissed issues by the driver. */
+  description?: string;
+  suggestion?: string;
+  /** Stable identity: hash of rule + title + enclosing scope chain. Set by the driver after visitors run. */
+  fingerprint?: string;
+  dismissed?: boolean;
 }
 
 export interface AutofixerOutput {
   issues: Issue[];
   suggestions: string[];
   framework_detected: Framework;
+  false_positive_hints: Record<string, string[]>;
   require_another_tool_call_after_fixing: boolean;
 }
 
@@ -40,6 +44,8 @@ export interface Visitor {
   name: string;
   severity: Severity;
   appliesTo: Framework[];
+  /** Known blind spots: verifiable conditions under which this rule's finding is a false positive. Dismissals reference these by index via `matched_hint`. */
+  falsePositiveWhen: string[];
   /** Optional pre-pass: cache state on ctx, scan for prerequisites, etc. */
   before?(tree: Tree, ctx: VisitorContext): void;
   /** Per-node-type handlers. Driver dispatches by node.type during a single tree walk. */
@@ -50,9 +56,4 @@ export interface Visitor {
 
 export function formatLocation(filename: string, node: Node): string {
   return `${filename}:${node.startPosition.row + 1}:${node.startPosition.column + 1}`;
-}
-
-export function snippet(source: string, node: Node, maxChars = 240): string {
-  const text = source.slice(node.startIndex, node.endIndex);
-  return text.length <= maxChars ? text : `${text.slice(0, maxChars)}…`;
 }
