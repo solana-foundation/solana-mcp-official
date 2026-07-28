@@ -97,6 +97,17 @@ sources:
       - https://www.solana-program.com
       - https://www.solana-program.com/docs
 
+  - id: surfpool-docs
+    name: Surfpool Docs (solana.com/docs/tools/surfpool)
+    kind: web
+    enabled: true
+    sections: [testing, tooling]
+    use_cases: "Surfpool local validator, solana-test-validator replacement, surfnet RPC cheatcodes, mainnet account fetching on-demand, surfpool CLI/TUI, Surfpool SDK, txtx Infrastructure as Code deployments"
+    primary_url: https://solana.com/docs/tools/surfpool
+    start_urls:
+      - https://solana.com/docs/tools/surfpool
+    url_include: [/docs/tools/surfpool]
+
   - id: solana-mobile-docs
     name: Solana Mobile Docs
     kind: web
