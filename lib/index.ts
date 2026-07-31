@@ -40,7 +40,7 @@ export function createMcp() {
       });
     },
     {
-      serverInfo: { name: "solana-mcp", version: "1.0.0" },
+      serverInfo: { name: "solana-mcp", version: "2.0.0" },
       instructions: SERVER_INSTRUCTIONS,
       verboseLogs: true,
     },

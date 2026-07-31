@@ -59,7 +59,7 @@ describe("createMcp", () => {
     ];
 
     expect(typeof initializeServer).toBe("function");
-    expect(options.serverInfo).toEqual({ name: "solana-mcp", version: "1.0.0" });
+    expect(options.serverInfo).toEqual({ name: "solana-mcp", version: "2.0.0" });
     expect(options.instructions).toContain("list_sections");
     expect(options.instructions).toContain("get_documentation");
     expect(options.instructions).toContain("Solana_Documentation_Search");
