@@ -1,18 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createServer, IncomingMessage, ServerResponse, type Server } from "node:http";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { AddressInfo } from "node:net";
 import { createMcp } from "../lib";
 import type { SolanaTool } from "../lib/tools/types";
 import * as generalSolanaToolsModule from "../lib/tools/generalSolanaTools";
-
-const hasRequiredEnv = !!process.env.REDIS_URL;
-const describeE2e = hasRequiredEnv ? describe : describe.skip;
-
-if (!hasRequiredEnv) {
-  console.warn("[e2e] Skipping E2E tests — missing required env var (REDIS_URL)");
-}
 
 function resolveGeneralSolanaTools(): SolanaTool[] {
   const moduleExports = generalSolanaToolsModule as Record<string, unknown>;
@@ -34,7 +26,7 @@ function resolveGeneralSolanaTools(): SolanaTool[] {
 
 const registeredToolNames = resolveGeneralSolanaTools().map(tool => tool.title);
 
-describeE2e("e2e", () => {
+describe("e2e", () => {
   let server: Server;
   let endpoint: string;
   let client: Client | undefined;
@@ -51,15 +43,10 @@ describeE2e("e2e", () => {
     endpoint = `http://localhost:${port}`;
     const transport = new StreamableHTTPClientTransport(new URL(`${endpoint}/mcp`));
 
-    client = new Client(
-      {
-        name: "example-client",
-        version: "1.0.0",
-      },
-      {
-        capabilities: {},
-      },
-    );
+    client = new Client({
+      name: "example-client",
+      version: "1.0.0",
+    });
     await client.connect(transport);
   });
 

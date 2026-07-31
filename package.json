@@ -43,15 +43,16 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1054.0",
-    "@modelcontextprotocol/sdk": "1.29.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "dotenv": "^17.3.1",
-    "mcp-handler": "1.1.0",
+    "mcp-handler": "^2.1.0",
     "tree-sitter-rust": "^0.24.0",
     "web-tree-sitter": "^0.26.9",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@modelcontextprotocol/client": "^2.0.0",
     "@solana/prettier-config-solana": "^0.0.7",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^26.0.1",

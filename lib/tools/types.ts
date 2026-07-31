@@ -3,7 +3,7 @@ import { z } from "zod";
 export type SolanaTool = {
   title: string;
   description?: string;
-  parameters: z.ZodRawShape | z.ZodTypeAny;
+  parameters: z.ZodRawShape;
   outputSchema?: z.ZodRawShape;
   annotations?: {
     title?: string;

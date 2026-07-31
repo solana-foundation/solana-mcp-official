@@ -1,6 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import {
   drainRequest,
   handleInvalidRequest,
@@ -88,15 +87,10 @@ async function handleRunRequest(res: ServerResponse): Promise<void> {
 }
 
 function createProbeClient(targetUrl: URL): ProbeClient {
-  const client = new Client(
-    {
-      name: "gcp-mcp-probe",
-      version: "1.0.0",
-    },
-    {
-      capabilities: {},
-    },
-  );
+  const client = new Client({
+    name: "gcp-mcp-probe",
+    version: "1.0.0",
+  });
   const transport = new StreamableHTTPClientTransport(targetUrl);
 
   return {
