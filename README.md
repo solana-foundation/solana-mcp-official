@@ -23,7 +23,7 @@ pnpm inspector  # connects MCP Inspector at http://127.0.0.1:6274
 
 ## Deploy
 
-Production runs on Cloud Run (mcp.solana.com → [`server/cloudrun.ts`](server/cloudrun.ts), built via the root [`Dockerfile`](Dockerfile)). Push to `main` triggers [`.github/workflows/deploy-cloudrun.yml`](.github/workflows/deploy-cloudrun.yml), which submits a Cloud Build and rolls the new revision. Runtime env vars (`DATABRICKS_HOST`, `DATABRICKS_TOKEN`, `DATABRICKS_VS_INDEX`, `DATABRICKS_WAREHOUSE_ID`, `REDIS_URL`, `ANALYTICS_S3_*`, `AWS_*`) and deploy config (`GCP_*`, `VPC_CONNECTOR`) are loaded from the Doppler `prd_github` config at deploy time.
+Production runs on Cloud Run (mcp.solana.com → [`server/cloudrun.ts`](server/cloudrun.ts), built via the root [`Dockerfile`](Dockerfile)). Push to `main` triggers [`.github/workflows/deploy-cloudrun.yml`](.github/workflows/deploy-cloudrun.yml), which submits a Cloud Build and rolls the new revision. Runtime env vars (`DATABRICKS_HOST`, `DATABRICKS_TOKEN`, `DATABRICKS_VS_INDEX`, `DATABRICKS_WAREHOUSE_ID`, `ANALYTICS_S3_*`, `AWS_*`) and deploy config (`GCP_*`, `VPC_CONNECTOR`) are loaded from the Doppler `prd_github` config at deploy time.
 
 The Databricks side ([`databricks.yml`](databricks.yml)) deploys two resources via `just deploy`:
 

@@ -16,7 +16,7 @@ COPY ingestion/sources.yaml ./ingestion/sources.yaml
 COPY lib ./lib
 COPY server ./server
 RUN pnpm gen:sources \
-    && pnpm exec tsc -p tsconfig.json --outDir build \
+    && pnpm exec tsc -p tsconfig.json \
     && pnpm prune --prod
 
 FROM node:24-alpine AS runtime

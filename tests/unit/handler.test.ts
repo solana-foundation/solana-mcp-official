@@ -55,12 +55,8 @@ describe("handleMcpRequest", () => {
   });
 
   it("emits a `message_received` analytics event for POST requests with a body", async () => {
-    const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} });
-    const req = new Request("http://localhost/mcp", {
-      method: "POST",
-      body,
-      headers: { "mcp-session-id": "sess-1" },
-    });
+    const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
+    const req = new Request("http://localhost/mcp", { method: "POST", body });
 
     await handleMcpRequest(req);
     await new Promise(resolve => setImmediate(resolve));
@@ -68,7 +64,6 @@ describe("handleMcpRequest", () => {
     expect(logAnalyticsMock).toHaveBeenCalledTimes(1);
     expect(logAnalyticsMock).toHaveBeenCalledWith({
       event_type: "message_received",
-      session_id: "sess-1",
       details: { body },
     });
   });

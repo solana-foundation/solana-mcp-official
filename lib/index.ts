@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
 
@@ -27,31 +27,21 @@ export function createMcp() {
     (server: McpServer) => {
       const tools: SolanaTool[] = [...createSolanaTools(), createProgramAutofixerTool()];
       tools.forEach((tool: SolanaTool) => {
-        if (tool.outputSchema || tool.annotations) {
-          server.registerTool(
-            tool.title,
-            {
-              description: tool.description ?? "",
-              inputSchema: tool.parameters,
-              ...(tool.outputSchema ? { outputSchema: tool.outputSchema } : {}),
-              annotations: tool.annotations ?? {},
-            },
-            tool.func,
-          );
-        } else {
-          server.tool(tool.title, tool.description ?? "", tool.parameters as z.ZodRawShape, tool.func);
-        }
+        server.registerTool(
+          tool.title,
+          {
+            description: tool.description ?? "",
+            inputSchema: z.object(tool.parameters),
+            ...(tool.outputSchema ? { outputSchema: z.object(tool.outputSchema) } : {}),
+            ...(tool.annotations ? { annotations: tool.annotations } : {}),
+          },
+          tool.func,
+        );
       });
     },
     {
-      capabilities: {},
+      serverInfo: { name: "solana-mcp", version: "2.0.0" },
       instructions: SERVER_INSTRUCTIONS,
-    },
-    {
-      basePath: "",
-      redisUrl: process.env.REDIS_URL,
-      disableSse: !process.env.REDIS_URL,
-      maxDuration: 120,
       verboseLogs: true,
     },
   );

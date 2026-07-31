@@ -18,7 +18,6 @@ async function logIncomingRequest(req: Request): Promise<void> {
     if (!body) return;
     await logAnalytics({
       event_type: "message_received",
-      session_id: req.headers.get("mcp-session-id") ?? undefined,
       details: { body },
     });
   } catch (err) {
