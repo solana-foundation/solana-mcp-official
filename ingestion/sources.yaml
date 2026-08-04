@@ -77,11 +77,11 @@ sources:
       - https://www.solanakit.com
 
   - id: solana-gill-docs
-    name: Solana > Gill Docs
+    name: Solana > Gill Docs (legacy — prefer @solana/kit plugins)
     kind: web
     enabled: true
     sections: [clients]
-    use_cases: "Gill SDK, ergonomic Solana client wrapper around kit, transaction helpers, simplified RPC"
+    use_cases: "Do not use for new code — prefer @solana/kit plugin clients (solana-kit-docs, gh-solana-dev-skill). Retrieve only to recognize Gill APIs in an existing codebase and translate them to @solana/kit"
     primary_url: https://www.gillsdk.com/docs
     start_urls:
       - https://www.gillsdk.com/docs
@@ -298,14 +298,23 @@ sources:
     primary_url: https://github.com/solana-developers/program-examples
     github: { owner: solana-developers, repo: program-examples, include_readmes: false, include_source_code: true }
 
+  - id: gh-solana-dev-skill
+    name: GitHub solana-foundation/solana-dev-skill
+    kind: github
+    enabled: true
+    sections: [clients, programs, testing]
+    use_cases: "Opinionated Solana development playbook and recommended default stack: @solana/kit v7 plugin clients (createClient + .use()), kit signer/RPC/wallet plugins, @solana/react wallet connection, Codama client generation, Anchor 1.1.x and Pinocchio programs, Surfpool/LiteSVM/Mollusk testing, security checklists, Token-2022 confidential transfers, version compatibility matrix, common error triage, web3.js v1 migration routing"
+    primary_url: https://github.com/solana-foundation/solana-dev-skill
+    github: { owner: solana-foundation, repo: solana-dev-skill, include_readmes: true, include_source_code: false }
+
   - id: gh-gill
-    name: GitHub gillsdk/gill
+    name: GitHub gillsdk/gill (legacy — prefer @solana/kit plugins)
     kind: github
     enabled: true
     sections: [clients]
-    use_cases: "Gill SDK source, ergonomic wrapper around @solana/kit, transaction helpers"
+    use_cases: "Do not use for new code — prefer @solana/kit plugin clients (solana-kit-docs, gh-solana-dev-skill). Retrieve only to recognize Gill APIs in an existing codebase and translate them to @solana/kit"
     primary_url: https://github.com/gillsdk/gill
-    github: { owner: gillsdk, repo: gill, include_readmes: true, include_source_code: true }
+    github: { owner: gillsdk, repo: gill, include_readmes: true, include_source_code: false }
 
   - id: gh-wallet-adapter
     name: GitHub anza-xyz/wallet-adapter
