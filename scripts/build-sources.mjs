@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 import { load as parseYaml } from "js-yaml";
 
 const REPO_ROOT = resolve(fileURLToPath(import.meta.url), "..", "..");
@@ -40,6 +40,28 @@ function validateEntry(entry, idx) {
 
   if (typeof entry.use_cases !== "string" || !entry.use_cases.trim()) {
     fail(`${where}: use_cases must be a non-empty string`);
+  }
+
+  const isFilledString = v => typeof v === "string" && v.trim().length > 0;
+  const isHttpUrl = v => typeof v === "string" && URL.canParse(v) && ["http:", "https:"].includes(new URL(v).protocol);
+  const isUrlArray = v => Array.isArray(v) && v.length > 0 && v.every(isHttpUrl);
+
+  if (!isHttpUrl(entry.primary_url)) fail(`${where}: primary_url must be an http(s) URL`);
+
+  if (entry.kind === "web") {
+    const urlKeys = ["start_urls", "sitemaps", "ingest_urls"].filter(key => entry[key] !== undefined);
+    for (const key of urlKeys) {
+      if (!isUrlArray(entry[key])) fail(`${where}: ${key} must be a non-empty array of http(s) URLs`);
+    }
+    if (urlKeys.length === 0) fail(`${where}: web source needs start_urls, sitemaps, or ingest_urls`);
+  }
+  if (entry.kind === "github") {
+    if (!isFilledString(entry.github?.owner) || !isFilledString(entry.github?.repo)) {
+      fail(`${where}: github source needs github: { owner, repo }`);
+    }
+  }
+  if (entry.kind === "openapi" && !isHttpUrl(entry.spec_url)) {
+    fail(`${where}: openapi source needs spec_url as an http(s) URL`);
   }
 }
 
