@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 import { load as parseYaml } from "js-yaml";
 
 const REPO_ROOT = resolve(fileURLToPath(import.meta.url), "..", "..");
@@ -43,7 +43,7 @@ function validateEntry(entry, idx) {
   }
 
   const isFilledString = v => typeof v === "string" && v.trim().length > 0;
-  const isHttpUrl = v => typeof v === "string" && URL.canParse(v) && new URL(v).protocol.startsWith("http");
+  const isHttpUrl = v => typeof v === "string" && URL.canParse(v) && ["http:", "https:"].includes(new URL(v).protocol);
   const isUrlArray = v => Array.isArray(v) && v.length > 0 && v.every(isHttpUrl);
 
   if (!isHttpUrl(entry.primary_url)) fail(`${where}: primary_url must be an http(s) URL`);
