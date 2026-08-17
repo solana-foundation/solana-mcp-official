@@ -43,12 +43,15 @@ function validateEntry(entry, idx) {
   }
 
   const isFilledString = v => typeof v === "string" && v.trim().length > 0;
-  const isFilledStringArray = v => Array.isArray(v) && v.length > 0 && v.every(isFilledString);
+  const isHttpUrl = v => typeof v === "string" && URL.canParse(v) && new URL(v).protocol.startsWith("http");
+  const isUrlArray = v => Array.isArray(v) && v.length > 0 && v.every(isHttpUrl);
+
+  if (!isHttpUrl(entry.primary_url)) fail(`${where}: primary_url must be an http(s) URL`);
 
   if (entry.kind === "web") {
     const urlKeys = ["start_urls", "sitemaps", "ingest_urls"].filter(key => entry[key] !== undefined);
     for (const key of urlKeys) {
-      if (!isFilledStringArray(entry[key])) fail(`${where}: ${key} must be a non-empty array of non-empty strings`);
+      if (!isUrlArray(entry[key])) fail(`${where}: ${key} must be a non-empty array of http(s) URLs`);
     }
     if (urlKeys.length === 0) fail(`${where}: web source needs start_urls, sitemaps, or ingest_urls`);
   }
@@ -57,8 +60,8 @@ function validateEntry(entry, idx) {
       fail(`${where}: github source needs github: { owner, repo }`);
     }
   }
-  if (entry.kind === "openapi" && !isFilledString(entry.spec_url)) {
-    fail(`${where}: openapi source needs spec_url`);
+  if (entry.kind === "openapi" && !isHttpUrl(entry.spec_url)) {
+    fail(`${where}: openapi source needs spec_url as an http(s) URL`);
   }
 }
 
