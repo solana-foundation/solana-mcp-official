@@ -41,6 +41,21 @@ function validateEntry(entry, idx) {
   if (typeof entry.use_cases !== "string" || !entry.use_cases.trim()) {
     fail(`${where}: use_cases must be a non-empty string`);
   }
+
+  if (entry.kind === "web") {
+    const hasUrls = ["start_urls", "sitemaps", "ingest_urls"].some(
+      key => Array.isArray(entry[key]) && entry[key].length > 0,
+    );
+    if (!hasUrls) fail(`${where}: web source needs start_urls, sitemaps, or ingest_urls`);
+  }
+  if (entry.kind === "github") {
+    if (typeof entry.github?.owner !== "string" || typeof entry.github?.repo !== "string") {
+      fail(`${where}: github source needs github: { owner, repo }`);
+    }
+  }
+  if (entry.kind === "openapi" && typeof entry.spec_url !== "string") {
+    fail(`${where}: openapi source needs spec_url`);
+  }
 }
 
 function buildExport(sources) {
