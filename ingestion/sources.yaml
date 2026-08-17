@@ -66,6 +66,16 @@ sources:
     start_urls:
       - https://www.anchor-lang.com/docs
 
+  - id: anchor-v2-docs
+    name: Solana > Anchor v2 Docs
+    kind: web
+    enabled: true
+    sections: [frameworks, programs]
+    use_cases: "Anchor v2 alpha framework, v1 to v2 migration, smaller binaries and CU optimization, account constraints, PDAs, IDL, Rust and TypeScript clients, LiteSVM testing, secure defaults"
+    primary_url: https://v2.anchor-lang.com/docs
+    start_urls:
+      - https://v2.anchor-lang.com/docs
+
   - id: solana-kit-docs
     name: Solana Kit Docs
     kind: web
