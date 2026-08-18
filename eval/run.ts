@@ -71,11 +71,15 @@ function parseEndpointSpec(spec: string): Endpoint {
   if (eq < 1) throw new Error(`bad endpoint spec "${spec}", expected <name>=<url>\n${USAGE}`);
   const name = spec.slice(0, eq);
   const url = spec.slice(eq + 1);
-  if (!/^https?:\/\//.test(url)) throw new Error(`bad endpoint url "${url}"`);
+  if (!URL.canParse(url)) throw new Error(`bad endpoint url "${url}"`);
+  const parsed = new URL(url);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(`bad endpoint url "${url}"`);
+  }
   const tokenVar = `EVAL_TOKEN_${name.toUpperCase().replace(/-/g, "_")}`;
   const token = process.env[tokenVar] ?? "";
-  const isLocal = /^http:\/\/(localhost|127\.0\.0\.1)[:/]/.test(url);
-  if (token && !url.startsWith("https://") && !isLocal) {
+  const isLocal = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+  if (token && parsed.protocol !== "https:" && !isLocal) {
     throw new Error(`endpoint "${name}" must use HTTPS when ${tokenVar} is set`);
   }
   return { name, url, token };
