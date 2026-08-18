@@ -73,7 +73,12 @@ function parseEndpointSpec(spec: string): Endpoint {
   const url = spec.slice(eq + 1);
   if (!/^https?:\/\//.test(url)) throw new Error(`bad endpoint url "${url}"`);
   const tokenVar = `EVAL_TOKEN_${name.toUpperCase().replace(/-/g, "_")}`;
-  return { name, url, token: process.env[tokenVar] ?? "" };
+  const token = process.env[tokenVar] ?? "";
+  const isLocal = /^http:\/\/(localhost|127\.0\.0\.1)[:/]/.test(url);
+  if (token && !url.startsWith("https://") && !isLocal) {
+    throw new Error(`endpoint "${name}" must use HTTPS when ${tokenVar} is set`);
+  }
+  return { name, url, token };
 }
 
 function loadQuestions(): Question[] {
@@ -134,6 +139,7 @@ async function callTool(endpoint: Endpoint, question: string, argKey: "query" | 
       method: "POST",
       headers: rpcHeaders(endpoint.token),
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60_000),
     });
     const bodyText = await res.text();
     const latency_ms = Date.now() - started;
