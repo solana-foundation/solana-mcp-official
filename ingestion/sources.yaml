@@ -50,11 +50,12 @@ sources:
     kind: web
     enabled: true
     sections: [core, clients, programs]
-    use_cases: "Solana fundamentals, accounts model, transactions, fees, rent, PDAs, sysvars, RPC API, web3.js basics, intro tutorials"
+    use_cases: "Solana fundamentals, accounts model, transactions, fees, rent, PDAs, sysvars, RPC API, web3.js basics, intro tutorials, network upgrades, feature gate activation status, larger transaction sizes"
     primary_url: https://solana.com/docs
     start_urls:
       - https://solana.com/docs
-    url_include: [/docs, /developers]
+      - https://solana.com/upgrades
+    url_include: [/docs, /developers, /upgrades]
 
   - id: anchor-docs
     name: Solana > Anchor Docs
@@ -241,7 +242,7 @@ sources:
     kind: github
     enabled: true
     sections: [clients]
-    use_cases: "Legacy @solana/web3.js v1.x SDK, Connection class, Transaction, PublicKey, prefer kit for new code, cannot read v1 (SIMD-0385) transactions"
+    use_cases: "Legacy @solana/web3.js v1.x SDK, Connection class, Transaction, PublicKey, prefer kit for new code"
     primary_url: https://github.com/solana-foundation/solana-web3.js
     github: { owner: solana-foundation, repo: solana-web3.js, include_readmes: true, include_source_code: true }
 
