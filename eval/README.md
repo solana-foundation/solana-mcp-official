@@ -1,7 +1,7 @@
 # MCP eval harness
 
 Quality benchmark for MCP servers exposing the Solana documentation tools.
-Point it at any number of streamable-HTTP MCP endpoints and it fires the 50
+Point it at any number of streamable-HTTP MCP endpoints and it fires the 51
 questions in `questions.jsonl` (anchor, core, rpc, spl, defi, errors, kit,
 web3js, perf, wallet) at each, then writes a markdown report per question
 plus an aggregate `index.md` into `eval/results/<timestamp>/`.

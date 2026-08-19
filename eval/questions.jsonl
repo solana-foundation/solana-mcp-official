@@ -2,10 +2,10 @@
 {"id":"q002","category":"core","question":"What's the difference between a signer and a writable account on Solana?","expected_keywords":["signer","writable",["isSigner","is_signer"],["isWritable","is_writable"]]}
 {"id":"q003","category":"core","question":"How do I create a new account with a specific owner program?","expected_keywords":[["SystemProgram","system program"],["createAccount","create_account"],"allocate","assign"]}
 {"id":"q004","category":"core","question":"How do I derive a Program Derived Address in Anchor?","expected_keywords":["seeds","bump","PDA",["findProgramAddress","find_program_address","getProgramDerivedAddress"]]}
-{"id":"q005","category":"core","question":"What are address lookup tables and when should I use them?","expected_keywords":["ALT","address lookup table","versioned transaction"]}
+{"id":"q005","category":"core","question":"What are address lookup tables and when should I use them?","expected_keywords":["ALT","address lookup table",["versioned transaction","v0"],["not supported in v1","v1 transaction","SIMD-0385"]]}
 {"id":"q006","category":"core","question":"Explain Solana's proof of history","expected_keywords":["PoH","verifiable delay","timestamp","slot"]}
 {"id":"q007","category":"core","question":"How do I check if an account exists on-chain?","expected_keywords":["getAccountInfo","null","lamports"]}
-{"id":"q008","category":"core","question":"What is compute budget and how do I request more compute units?","expected_keywords":["ComputeBudgetProgram",["setComputeUnitLimit","set_compute_unit_limit"],["1,400,000","1.4 million","1_400_000","1400000"]]}
+{"id":"q008","category":"core","question":"What is compute budget and how do I request more compute units?","expected_keywords":[["ComputeBudgetProgram","transactionConfig"],["setComputeUnitLimit","set_compute_unit_limit","computeUnitLimit"],["1,400,000","1.4 million","1_400_000","1400000"]]}
 {"id":"q009","category":"anchor","question":"How do I define an account with Anchor's #[account] macro?","expected_keywords":["#[account]","Anchor","discriminator","space"]}
 {"id":"q010","category":"anchor","question":"How do I write a cross-program invocation in Anchor?","expected_keywords":["CpiContext","invoke","Program","CPI"]}
 {"id":"q011","category":"anchor","question":"What's the difference between init and init_if_needed in Anchor?","expected_keywords":["init","init_if_needed",["reinit attack","reinitialization attack","re-initialization attack","re-init"],"feature flag"]}
@@ -21,7 +21,7 @@
 {"id":"q021","category":"web3js","question":"How do I send SOL from one wallet to another using web3.js?","expected_keywords":["SystemProgram.transfer","Keypair","sendAndConfirmTransaction","Connection"]}
 {"id":"q022","category":"web3js","question":"How do I listen to Solana program log events in web3.js?","expected_keywords":["onLogs","subscribe","Connection",["signatureSubscribe","logsSubscribe"]]}
 {"id":"q023","category":"web3js","question":"How do I partially sign a transaction and pass it to another signer?","expected_keywords":[["partialSign","partial_sign"],"serialize",["Transaction.from","deserialize"]]}
-{"id":"q024","category":"web3js","question":"How do I get a historical transaction using its signature?","expected_keywords":["getTransaction","signature","maxSupportedTransactionVersion"]}
+{"id":"q024","category":"web3js","question":"How do I get a historical transaction using its signature?","expected_keywords":["getTransaction","signature",["maxSupportedTransactionVersion: 1","maxSupportedTransactionVersion:1","maxSupportedTransactionVersion\": 1","max_supported_transaction_version: 1","max_supported_transaction_version:1"]]}
 {"id":"q025","category":"spl","question":"How do I create a fungible token with SPL Token?","expected_keywords":["createMint","Token","decimals","mintTo"]}
 {"id":"q026","category":"spl","question":"What's the difference between SPL Token and Token 2022?","expected_keywords":["Token-2022","extensions","transfer hook","interest-bearing"]}
 {"id":"q027","category":"spl","question":"How do I use associated token accounts (ATA)?","expected_keywords":[["associatedTokenAccount","associated token account"],["getAssociatedTokenAddress","get_associated_token_address"],["createAssociatedTokenAccount","create_associated_token_account"]]}
@@ -45,6 +45,7 @@
 {"id":"q045","category":"errors","question":"How do I debug a 'custom program error: 0x1' from my Anchor program?","expected_keywords":["custom error","error code","Anchor","ErrorCode"]}
 {"id":"q046","category":"errors","question":"Why am I getting 'insufficient funds for rent' errors?","expected_keywords":["insufficient funds","rent","lamports","rent-exempt minimum"]}
 {"id":"q047","category":"errors","question":"How do I handle 'Too Many Accounts' (limit 10,000,000) Solana RPC limit?","expected_keywords":["too many accounts","getProgramAccounts","pagination","filter"]}
-{"id":"q048","category":"perf","question":"How do I set priority fees to land transactions under congestion?","expected_keywords":["priority fee","compute unit price",["setComputeUnitPrice","set_compute_unit_price"],["microLamports","micro-lamports"]]}
+{"id":"q048","category":"perf","question":"How do I set priority fees to land transactions under congestion?","expected_keywords":["priority fee",["compute unit price","transactionConfig"],["setComputeUnitPrice","set_compute_unit_price","priorityFee"],["microLamports","micro-lamports","in lamports"]]}
 {"id":"q049","category":"perf","question":"How do I optimize my Solana program's compute unit usage?","expected_keywords":["compute unit","profiling","msg!",["logs","logging"],["BPF","SBF"]]}
 {"id":"q050","category":"perf","question":"How do I use preflight_commitment and skipPreflight effectively?","expected_keywords":["preflight","skipPreflight","commitment","sendTransaction"]}
+{"id":"q051","category":"rpc","question":"What breaks when v1 transactions (SIMD-0385) activate and how do I read them from RPC?","expected_keywords":[["maxSupportedTransactionVersion: 1","maxSupportedTransactionVersion:1","maxSupportedTransactionVersion\": 1"],"transactionConfig","32015",["4096","4,096"]]}
