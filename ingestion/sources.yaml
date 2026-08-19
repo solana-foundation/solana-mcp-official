@@ -50,11 +50,12 @@ sources:
     kind: web
     enabled: true
     sections: [core, clients, programs]
-    use_cases: "Solana fundamentals, accounts model, transactions, fees, rent, PDAs, sysvars, RPC API, web3.js basics, intro tutorials"
+    use_cases: "Solana fundamentals, accounts model, transactions, fees, rent, PDAs, sysvars, RPC API, web3.js basics, intro tutorials, network upgrades, feature gate activation status, larger transaction sizes"
     primary_url: https://solana.com/docs
     start_urls:
       - https://solana.com/docs
-    url_include: [/docs, /developers]
+      - https://solana.com/upgrades
+    url_include: [/docs, /developers, /upgrades]
 
   - id: anchor-docs
     name: Solana > Anchor Docs
@@ -295,7 +296,7 @@ sources:
     kind: github
     enabled: true
     sections: [core]
-    use_cases: "SIMD Solana Improvement Documents, protocol changes, runtime upgrades, validator protocol specs"
+    use_cases: "SIMD Solana Improvement Documents, protocol changes, runtime upgrades, validator protocol specs, v1 transaction format (SIMD-0385), larger transactions (SIMD-0296)"
     primary_url: https://github.com/solana-foundation/solana-improvement-documents
     github: { owner: solana-foundation, repo: solana-improvement-documents, include_readmes: false, include_source_code: true }
 
@@ -413,7 +414,7 @@ sources:
     kind: github
     enabled: true
     sections: [core, programs]
-    use_cases: "Address Lookup Tables (ALT), versioned transactions, fitting more accounts per tx, lookup table extension"
+    use_cases: "Address Lookup Tables (ALT), v0 versioned transactions, lookup table extension, v0-only (v1 transactions fit 64 inline addresses without ALTs)"
     primary_url: https://github.com/solana-program/address-lookup-table
     github: { owner: solana-program, repo: address-lookup-table, include_readmes: true, include_source_code: true }
 
