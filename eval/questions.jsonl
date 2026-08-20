@@ -1,0 +1,51 @@
+{"id":"q001","category":"core","question":"How does rent work on Solana accounts and what's rent-exemption?","expected_keywords":["rent-exempt","lamports","minimum balance"]}
+{"id":"q002","category":"core","question":"What's the difference between a signer and a writable account on Solana?","expected_keywords":["signer","writable",["isSigner","is_signer"],["isWritable","is_writable"]]}
+{"id":"q003","category":"core","question":"How do I create a new account with a specific owner program?","expected_keywords":[["SystemProgram","system program"],["createAccount","create_account"],"allocate","assign"]}
+{"id":"q004","category":"core","question":"How do I derive a Program Derived Address in Anchor?","expected_keywords":["seeds","bump","PDA",["findProgramAddress","find_program_address","getProgramDerivedAddress"]]}
+{"id":"q005","category":"core","question":"What are address lookup tables and when should I use them?","expected_keywords":["ALT","address lookup table",["versioned transaction","v0"],["not supported in v1","v1 transaction","SIMD-0385"]]}
+{"id":"q006","category":"core","question":"Explain Solana's proof of history","expected_keywords":["PoH","verifiable delay","timestamp","slot"]}
+{"id":"q007","category":"core","question":"How do I check if an account exists on-chain?","expected_keywords":["getAccountInfo","null","lamports"]}
+{"id":"q008","category":"core","question":"What is compute budget and how do I request more compute units?","expected_keywords":[["ComputeBudgetProgram","transactionConfig"],["setComputeUnitLimit","set_compute_unit_limit","computeUnitLimit"],["1,400,000","1.4 million","1_400_000","1400000"]]}
+{"id":"q009","category":"anchor","question":"How do I define an account with Anchor's #[account] macro?","expected_keywords":["#[account]","Anchor","discriminator","space"]}
+{"id":"q010","category":"anchor","question":"How do I write a cross-program invocation in Anchor?","expected_keywords":["CpiContext","invoke","Program","CPI"]}
+{"id":"q011","category":"anchor","question":"What's the difference between init and init_if_needed in Anchor?","expected_keywords":["init","init_if_needed",["reinit attack","reinitialization attack","re-initialization attack","re-init"],"feature flag"]}
+{"id":"q012","category":"anchor","question":"How do I add custom errors in an Anchor program?","expected_keywords":["#[error_code]","ErrorCode",["require!","require(","err!"],"msg"]}
+{"id":"q013","category":"anchor","question":"How do I use has_one and constraint in Anchor account structs?","expected_keywords":["has_one","constraint","validation"]}
+{"id":"q014","category":"anchor","question":"How do I test an Anchor program using mocha?","expected_keywords":["anchor test","provider","workspace","it"]}
+{"id":"q015","category":"anchor","question":"How do I upgrade a deployed Anchor program?","expected_keywords":["anchor upgrade","program_id","BPFLoader","buffer"]}
+{"id":"q016","category":"anchor","question":"What's Anchor's zero_copy and when should I use it?","expected_keywords":["zero_copy","AccountLoader","large accounts","Pod"]}
+{"id":"q017","category":"kit","question":"How do I build and send a versioned transaction with @solana/kit?","expected_keywords":["@solana/kit","createTransactionMessage","signTransaction","sendAndConfirm"]}
+{"id":"q018","category":"kit","question":"How do I fetch an account with @solana/kit's RPC client?","expected_keywords":["createSolanaRpc","getAccountInfo","base64","decode"]}
+{"id":"q019","category":"kit","question":"How do I generate a keypair using @solana/kit?","expected_keywords":["generateKeyPair","CryptoKey","address"]}
+{"id":"q020","category":"kit","question":"What's the difference between @solana/kit and @solana/web3.js v1?","expected_keywords":["@solana/kit","web3.js","tree-shakable","CryptoKey","functional"]}
+{"id":"q021","category":"web3js","question":"How do I send SOL from one wallet to another using web3.js?","expected_keywords":["SystemProgram.transfer","Keypair","sendAndConfirmTransaction","Connection"]}
+{"id":"q022","category":"web3js","question":"How do I listen to Solana program log events in web3.js?","expected_keywords":["onLogs","subscribe","Connection",["signatureSubscribe","logsSubscribe"]]}
+{"id":"q023","category":"web3js","question":"How do I partially sign a transaction and pass it to another signer?","expected_keywords":[["partialSign","partial_sign"],"serialize",["Transaction.from","deserialize"]]}
+{"id":"q024","category":"web3js","question":"How do I get a historical transaction using its signature?","expected_keywords":["getTransaction","signature",["maxSupportedTransactionVersion: 1","maxSupportedTransactionVersion:1","maxSupportedTransactionVersion\": 1","max_supported_transaction_version: 1","max_supported_transaction_version:1"]]}
+{"id":"q025","category":"spl","question":"How do I create a fungible token with SPL Token?","expected_keywords":["createMint","Token","decimals","mintTo"]}
+{"id":"q026","category":"spl","question":"What's the difference between SPL Token and Token 2022?","expected_keywords":["Token-2022","extensions","transfer hook","interest-bearing"]}
+{"id":"q027","category":"spl","question":"How do I use associated token accounts (ATA)?","expected_keywords":[["associatedTokenAccount","associated token account"],["getAssociatedTokenAddress","get_associated_token_address"],["createAssociatedTokenAccount","create_associated_token_account"]]}
+{"id":"q028","category":"spl","question":"How do I implement a transfer fee using Token 2022 extensions?","expected_keywords":["TransferFee","extension",["initializeTransferFeeConfig","initialize_transfer_fee_config"],"withdraw"]}
+{"id":"q029","category":"spl","question":"How do I close an SPL token account and recover the rent?","expected_keywords":["closeAccount","Token","owner","destination"]}
+{"id":"q030","category":"spl","question":"How do I freeze an account's tokens using freeze_authority?","expected_keywords":["freeze",["freezeAccount","freeze_account"],["freezeAuthority","freeze_authority","freeze authority"],"thaw"]}
+{"id":"q031","category":"rpc","question":"How do I use Helius getAssetsByOwner to fetch an owner's NFTs?","expected_keywords":["getAssetsByOwner","Helius","DAS","ownerAddress"]}
+{"id":"q032","category":"rpc","question":"What are Helius priority fee API recommendations?","expected_keywords":["getPriorityFeeEstimate","Helius","priority fee","compute unit price"]}
+{"id":"q033","category":"rpc","question":"How do I use QuickNode's Solana streaming API?","expected_keywords":["QuickNode","Yellowstone","Geyser","stream"]}
+{"id":"q034","category":"rpc","question":"How do I send a transaction via Jito bundle?","expected_keywords":["Jito","bundle","tip","sendBundle"]}
+{"id":"q035","category":"rpc","question":"How do I connect to Solana using Alchemy's RPC?","expected_keywords":["Alchemy","RPC URL","api_key","mainnet"]}
+{"id":"q036","category":"rpc","question":"How do I use getProgramAccounts efficiently with filters?","expected_keywords":["getProgramAccounts","dataSize","memcmp","filter"]}
+{"id":"q037","category":"defi","question":"How do I swap tokens on Raydium AMM?","expected_keywords":["Raydium","AMM","swap","pool"]}
+{"id":"q038","category":"defi","question":"How do I integrate Kamino lending into my app?","expected_keywords":["Kamino","lending","deposit","borrow"]}
+{"id":"q039","category":"defi","question":"How do I stake SOL via Marinade?","expected_keywords":["Marinade","mSOL","stake","liquid staking"]}
+{"id":"q040","category":"defi","question":"How do I place a perps order on Drift?","expected_keywords":["Drift","perps","order","margin"]}
+{"id":"q041","category":"wallet","question":"How do I integrate Phantom wallet in my React dApp?","expected_keywords":["Phantom","window.solana","connect","signTransaction"]}
+{"id":"q042","category":"wallet","question":"How do I use Solana Mobile Stack's wallet adapter on Android?","expected_keywords":["Mobile Wallet Adapter","MWA","Solana Mobile","Android"]}
+{"id":"q043","category":"wallet","question":"How do I use Squads multisig for program upgrades?","expected_keywords":["Squads","multisig","vault","threshold"]}
+{"id":"q044","category":"errors","question":"What does 'Transaction simulation failed: Blockhash not found' mean and how do I fix it?","expected_keywords":["blockhash","recent blockhash","expired","retry"]}
+{"id":"q045","category":"errors","question":"How do I debug a 'custom program error: 0x1' from my Anchor program?","expected_keywords":["custom error","error code","Anchor","ErrorCode"]}
+{"id":"q046","category":"errors","question":"Why am I getting 'insufficient funds for rent' errors?","expected_keywords":["insufficient funds","rent","lamports","rent-exempt minimum"]}
+{"id":"q047","category":"errors","question":"How do I handle 'Too Many Accounts' (limit 10,000,000) Solana RPC limit?","expected_keywords":["too many accounts","getProgramAccounts","pagination","filter"]}
+{"id":"q048","category":"perf","question":"How do I set priority fees to land transactions under congestion?","expected_keywords":["priority fee",["compute unit price","transactionConfig"],["setComputeUnitPrice","set_compute_unit_price","priorityFee"],["microLamports","micro-lamports","in lamports"]]}
+{"id":"q049","category":"perf","question":"How do I optimize my Solana program's compute unit usage?","expected_keywords":["compute unit","profiling","msg!",["logs","logging"],["BPF","SBF"]]}
+{"id":"q050","category":"perf","question":"How do I use preflight_commitment and skipPreflight effectively?","expected_keywords":["preflight","skipPreflight","commitment","sendTransaction"]}
+{"id":"q051","category":"rpc","question":"What breaks when v1 transactions (SIMD-0385) activate and how do I read them from RPC?","expected_keywords":[["maxSupportedTransactionVersion: 1","maxSupportedTransactionVersion:1","maxSupportedTransactionVersion\": 1"],"transactionConfig","32015",["4096","4,096"]]}

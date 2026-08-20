@@ -9,6 +9,10 @@ fmt:
 test:
     pnpm test
 
+# Run the 50-question benchmark against `url`, comparing with prod.
+eval url name="mine":
+    pnpm dlx tsx eval/run.ts --endpoint prod=https://mcp.solana.com/mcp --endpoint {{name}}={{url}}
+
 # Deploy ingestion job + dashboard via Databricks Asset Bundle. Reads
 # gitignored `prod.yml` for variable values (schema, warehouse_id, vs_index,
 # ...). The MCP server itself runs on Cloud Run and is deployed automatically
