@@ -116,6 +116,40 @@ pub fn forward(system_program: &AccountView, token_program: &AccountView, ix: &I
 }
 `;
 
+export const SECURE_CPI_VERIFIED_IN_TRY_FROM = `use pinocchio::cpi::{invoke, Instruction};
+pub struct Forward<'a> { pub token_program: &'a AccountView }
+impl<'a> Forward<'a> {
+  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+    let [token_program] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
+    verify_token_program(token_program)?;
+    Ok(Self { token_program })
+  }
+}
+pub fn forward(token_program: &AccountView, ix: &Instruction) -> Result<(), ProgramError> {
+  invoke(ix, &[token_program.clone()])
+}
+`;
+
+export const SECURE_CPI_LOCAL_BUILDER = `use pinocchio::cpi::{invoke, Instruction};
+fn transfer_ix(from: &AccountView, to: &AccountView) -> Instruction {
+  Instruction { program_id: &pinocchio_token::ID, accounts: &[], data: &[] }
+}
+pub fn forward(from: &AccountView, to: &AccountView, program: &AccountView) -> Result<(), ProgramError> {
+  let ix = transfer_ix(from, to);
+  invoke(&ix, &[program.clone()])
+}
+`;
+
+export const VULNERABLE_CPI_LOCAL_BUILDER_CALLER_ID = `use pinocchio::cpi::{invoke, Instruction};
+fn transfer_ix(program_id: &Pubkey, from: &AccountView, to: &AccountView) -> Instruction {
+  Instruction { program_id, accounts: &[], data: &[] }
+}
+pub fn forward(program_id: &Pubkey, from: &AccountView, to: &AccountView, program: &AccountView) -> Result<(), ProgramError> {
+  let ix = transfer_ix(program_id, from, to);
+  invoke(&ix, &[program.clone()])
+}
+`;
+
 export const VULNERABLE_PDA = `use pinocchio::pubkey::find_program_address;
 pub fn handle(account: &AccountView, seed: &[u8]) -> Result<(), ProgramError> {
   let (pda, _bump) = find_program_address(&[seed], &crate::ID);

@@ -32,6 +32,8 @@ export interface VisitorContext {
   filename: string;
   framework: Framework;
   output: AutofixerOutput;
+  /** Parsed tree for the whole input, for checks that must look outside the enclosing function. */
+  tree: Tree;
   /** Cached once per run by the driver. Populated before any enter handler fires. */
   tryFromBodies: TryFromBody[];
   /** Cached once per run by the driver. Anchor-specific structures (Accounts derives + #[program] mod). */

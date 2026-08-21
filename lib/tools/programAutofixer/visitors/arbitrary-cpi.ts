@@ -1,4 +1,4 @@
-import type { Node } from "web-tree-sitter";
+import type { Node, Tree } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
 import { getCallName, walk } from "../walk.js";
@@ -6,7 +6,9 @@ import {
   KEY_MARKERS,
   bodyContainsRejectingCheckFor,
   bodyContainsVerifyFor,
+  fileContainsProgramVerifyFor,
   findEnclosingFunctionBody,
+  findFunctionByName,
   getCallArgs,
   isProgramAccountName,
   rootIdentifierOf,
@@ -140,14 +142,43 @@ function invokeUsesVerifiedProgram(call: Node, verifiedPrograms: ReadonlySet<str
   return false;
 }
 
-function programAccountKeyChecked(scope: Node, invoke: Node): boolean {
+function programAccountVerified(scope: Node, invoke: Node): boolean {
   const roots = new Set<string>();
   for (const arg of getCallArgs(invoke)) {
     for (const root of collectRootIdentifiers(arg)) roots.add(root);
   }
-  for (const root of programShapedRoots(roots)) {
-    if (bodyContainsVerifyFor(scope, CHECK_ID_FNS, root)) return true;
-    if (bodyContainsRejectingCheckFor(scope, root, KEY_MARKERS)) return true;
+  const programRoots = programShapedRoots(roots);
+  if (programRoots.size === 0) return false;
+  for (const root of programRoots) {
+    const verified =
+      bodyContainsVerifyFor(scope, CHECK_ID_FNS, root) ||
+      bodyContainsRejectingCheckFor(scope, root, KEY_MARKERS) ||
+      fileContainsProgramVerifyFor(scope, root);
+    if (!verified) return false;
+  }
+  return true;
+}
+
+function isLocalInstructionBuilder(tree: Tree, name: string): boolean {
+  const fn = findFunctionByName(tree, name);
+  if (!fn) return false;
+  const returnType = fn.childForFieldName("return_type");
+  if (!returnType?.text.includes("Instruction")) return false;
+  const body = fn.childForFieldName("body");
+  return !!body && invokeUsesHardcodedProgramId(body);
+}
+
+function builtByLocalHardcodedBuilder(tree: Tree, candidates: Node[]): boolean {
+  for (const candidate of candidates) {
+    let hardcoded = false;
+    walk(candidate, n => {
+      if (hardcoded) return "skip";
+      if (n.type !== "call_expression") return;
+      const fn = n.childForFieldName("function");
+      const name = fn ? getCallName(fn) : null;
+      if (name && isLocalInstructionBuilder(tree, name)) hardcoded = true;
+    });
+    if (hardcoded) return true;
   }
   return false;
 }
@@ -157,8 +188,8 @@ export const arbitraryCpi: Visitor = {
   severity: "critical",
   appliesTo: ["pinocchio"],
   falsePositiveWhen: [
-    "program id verified in the accounts struct try_from or a helper outside this fn",
-    "instruction built by project-local builder hardcoding the id internally",
+    "program id verified in a helper in another file, outside the submitted text",
+    "instruction built by a project-local builder in another file, or one whose return type is not Instruction",
     "program binding name not program-shaped so verification unattributed",
     "instruction flows through match/closure/struct-field bindings untraceable to ::ID",
   ],
@@ -177,8 +208,9 @@ export const arbitraryCpi: Visitor = {
       const candidates = candidateInstructionExprs(scope, node);
       if (candidates.some(invokeUsesHardcodedProgramId)) return;
       if (candidates.some(isTrustedBuilderExpr)) return;
+      if (builtByLocalHardcodedBuilder(ctx.tree, candidates)) return;
       if (invokeUsesVerifiedProgram(node, verifiedProgramsBefore(scope, node.startIndex))) return;
-      if (programAccountKeyChecked(scope, node)) return;
+      if (programAccountVerified(ctx.tree.rootNode, node)) return;
       ctx.output.issues.push({
         severity: "critical",
         rule: "arbitrary-cpi",
