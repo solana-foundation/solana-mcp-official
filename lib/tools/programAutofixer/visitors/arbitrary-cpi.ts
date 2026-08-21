@@ -1,14 +1,13 @@
 import type { Node, Tree } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
-import { getCallName, walk } from "../walk.js";
+import { findAll, getCallName, walk } from "../walk.js";
 import {
   KEY_MARKERS,
   bodyContainsRejectingCheckFor,
   bodyContainsVerifyFor,
   fileContainsProgramVerifyFor,
   findEnclosingFunctionBody,
-  findFunctionByName,
   getCallArgs,
   isProgramAccountName,
   rootIdentifierOf,
@@ -160,8 +159,13 @@ function programAccountVerified(scope: Node, invoke: Node): boolean {
 }
 
 function isLocalInstructionBuilder(tree: Tree, name: string): boolean {
-  const fn = findFunctionByName(tree, name);
-  if (!fn) return false;
+  const matches = findAll(tree.rootNode, n => {
+    if (n.type !== "function_item") return false;
+    return n.childForFieldName("name")?.text === name;
+  });
+  // A duplicated name (concatenated modules) makes the call unattributable, so don't trust it.
+  if (matches.length !== 1) return false;
+  const fn = matches[0];
   const returnType = fn.childForFieldName("return_type");
   if (!returnType?.text.includes("Instruction")) return false;
   const body = fn.childForFieldName("body");
@@ -174,9 +178,11 @@ function builtByLocalHardcodedBuilder(tree: Tree, candidates: Node[]): boolean {
     walk(candidate, n => {
       if (hardcoded) return "skip";
       if (n.type !== "call_expression") return;
+      // Bare calls only: a qualified path or method call can't be attributed to a local
+      // function by name alone.
       const fn = n.childForFieldName("function");
-      const name = fn ? getCallName(fn) : null;
-      if (name && isLocalInstructionBuilder(tree, name)) hardcoded = true;
+      if (fn?.type !== "identifier") return;
+      if (isLocalInstructionBuilder(tree, fn.text)) hardcoded = true;
     });
     if (hardcoded) return true;
   }
@@ -189,7 +195,7 @@ export const arbitraryCpi: Visitor = {
   appliesTo: ["pinocchio"],
   falsePositiveWhen: [
     "program id verified in a helper in another file, outside the submitted text",
-    "instruction built by a project-local builder in another file, or one whose return type is not Instruction",
+    "instruction built by a project-local builder in another file, called via a qualified path or method, sharing its name with another function, or not returning Instruction",
     "program binding name not program-shaped so verification unattributed",
     "instruction flows through match/closure/struct-field bindings untraceable to ::ID",
   ],

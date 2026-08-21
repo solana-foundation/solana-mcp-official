@@ -16,6 +16,8 @@ import {
   SECURE_CPI_VERIFIED_IN_TRY_FROM,
   SECURE_CPI_LOCAL_BUILDER,
   VULNERABLE_CPI_LOCAL_BUILDER_CALLER_ID,
+  VULNERABLE_CPI_DUPLICATE_BUILDER_NAME,
+  VULNERABLE_CPI_QUALIFIED_BUILDER,
   VULNERABLE_PDA,
   SECURE_PDA,
   VULNERABLE_SYSVAR,
@@ -304,6 +306,18 @@ describe("program_autofixer regression cases (no regex fallbacks)", () => {
     const out = await runProgramAutofixer({ code: VULNERABLE_CPI_LOCAL_BUILDER_CALLER_ID, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
     expect(hit, "arbitrary-cpi trusted a builder that forwards a caller-supplied program id").toBeDefined();
+  }, 20_000);
+
+  it("flags arbitrary-cpi when two builders share a name and only one hardcodes the id", async () => {
+    const out = await runProgramAutofixer({ code: VULNERABLE_CPI_DUPLICATE_BUILDER_NAME, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi resolved an ambiguous builder name to the trusted function").toBeDefined();
+  }, 20_000);
+
+  it("flags arbitrary-cpi when the builder is called through a qualified path", async () => {
+    const out = await runProgramAutofixer({ code: VULNERABLE_CPI_QUALIFIED_BUILDER, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi matched a qualified call to a same-named local builder").toBeDefined();
   }, 20_000);
 
   it("does not flag unchecked-arithmetic on account-layout `len()` math", async () => {

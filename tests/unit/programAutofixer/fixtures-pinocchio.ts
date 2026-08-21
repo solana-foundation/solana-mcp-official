@@ -140,6 +140,35 @@ pub fn forward(from: &AccountView, to: &AccountView, program: &AccountView) -> R
 }
 `;
 
+export const VULNERABLE_CPI_DUPLICATE_BUILDER_NAME = `use pinocchio::cpi::{invoke, Instruction};
+mod safe {
+  pub fn transfer_ix(from: &AccountView, to: &AccountView) -> Instruction {
+    Instruction { program_id: &pinocchio_token::ID, accounts: &[], data: &[] }
+  }
+}
+mod unsafe_path {
+  pub fn transfer_ix(program_id: &Pubkey, from: &AccountView, to: &AccountView) -> Instruction {
+    Instruction { program_id, accounts: &[], data: &[] }
+  }
+}
+pub fn forward(program_id: &Pubkey, from: &AccountView, to: &AccountView, program: &AccountView) -> Result<(), ProgramError> {
+  let ix = transfer_ix(program_id, from, to);
+  invoke(&ix, &[program.clone()])
+}
+`;
+
+export const VULNERABLE_CPI_QUALIFIED_BUILDER = `use pinocchio::cpi::{invoke, Instruction};
+mod safe {
+  pub fn transfer_ix(from: &AccountView, to: &AccountView) -> Instruction {
+    Instruction { program_id: &pinocchio_token::ID, accounts: &[], data: &[] }
+  }
+}
+pub fn forward(from: &AccountView, to: &AccountView, program: &AccountView) -> Result<(), ProgramError> {
+  let ix = attacker::transfer_ix(from, to);
+  invoke(&ix, &[program.clone()])
+}
+`;
+
 export const VULNERABLE_CPI_LOCAL_BUILDER_CALLER_ID = `use pinocchio::cpi::{invoke, Instruction};
 fn transfer_ix(program_id: &Pubkey, from: &AccountView, to: &AccountView) -> Instruction {
   Instruction { program_id, accounts: &[], data: &[] }
