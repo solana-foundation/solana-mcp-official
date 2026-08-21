@@ -157,6 +157,32 @@ pub fn forward(program_id: &Pubkey, from: &AccountView, to: &AccountView, progra
 }
 `;
 
+export const VULNERABLE_CPI_IMPORTED_BUILDER = `use pinocchio::cpi::{invoke, Instruction};
+mod safe {
+  pub fn transfer_ix(from: &AccountView, to: &AccountView) -> Instruction {
+    Instruction { program_id: &pinocchio_token::ID, accounts: &[], data: &[] }
+  }
+}
+mod caller {
+  use crate::other_file::transfer_ix;
+  pub fn forward(program_id: &Pubkey, from: &AccountView, program: &AccountView) -> Result<(), ProgramError> {
+    let ix = transfer_ix(program_id, from);
+    invoke(&ix, &[program.clone()])
+  }
+}
+`;
+
+export const VULNERABLE_CPI_BUILDER_DECOY_ID = `use pinocchio::cpi::{invoke, Instruction};
+fn transfer_ix(program_id: &Pubkey, from: &AccountView) -> Instruction {
+  let _expected_program = pinocchio_token::ID;
+  Instruction { program_id, accounts: &[], data: &[] }
+}
+pub fn forward(program_id: &Pubkey, from: &AccountView, program: &AccountView) -> Result<(), ProgramError> {
+  let ix = transfer_ix(program_id, from);
+  invoke(&ix, &[program.clone()])
+}
+`;
+
 export const VULNERABLE_CPI_QUALIFIED_BUILDER = `use pinocchio::cpi::{invoke, Instruction};
 mod safe {
   pub fn transfer_ix(from: &AccountView, to: &AccountView) -> Instruction {

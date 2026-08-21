@@ -158,7 +158,44 @@ function programAccountVerified(scope: Node, invoke: Node): boolean {
   return true;
 }
 
-function isLocalInstructionBuilder(tree: Tree, name: string): boolean {
+function buildsInstructionWithHardcodedId(body: Node): boolean {
+  const literals = findAll(body, n => {
+    if (n.type !== "struct_expression") return false;
+    const typeName = n.childForFieldName("name")?.text ?? "";
+    return typeName === "Instruction" || typeName.endsWith("::Instruction");
+  });
+  if (literals.length === 0) return false;
+  return literals.every(literal => {
+    const programId = findAll(literal, n => n.type === "field_initializer").find(
+      f => (f.childForFieldName("field") ?? f.namedChild(0))?.text === "program_id",
+    );
+    const value = programId?.childForFieldName("value") ?? programId?.namedChild(1);
+    return !!value && invokeUsesHardcodedProgramId(value);
+  });
+}
+
+function enclosingModule(node: Node): Node | null {
+  let cursor: Node | null = node.parent;
+  while (cursor) {
+    if (cursor.type === "mod_item") return cursor;
+    cursor = cursor.parent;
+  }
+  return null;
+}
+
+function fileImportsName(tree: Tree, name: string): boolean {
+  return (
+    findAll(tree.rootNode, n => {
+      if (n.type !== "use_declaration") return false;
+      return findAll(n, id => id.type === "identifier" && id.text === name).length > 0;
+    }).length > 0
+  );
+}
+
+function isLocalInstructionBuilder(tree: Tree, call: Node, name: string): boolean {
+  // An import of the same name may shadow the local definition, and the imported
+  // body is not in the submitted text.
+  if (fileImportsName(tree, name)) return false;
   const matches = findAll(tree.rootNode, n => {
     if (n.type !== "function_item") return false;
     return n.childForFieldName("name")?.text === name;
@@ -166,10 +203,11 @@ function isLocalInstructionBuilder(tree: Tree, name: string): boolean {
   // A duplicated name (concatenated modules) makes the call unattributable, so don't trust it.
   if (matches.length !== 1) return false;
   const fn = matches[0];
+  if (enclosingModule(fn) !== enclosingModule(call)) return false;
   const returnType = fn.childForFieldName("return_type");
   if (!returnType?.text.includes("Instruction")) return false;
   const body = fn.childForFieldName("body");
-  return !!body && invokeUsesHardcodedProgramId(body);
+  return !!body && buildsInstructionWithHardcodedId(body);
 }
 
 function builtByLocalHardcodedBuilder(tree: Tree, candidates: Node[]): boolean {
@@ -182,7 +220,7 @@ function builtByLocalHardcodedBuilder(tree: Tree, candidates: Node[]): boolean {
       // function by name alone.
       const fn = n.childForFieldName("function");
       if (fn?.type !== "identifier") return;
-      if (isLocalInstructionBuilder(tree, fn.text)) hardcoded = true;
+      if (isLocalInstructionBuilder(tree, n, fn.text)) hardcoded = true;
     });
     if (hardcoded) return true;
   }
