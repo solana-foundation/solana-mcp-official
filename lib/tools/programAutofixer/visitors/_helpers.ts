@@ -109,6 +109,23 @@ function collectIdentifiers(node: Node, out: string[]): void {
   }
 }
 
+const PROGRAM_VERIFY_NAME_RE = /^(verify|check|assert)_.*program/;
+const EXTRA_PROGRAM_VERIFY_NAMES = new Set(["check_id", "check_program_id", "assert_program_id", "verify_program"]);
+
+export function fileContainsProgramVerifyFor(root: Node, account: string): boolean {
+  let found = false;
+  walk(root, n => {
+    if (found) return "skip";
+    if (n.type !== "call_expression") return;
+    const fn = n.childForFieldName("function");
+    const name = fn ? getCallName(fn) : null;
+    if (!name) return;
+    if (!PROGRAM_VERIFY_NAME_RE.test(name) && !EXTRA_PROGRAM_VERIFY_NAMES.has(name)) return;
+    if (getCallArgs(n).some(a => rootIdentifierOf(a) === account)) found = true;
+  });
+  return found;
+}
+
 export function isSignerName(name: string): boolean {
   return SIGNER_NAMES.has(name.toLowerCase());
 }

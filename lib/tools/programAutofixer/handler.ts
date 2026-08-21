@@ -254,6 +254,7 @@ export async function runProgramAutofixer({
     filename,
     framework: resolvedFramework,
     output,
+    tree,
     tryFromBodies: findTryFromBodies(tree),
     anchor: collectAnchorContext(tree),
   };

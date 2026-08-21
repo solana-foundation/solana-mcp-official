@@ -1,11 +1,12 @@
-import type { Node } from "web-tree-sitter";
+import type { Node, Tree } from "web-tree-sitter";
 import type { Visitor } from "../types.js";
 import { formatLocation } from "../types.js";
-import { getCallName, walk } from "../walk.js";
+import { findAll, getCallName, walk } from "../walk.js";
 import {
   KEY_MARKERS,
   bodyContainsRejectingCheckFor,
   bodyContainsVerifyFor,
+  fileContainsProgramVerifyFor,
   findEnclosingFunctionBody,
   getCallArgs,
   isProgramAccountName,
@@ -140,14 +141,88 @@ function invokeUsesVerifiedProgram(call: Node, verifiedPrograms: ReadonlySet<str
   return false;
 }
 
-function programAccountKeyChecked(scope: Node, invoke: Node): boolean {
+function programAccountVerified(scope: Node, invoke: Node): boolean {
   const roots = new Set<string>();
   for (const arg of getCallArgs(invoke)) {
     for (const root of collectRootIdentifiers(arg)) roots.add(root);
   }
-  for (const root of programShapedRoots(roots)) {
-    if (bodyContainsVerifyFor(scope, CHECK_ID_FNS, root)) return true;
-    if (bodyContainsRejectingCheckFor(scope, root, KEY_MARKERS)) return true;
+  const programRoots = programShapedRoots(roots);
+  if (programRoots.size === 0) return false;
+  for (const root of programRoots) {
+    const verified =
+      bodyContainsVerifyFor(scope, CHECK_ID_FNS, root) ||
+      bodyContainsRejectingCheckFor(scope, root, KEY_MARKERS) ||
+      fileContainsProgramVerifyFor(scope, root);
+    if (!verified) return false;
+  }
+  return true;
+}
+
+function buildsInstructionWithHardcodedId(body: Node): boolean {
+  const literals = findAll(body, n => {
+    if (n.type !== "struct_expression") return false;
+    const typeName = n.childForFieldName("name")?.text ?? "";
+    return typeName === "Instruction" || typeName.endsWith("::Instruction");
+  });
+  if (literals.length === 0) return false;
+  return literals.every(literal => {
+    const programId = findAll(literal, n => n.type === "field_initializer").find(
+      f => (f.childForFieldName("field") ?? f.namedChild(0))?.text === "program_id",
+    );
+    const value = programId?.childForFieldName("value") ?? programId?.namedChild(1);
+    return !!value && invokeUsesHardcodedProgramId(value);
+  });
+}
+
+function enclosingModule(node: Node): Node | null {
+  let cursor: Node | null = node.parent;
+  while (cursor) {
+    if (cursor.type === "mod_item") return cursor;
+    cursor = cursor.parent;
+  }
+  return null;
+}
+
+function fileImportsName(tree: Tree, name: string): boolean {
+  return (
+    findAll(tree.rootNode, n => {
+      if (n.type !== "use_declaration") return false;
+      return findAll(n, id => id.type === "identifier" && id.text === name).length > 0;
+    }).length > 0
+  );
+}
+
+function isLocalInstructionBuilder(tree: Tree, call: Node, name: string): boolean {
+  // An import of the same name may shadow the local definition, and the imported
+  // body is not in the submitted text.
+  if (fileImportsName(tree, name)) return false;
+  const matches = findAll(tree.rootNode, n => {
+    if (n.type !== "function_item") return false;
+    return n.childForFieldName("name")?.text === name;
+  });
+  // A duplicated name (concatenated modules) makes the call unattributable, so don't trust it.
+  if (matches.length !== 1) return false;
+  const fn = matches[0];
+  if (enclosingModule(fn) !== enclosingModule(call)) return false;
+  const returnType = fn.childForFieldName("return_type");
+  if (!returnType?.text.includes("Instruction")) return false;
+  const body = fn.childForFieldName("body");
+  return !!body && buildsInstructionWithHardcodedId(body);
+}
+
+function builtByLocalHardcodedBuilder(tree: Tree, candidates: Node[]): boolean {
+  for (const candidate of candidates) {
+    let hardcoded = false;
+    walk(candidate, n => {
+      if (hardcoded) return "skip";
+      if (n.type !== "call_expression") return;
+      // Bare calls only: a qualified path or method call can't be attributed to a local
+      // function by name alone.
+      const fn = n.childForFieldName("function");
+      if (fn?.type !== "identifier") return;
+      if (isLocalInstructionBuilder(tree, n, fn.text)) hardcoded = true;
+    });
+    if (hardcoded) return true;
   }
   return false;
 }
@@ -157,8 +232,8 @@ export const arbitraryCpi: Visitor = {
   severity: "critical",
   appliesTo: ["pinocchio"],
   falsePositiveWhen: [
-    "program id verified in the accounts struct try_from or a helper outside this fn",
-    "instruction built by project-local builder hardcoding the id internally",
+    "program id verified in a helper in another file, outside the submitted text",
+    "instruction built by a project-local builder in another file, called via a qualified path or method, sharing its name with another function, or not returning Instruction",
     "program binding name not program-shaped so verification unattributed",
     "instruction flows through match/closure/struct-field bindings untraceable to ::ID",
   ],
@@ -177,8 +252,9 @@ export const arbitraryCpi: Visitor = {
       const candidates = candidateInstructionExprs(scope, node);
       if (candidates.some(invokeUsesHardcodedProgramId)) return;
       if (candidates.some(isTrustedBuilderExpr)) return;
+      if (builtByLocalHardcodedBuilder(ctx.tree, candidates)) return;
       if (invokeUsesVerifiedProgram(node, verifiedProgramsBefore(scope, node.startIndex))) return;
-      if (programAccountKeyChecked(scope, node)) return;
+      if (programAccountVerified(ctx.tree.rootNode, node)) return;
       ctx.output.issues.push({
         severity: "critical",
         rule: "arbitrary-cpi",

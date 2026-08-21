@@ -13,6 +13,13 @@ import {
   SECURE_CPI,
   VULNERABLE_CPI_MISMATCHED_VERIFY,
   VULNERABLE_CPI_PARTIAL_VERIFY,
+  SECURE_CPI_VERIFIED_IN_TRY_FROM,
+  SECURE_CPI_LOCAL_BUILDER,
+  VULNERABLE_CPI_LOCAL_BUILDER_CALLER_ID,
+  VULNERABLE_CPI_DUPLICATE_BUILDER_NAME,
+  VULNERABLE_CPI_QUALIFIED_BUILDER,
+  VULNERABLE_CPI_IMPORTED_BUILDER,
+  VULNERABLE_CPI_BUILDER_DECOY_ID,
   VULNERABLE_PDA,
   SECURE_PDA,
   VULNERABLE_SYSVAR,
@@ -283,6 +290,48 @@ describe("program_autofixer regression cases (no regex fallbacks)", () => {
     const out = await runProgramAutofixer({ code: VULNERABLE_CPI_PARTIAL_VERIFY, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
     expect(hit, "arbitrary-cpi missed invoke with a partially verified program account list").toBeDefined();
+  }, 20_000);
+
+  it("does not flag arbitrary-cpi when the program is verified in the accounts struct try_from", async () => {
+    const out = await runProgramAutofixer({ code: SECURE_CPI_VERIFIED_IN_TRY_FROM, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi ignored verification outside the invoking fn").toBeUndefined();
+  }, 20_000);
+
+  it("does not flag arbitrary-cpi when a local builder hardcodes the program id", async () => {
+    const out = await runProgramAutofixer({ code: SECURE_CPI_LOCAL_BUILDER, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi ignored a local builder hardcoding the program id").toBeUndefined();
+  }, 20_000);
+
+  it("flags arbitrary-cpi when the local builder takes the program id from the caller", async () => {
+    const out = await runProgramAutofixer({ code: VULNERABLE_CPI_LOCAL_BUILDER_CALLER_ID, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi trusted a builder that forwards a caller-supplied program id").toBeDefined();
+  }, 20_000);
+
+  it("flags arbitrary-cpi when two builders share a name and only one hardcodes the id", async () => {
+    const out = await runProgramAutofixer({ code: VULNERABLE_CPI_DUPLICATE_BUILDER_NAME, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi resolved an ambiguous builder name to the trusted function").toBeDefined();
+  }, 20_000);
+
+  it("flags arbitrary-cpi when the builder is called through a qualified path", async () => {
+    const out = await runProgramAutofixer({ code: VULNERABLE_CPI_QUALIFIED_BUILDER, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi matched a qualified call to a same-named local builder").toBeDefined();
+  }, 20_000);
+
+  it("flags arbitrary-cpi when a bare builder call resolves through an import", async () => {
+    const out = await runProgramAutofixer({ code: VULNERABLE_CPI_IMPORTED_BUILDER, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi attributed an imported call to an out-of-scope local builder").toBeDefined();
+  }, 20_000);
+
+  it("flags arbitrary-cpi when the builder's hardcoded id is unrelated to the instruction", async () => {
+    const out = await runProgramAutofixer({ code: VULNERABLE_CPI_BUILDER_DECOY_ID, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi trusted a builder whose ::ID never reaches the instruction").toBeDefined();
   }, 20_000);
 
   it("does not flag unchecked-arithmetic on account-layout `len()` math", async () => {
