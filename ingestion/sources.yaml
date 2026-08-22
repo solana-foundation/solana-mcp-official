@@ -543,6 +543,15 @@ sources:
     primary_url: https://docs.jito.wtf
     start_urls: [https://docs.jito.wtf]
 
+  - id: fluxrpc-docs
+    name: FluxRPC Docs
+    kind: web
+    enabled: true
+    sections: [infra, data]
+    use_cases: "Flux RPC offers the freshest data, and transparent, by-the-byte billing"
+    primary_url: https://fluxrpc.com/docs/rpc
+    sitemaps: [https://fluxrpc.com/main-sitemap.xml]
+
   # --- Explorers / data providers ---
   - id: solscan-docs
     name: Solscan Docs
