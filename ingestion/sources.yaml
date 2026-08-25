@@ -648,6 +648,16 @@ sources:
     primary_url: https://pumpportal.fun
     sitemaps: [https://pumpportal.fun/sitemap.xml]
 
+  - id: rugcheck-docs
+    name: RugCheck Docs
+    kind: web
+    enabled: true
+    sections: [data, tokens, defi]
+    use_cases: "RugCheck provides token scoring using on-chain data. A free API is available."
+    primary_url: https://fluxrpc.com
+    sitemaps: [https://fluxrpc.com/main-sitemap.xml]
+    url_include: ["/docs/rugcheck"]
+
   # --- Wallets ---
   - id: phantom-docs
     name: Phantom Docs
