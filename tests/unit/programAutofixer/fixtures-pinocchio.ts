@@ -130,6 +130,26 @@ pub fn forward(token_program: &AccountView, ix: &Instruction) -> Result<(), Prog
 }
 `;
 
+export const SECURE_CPI_PROGRAM_INFO_NAME = `use pinocchio::cpi::{invoke, Instruction};
+pub struct Forward<'a> { pub token_program_info: &'a AccountView }
+impl<'a> Forward<'a> {
+  pub fn try_from(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+    let [token_program_info] = accounts else { return Err(ProgramError::NotEnoughAccountKeys) };
+    verify_token_program(token_program_info)?;
+    Ok(Self { token_program_info })
+  }
+}
+pub fn forward(token_program_info: &AccountView, ix: &Instruction) -> Result<(), ProgramError> {
+  invoke(ix, &[token_program_info.clone()])
+}
+`;
+
+export const VULNERABLE_CPI_PROGRAM_INFO_UNVERIFIED = `use pinocchio::cpi::{invoke, Instruction};
+pub fn forward(token_program_info: &AccountView, ix: &Instruction) -> Result<(), ProgramError> {
+  invoke(ix, &[token_program_info.clone()])
+}
+`;
+
 export const SECURE_CPI_LOCAL_BUILDER = `use pinocchio::cpi::{invoke, Instruction};
 fn transfer_ix(from: &AccountView, to: &AccountView) -> Instruction {
   Instruction { program_id: &pinocchio_token::ID, accounts: &[], data: &[] }
