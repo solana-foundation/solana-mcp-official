@@ -14,6 +14,8 @@ import {
   VULNERABLE_CPI_MISMATCHED_VERIFY,
   VULNERABLE_CPI_PARTIAL_VERIFY,
   SECURE_CPI_VERIFIED_IN_TRY_FROM,
+  SECURE_CPI_PROGRAM_INFO_NAME,
+  VULNERABLE_CPI_PROGRAM_INFO_UNVERIFIED,
   SECURE_CPI_LOCAL_BUILDER,
   VULNERABLE_CPI_LOCAL_BUILDER_CALLER_ID,
   VULNERABLE_CPI_DUPLICATE_BUILDER_NAME,
@@ -296,6 +298,18 @@ describe("program_autofixer regression cases (no regex fallbacks)", () => {
     const out = await runProgramAutofixer({ code: SECURE_CPI_VERIFIED_IN_TRY_FROM, framework: "pinocchio" });
     const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
     expect(hit, "arbitrary-cpi ignored verification outside the invoking fn").toBeUndefined();
+  }, 20_000);
+
+  it("does not flag arbitrary-cpi when the verified program binding is named *_program_info", async () => {
+    const out = await runProgramAutofixer({ code: SECURE_CPI_PROGRAM_INFO_NAME, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi ignored verification of a non-*_program binding name").toBeUndefined();
+  }, 20_000);
+
+  it("flags arbitrary-cpi when a *_program_info binding is never verified", async () => {
+    const out = await runProgramAutofixer({ code: VULNERABLE_CPI_PROGRAM_INFO_UNVERIFIED, framework: "pinocchio" });
+    const hit = out.issues.find(i => i.rule === "arbitrary-cpi");
+    expect(hit, "arbitrary-cpi treated a program-shaped name as verified without a verify call").toBeDefined();
   }, 20_000);
 
   it("does not flag arbitrary-cpi when a local builder hardcodes the program id", async () => {

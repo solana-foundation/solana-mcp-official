@@ -115,10 +115,12 @@ function collectRootIdentifiers(node: Node): Set<string> {
   return roots;
 }
 
+const PROGRAM_SHAPED_RE = /(^|_)prog(ram)?(_|$)/;
+
 function programShapedRoots(roots: ReadonlySet<string>): Set<string> {
   const out = new Set<string>();
   for (const root of roots) {
-    if (root === "program" || root.endsWith("_program") || isProgramAccountName(root)) out.add(root);
+    if (PROGRAM_SHAPED_RE.test(root) || isProgramAccountName(root)) out.add(root);
   }
   return out;
 }
@@ -232,10 +234,11 @@ export const arbitraryCpi: Visitor = {
   severity: "critical",
   appliesTo: ["pinocchio"],
   falsePositiveWhen: [
-    "program id verified in a helper in another file, outside the submitted text",
-    "instruction built by a project-local builder in another file, called via a qualified path or method, sharing its name with another function, or not returning Instruction",
+    "program id verified in a helper outside this fn, in this file or another",
+    "instruction built by a project-local builder hardcoding the id internally, in this file or another",
     "program binding name not program-shaped so verification unattributed",
     "instruction flows through match/closure/struct-field bindings untraceable to ::ID",
+    "program verified in this file in some other shape the rule does not recognize",
   ],
   enter: {
     call_expression(node, ctx) {
