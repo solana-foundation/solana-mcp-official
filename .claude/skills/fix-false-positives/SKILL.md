@@ -100,6 +100,6 @@ Ask the user to approve, adjust, or reject before writing any code. If the fix w
 - Run `pnpm test`. Report the real result; if anything fails, say so and fix it before continuing.
 - Update `false_positive_hints` if the fix makes a listed condition obsolete or reveals a new one.
 
-Commit with a `fix(autofixer):` message describing the behavior change. Do not push or open a PR unless the user asks.
+Show the user the diff and ask before committing. On approval, stage only the files the fix touched, never `git add -A`, and commit with a `fix(autofixer):` message describing the behavior change. Do not push or open a PR unless the user asks.
 
 Passing tests are not proof the fix worked; only telemetry is, and that arrives weeks later. Step 1 of the next run grades this one.
