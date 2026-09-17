@@ -175,7 +175,7 @@ async function callTool(endpoint: Endpoint, question: string, argKey: "query" | 
 }
 
 function mdSafe(s: string): string {
-  return s.replace(/`/g, "\\`");
+  return s.replace(/[\\`]/g, "\\$&");
 }
 
 function slugify(s: string): string {

@@ -139,7 +139,7 @@ describe("fetchDocumentation", () => {
   it("joins multiple sections with --- separators and dedupes ids", async () => {
     fetchSpy.mockImplementation(async (url: string | URL | Request) => {
       const u = typeof url === "string" ? url : url instanceof URL ? url.toString() : url.url;
-      if (u.includes("anchor-lang.com")) {
+      if (new URL(u).hostname === "www.anchor-lang.com") {
         return new Response("anchor verbatim", { status: 200 });
       }
       return new Response("not found", { status: 404 });
