@@ -83,7 +83,18 @@ async function handleRunRequest(res: ServerResponse): Promise<void> {
     log: logRecord,
   });
 
-  sendJsonResponse(res, result.ok ? 200 : 500, result);
+  if (result.ok) {
+    sendJsonResponse(res, 200, result);
+    return;
+  }
+
+  sendJsonResponse(res, 500, {
+    ok: false,
+    targetUrl: result.targetUrl,
+    attempts: result.attempts,
+    totalLatencyMs: result.totalLatencyMs,
+    error: "Probe failed",
+  });
 }
 
 function createProbeClient(targetUrl: URL): ProbeClient {
