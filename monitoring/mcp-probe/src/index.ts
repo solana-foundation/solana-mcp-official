@@ -84,7 +84,13 @@ async function handleRunRequest(res: ServerResponse): Promise<void> {
   });
 
   if (result.ok) {
-    sendJsonResponse(res, 200, result);
+    sendJsonResponse(res, 200, {
+      ok: true,
+      targetUrl: result.targetUrl,
+      attempts: result.attempts,
+      toolCount: result.toolCount,
+      totalLatencyMs: result.totalLatencyMs,
+    });
     return;
   }
 
