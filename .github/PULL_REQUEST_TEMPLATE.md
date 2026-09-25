@@ -15,7 +15,7 @@ comment-only fix, replace the line above with `Linked issue: trivial`. -->
 
 ## AI disclosure
 
-Check exactly one. See [CONTRIBUTING.md](https://github.com/solana-foundation/solana-mcp-official/blob/main/CONTRIBUTING.md#ai-use).
+Check exactly one. See [CONTRIBUTING.md](https://github.com/solana-foundation/solana-mcp/blob/main/CONTRIBUTING.md#ai-use).
 
 - [ ] No AI tooling was used beyond editor autocomplete.
 - [ ] AI tooling was used. Tool and extent: <!-- e.g. Claude Code wrote the tests, I wrote and reviewed everything else -->
